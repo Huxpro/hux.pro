@@ -43,7 +43,7 @@ import vitrePackage from "@/packages/vitre/package.json";
  * the rest.
  */
 
-export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre";
+export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "intent" | "vitre";
 
 /** Words in both languages. */
 export type Text = Record<Locale, string>;
@@ -187,6 +187,21 @@ export const LABS: readonly LabEntry[] = [
     blurb: {
       en: "Live Activities, parked windows, a notice and a page's pinned bar all reach for one strip at the top. Compose how they share it on the real Dock and real bars (each choice is an overflow strategy), and hold it to four rules measured off the page.",
       zh: "实时活动、停靠的窗口、提示和页面的吸顶工具栏，都要争顶部这一条。在真实的 Dock 和真实的工具栏上组合它们怎么共用（每个选择都是一种溢出策略），再用从页面上量出来的四条规则检查。",
+    },
+  },
+  {
+    id: "intent",
+    href: "/lab/intent",
+    kind: "study",
+    name: { en: "Intent Lab", zh: "意图实验室" },
+    mark: "reintent",
+    hint: {
+      en: "What a dream means, on every screen",
+      zh: "一个梦的意图，在每一块屏幕上",
+    },
+    blurb: {
+      en: "The dreams' intent trees (forget, everyone, blue), written by a strong model and decided per screen (reintent, from airtalk). Drag on a dream and the moves it knows light up; hover a direction the model sees and every screen glides there. Or say something: the tree's own vocabulary answers at once, a weak model chooses within it, or the strong model adds an intent.",
+      zh: "三个梦（forget、everyone、blue）的意图树，由强模型编写，按屏幕决定（reintent，来自 airtalk）。在梦上拖，它认得的拖法会亮起来；把鼠标移到模型看到的方向上，每块屏幕都滑过去。或者说一句：树自己的词汇表马上回答，弱模型在树里选，或者强模型新加一个意图。",
     },
   },
   {

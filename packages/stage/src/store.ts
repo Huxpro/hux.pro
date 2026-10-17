@@ -49,6 +49,13 @@ export interface StageOptions {
   source?: string;
 }
 
+/**
+ * A press or a release at a moment of stage time, where a share of the stage
+ * is (`down: [0.5, 0.85]` is the middle, near the bottom): a performance a
+ * stage gives on its own, the same on every run and at every size.
+ */
+export type Cue = { at: number; down: [number, number] } | { at: number; up: true };
+
 /** The longest step one frame takes, s. */
 export const MAX_DT = 0.25;
 
@@ -94,6 +101,13 @@ export class Stage {
   private layoutNow: Layout = { w: 0, h: 0, dpr: 1, center: { x: 0, y: 0 }, vmin: () => 0 };
   /** Overrides set from the inspector or the console, by node id and prop: tier-one edits, live. */
   private overrides = new Map<string, Record<string, unknown>>();
+  /** Numbers on their way to an override's value: from what, since when. */
+  private tweens = new Map<string, { from: number; at: number }>();
+  private morphing = 0;
+  private script: Cue[] = [];
+  private cued = 0;
+  /** Start over once the last phase has lasted this long, s; never when null. */
+  private loop: number | null = null;
 
   constructor({ id, machine, seed = 1, layer = sem, source }: StageOptions) {
     this.id = id;
@@ -142,8 +156,11 @@ export class Stage {
   /** Start over: the clock, the machine, every node's state. */
   reset() {
     this.machine = createMachine(this.config);
+    // A number on its way keeps going: its clock starts over with the stage's.
+    for (const t of this.tweens.values()) t.at -= this.now;
     this.now = 0;
     this.refs = {};
+    this.cued = 0;
     for (const rec of this.nodes.values()) {
       if (rec.ready) rec.def.dispose?.(rec.state);
       rec.ready = false;
@@ -175,7 +192,42 @@ export class Stage {
 
   /** A live override of one prop: what a slider in the inspector, or "slower", does without a model. */
   set(nodeId: string, prop: string, value: unknown) {
+    // Magic move: a number that changes moves to its new value over `morphing` seconds, from where it is now.
+    const rec = this.nodes.get(nodeId);
+    const now = rec ? this.resolve(rec)[prop] : undefined;
+    if (this.morphing > 0 && typeof now === "number" && typeof value === "number" && now !== value) {
+      this.tweens.set(`${nodeId}\u0000${prop}`, { from: now, at: this.now });
+    }
     this.overrides.set(nodeId, { ...this.overrides.get(nodeId), [prop]: value });
+  }
+
+  /** How long a number set over the scene takes to move to its new value, s (0: it jumps). */
+  morph(seconds: number) {
+    this.morphing = Math.max(0, seconds);
+  }
+
+  /** A node's props as the scene wrote them (no overrides), and its kind: what a model may be told it can change. */
+  written(id: string): { props: Record<string, unknown>; def: AnyKind } | null {
+    const rec = this.nodes.get(id);
+    return rec ? { props: rec.props(), def: rec.def } : null;
+  }
+
+  /** Every node placed, in scene order. */
+  ids() {
+    return this.ordered().map((r) => r.id);
+  }
+
+  /** A performance to give on the stage's own clock, and whether to start over at the end. */
+  play(script: Cue[], loop: number | null = null) {
+    this.script = [...script].sort((a, b) => a.at - b.at);
+    this.cued = this.script.filter((c) => c.at <= this.now).length;
+    this.loop = loop;
+  }
+
+  /** A phase nothing leaves: the end. */
+  private ended() {
+    const here = this.config[this.machine.phase()];
+    return !here?.after && !Object.keys(here?.on ?? {}).length;
   }
 
   // --- the frame -----------------------------------------------------------
@@ -186,8 +238,14 @@ export class Stage {
     // Stage time keeps to the wall clock on a slow device (a hold of a second
     // is a second at 5 fps); only a long gap, a hidden tab, is not caught up.
     this.dt = Math.min(dt, MAX_DT);
+    if (this.loop !== null && this.ended() && this.since(this.machine.phase()) >= this.loop) this.reset();
     this.now += this.dt;
     if (this.machine.tick(this.now)) this.onPhase();
+    while (this.cued < this.script.length && this.script[this.cued].at <= this.now) {
+      const cue = this.script[this.cued++];
+      if ("up" in cue) this.pointerUp();
+      else this.pointerDown({ x: cue.down[0] * layout.w, y: cue.down[1] * layout.h });
+    }
 
     const live: NodeRec[] = [];
     for (const rec of this.ordered()) {
@@ -240,7 +298,20 @@ export class Stage {
     const raw = rec.props();
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(raw)) out[k] = isRef(v) ? this.refs[v.$ref] : v;
-    return Object.assign(out, this.overrides.get(rec.id)) as Record<string, unknown> & NodeProps;
+    const over = this.overrides.get(rec.id);
+    Object.assign(out, over);
+    for (const prop of Object.keys(over ?? {})) {
+      const tween = this.tweens.get(`${rec.id}\u0000${prop}`);
+      if (!tween) continue;
+      const v = Math.max(0, (this.now - tween.at) / this.morphing);
+      if (v >= 1 || this.morphing <= 0) this.tweens.delete(`${rec.id}\u0000${prop}`);
+      else {
+        // Ease in and out: it leaves gently and arrives gently.
+        const e = v < 0.5 ? 4 * v * v * v : 1 - Math.pow(-2 * v + 2, 3) / 2;
+        out[prop] = tween.from + ((out[prop] as number) - tween.from) * e;
+      }
+    }
+    return out as Record<string, unknown> & NodeProps;
   }
 
   private ctx(rec: NodeRec): Ctx {

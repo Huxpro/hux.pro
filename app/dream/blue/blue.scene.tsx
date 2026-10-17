@@ -64,6 +64,7 @@ export default function Blue() {
         feather={48}
         seenAfter={0.5}
         pressIn={["lines", "between"]}
+        hue={0}
       />
       <Sun id="sun" parent="sea" on="sea" />
       <SurfSound id="surf" parent="sea" in={["look1", "look2"]} volume={0.5} rise={2.6} fall={1.1} />

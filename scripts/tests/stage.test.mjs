@@ -186,3 +186,68 @@ test("rules: inside, aligned and atLeast read the snapshot", () => {
   assert.equal(most.check(snap({ "f/dust": node(box, { onScreen: 1 }) })), true);
   assert.match(String(most.check(snap({ "f/dust": node(box, { onScreen: 0.5 }) }))), /onScreen is 0.5/);
 });
+
+test("host: a script presses and releases on the stage's clock, at a share of its size; a loop starts over at the end", () => {
+  const layer = createLayer();
+  const host = new Stage({ id: "s", layer, machine: { a: { on: { touch: "b" } }, b: { on: { lift: "c" } }, c: {} } });
+  const seen = [];
+  host.add(
+    "pad",
+    {
+      name: "Pad",
+      kind: "x",
+      intent: "",
+      frame: () => true,
+      pointerDown: (_s, _o, p, ctx) => (seen.push([p.x, p.y]), ctx.emit("touch"), true),
+      pointerUp: (_s, _o, ctx) => ctx.emit("lift"),
+    },
+    0,
+    () => ({ id: "pad" }),
+  );
+  host.play([{ at: 0.5, down: [0.5, 0.25] }, { at: 1, up: true }], 2);
+  const g = fakeCanvas().g;
+  for (let i = 0; i < 10; i++) host.tick(g, layout, 0.1, "#000");
+  assert.equal(host.phase(), "b");
+  assert.deepEqual(seen, [[200, 200]]);
+  for (let i = 0; i < 10; i++) host.tick(g, layout, 0.1, "#000");
+  assert.equal(host.phase(), "c");
+  let ticks = 0;
+  while (host.phase() === "c" && ticks < 100) {
+    host.tick(g, layout, 0.1, "#000");
+    ticks++;
+  }
+  assert.equal(host.phase(), "a", "it starts over");
+  // It ended at 1.1 s and had lasted 0.9 s when counting began: about 1.1 s more.
+  assert.ok(ticks >= 10 && ticks <= 13, `two seconds after it ended (${ticks} more ticks)`);
+  for (let i = 0; i < 6; i++) host.tick(g, layout, 0.1, "#000");
+  assert.equal(host.phase(), "b", "and performs again");
+  assert.equal(seen.length, 2);
+});
+
+test("host: with morph on, a number set over the scene moves to its new value, eased; without, it jumps", () => {
+  const { host, layer, canvas } = stage();
+  host.tick(canvas.g, layout, 0.016, "#000");
+  host.morph(0.6);
+  host.set("dot", "approach", 1);
+  host.set("dot", "approach", 3);
+  const at = () => layer.snapshot().nodes["t/dot"].params.approach.value;
+  assert.equal(at(), 1, "the moment it is set, it is where it was");
+  for (let i = 0; i < 3; i++) host.tick(canvas.g, layout, 0.1, "#000");
+  assert.ok(at() > 1 && at() < 3, `on its way (${at()})`);
+  for (let i = 0; i < 4; i++) host.tick(canvas.g, layout, 0.1, "#000");
+  assert.equal(at(), 3, "and there");
+  host.morph(0);
+  host.set("dot", "approach", 1);
+  assert.equal(at(), 1, "no morph: it jumps");
+  // Started over mid-way (a preview that replays the performance): it keeps going from where it was, never past either end.
+  host.morph(0.6);
+  for (let i = 0; i < 20; i++) host.tick(canvas.g, layout, 0.1, "#000");
+  host.set("dot", "approach", 3);
+  host.tick(canvas.g, layout, 0.2, "#000");
+  const before = at();
+  host.reset();
+  const after = at();
+  assert.ok(after >= before && after < 3, `after a reset it is still on its way (${before} → ${after})`);
+  for (let i = 0; i < 5; i++) host.tick(canvas.g, layout, 0.1, "#000");
+  assert.equal(at(), 3, "and arrives");
+});

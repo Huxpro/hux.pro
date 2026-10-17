@@ -1,4 +1,5 @@
 import { kind } from "stage";
+import { blend, ease, MORPH } from "./morph";
 import { MOMENT_NAMES, MOMENTS, paint, type Picture } from "./pictures";
 import type { EdgeOut, Speck, TideOut, WindowOut } from "./types";
 
@@ -7,6 +8,9 @@ import type { EdgeOut, Speck, TideOut, WindowOut } from "./types";
 // hold on and goes no further than the oldest reaching the edge: it waits
 // there and wears away, and nothing rises past it. A moment that goes leaves
 // specks where its lit pixels were, in their colours; the dust takes them.
+// A moment that is `kept` does not go: at the edge it is set aside, whole,
+// beside the window, and stays there; let it go later and it turns to dust
+// where it rests.
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
@@ -23,6 +27,8 @@ type MomentsProps = {
   holdMin: number;
   /** A picture's box at a full row, px. */
   size: number;
+  /** The moments never forgotten (by index): set aside at the edge instead of going to dust. */
+  kept: number[];
 };
 
 type Drawn = { x: number; y: number; size: number; alpha: number };
@@ -41,11 +47,17 @@ type MomentsState = {
   /** What went to dust this frame. */
   shed: Speck[];
   goneSent: boolean;
+  /** Set aside, kept: where each rests, if it does. */
+  aside: (Drawn | null)[];
+  /** Magic move: where each was drawn when the window began to change, and when. */
+  morphAt: number | null;
+  from: (Drawn | null)[] | null;
 };
 
 export type MomentsOut = {
   pics: Picture[];
   drawn: (Drawn | null)[];
+  aside: (Drawn | null)[];
   shed: Speck[];
   remaining: number;
   edgeAt: number;
@@ -65,6 +77,7 @@ export const Moments = kind<MomentsProps, MomentsState, MomentsOut>({
     holdRate: { range: [0, 1], note: "how fast time runs while held" },
     holdMin: { unit: "s", range: [0.1, 1], note: "a shorter press is not holding on, and brings no tide" },
     size: { unit: "px", range: [32, 80], note: "a picture, at a full row" },
+    kept: { note: "moments never forgotten, by index (0 your cat … 4 a little sun): set aside at the edge, whole" },
   },
 
   init: (_p, { layout }) => ({
@@ -76,9 +89,14 @@ export const Moments = kind<MomentsProps, MomentsState, MomentsOut>({
     edgeAt: -1,
     shed: [],
     goneSent: false,
+    aside: MOMENTS.map(() => null),
+    morphAt: null,
+    from: null,
   }),
 
-  step(s, p, { t, layout, rng, out, emit }) {
+  step(s, p, { t, rng, out, emit }) {
+    // Where each was drawn last frame, in the window and set aside: where a magic move starts from.
+    const before = s.drawn.map((d, i) => d ?? s.aside[i]);
     s.shed = [];
     s.drawn = s.pics.map(() => null);
     s.edgeAt = -1;
@@ -93,22 +111,28 @@ export const Moments = kind<MomentsProps, MomentsState, MomentsOut>({
     if (held && oldest !== -1) s.clock = Math.min(s.clock, (oldest + win.held) * p.gap);
 
     const { box, row, scale } = win;
-    const cx = layout.w / 2;
-    /** Where moment `i` is now: it enters at the bottom and rises. */
-    const y = (i: number) => box.y + box.height - row / 2 - ((s.clock - i * p.gap) / p.gap) * row;
+    const up = win.axis === "up";
+    /** Where moment `i` is along the window now: it enters at the far end (the bottom, or the right) and goes toward the edge. */
+    const along = (i: number) => (up ? box.y + box.height : box.x + box.width) - row / 2 - ((s.clock - i * p.gap) / p.gap) * row;
+    /** The middle of the window across its axis. */
+    const across = up ? box.x + box.width / 2 : box.y + box.height / 2;
+    const centre = (i: number) => (up ? { x: across, y: along(i) } : { x: along(i), y: across });
     /** Turn part of a moment to dust: `share` of its points, or all of them. */
     const shed = (i: number, share: number) => {
-      const cy = y(i);
+      const c = centre(i);
       for (const pt of s.pics[i].points) {
         if (share < 1 && rng() > share) continue;
         // The picture is drawn smaller on a short screen; its dust starts where it is.
-        s.shed.push({ x: cx + pt.x * scale, y: cy + pt.y * scale, color: pt.color });
+        s.shed.push({ x: c.x + pt.x * scale, y: c.y + pt.y * scale, color: pt.color });
       }
     };
+    const kept = (i: number) => Array.isArray(p.kept) && p.kept.includes(i);
+    /** It goes: to dust, or, kept, aside. */
     const dissolve = (i: number) => {
       if (s.gone[i]) return;
-      shed(i, 1);
       s.gone[i] = true;
+      if (kept(i)) s.aside[i] = { x: 0, y: 0, size: 0, alpha: 1 };
+      else shed(i, 1);
     };
 
     for (let i = 0; i < s.pics.length; i++) {
@@ -124,10 +148,9 @@ export const Moments = kind<MomentsProps, MomentsState, MomentsOut>({
         dissolve(i);
         continue;
       }
-      const my = y(i);
       // Half a pixel of slack: held, the clock stops at the edge, and in
       // floating point "at" can land a hair short of it.
-      if (my <= edge.y + 0.5) {
+      if (along(i) <= edge.at + 0.5) {
         if (!held) {
           dissolve(i);
           continue;
@@ -137,15 +160,57 @@ export const Moments = kind<MomentsProps, MomentsState, MomentsOut>({
       const fresh = clamp01(age / 0.6);
       const jitter = i === s.edgeAt ? (rng() - 0.5) * 1.6 * s.wear[i] : 0;
       const size = p.size * scale * (0.85 + 0.15 * fresh);
-      s.drawn[i] = { x: cx - size / 2 + jitter, y: my - size / 2 + (1 - fresh) * 8, size, alpha: fresh * (1 - s.wear[i] * 0.8) };
+      // A fresh one settles in from a little further back.
+      const c = centre(i);
+      const back = (1 - fresh) * 8;
+      s.drawn[i] = {
+        x: c.x - size / 2 + (up ? jitter : back),
+        y: c.y - size / 2 + (up ? back : jitter),
+        size,
+        alpha: fresh * (1 - s.wear[i] * 0.8),
+      };
     }
 
-    // Held at the edge: it stays, but it wears away anyway.
-    if (s.edgeAt !== -1) {
+    // Held at the edge: it stays, but it wears away anyway (unless it is kept).
+    if (s.edgeAt !== -1 && !kept(s.edgeAt) && edge.wears) {
       const i = s.edgeAt;
       s.wear[i] += t.dt / edge.erode;
       shed(i, t.dt * edge.shed);
       if (s.wear[i] >= 1) dissolve(i);
+    }
+
+    // What is set aside rests beside the window (past its edge), in a row by when it went; where there is no room
+    // beside it (a narrow screen, the window on its side), above it. Let go of, it turns to dust where it rests.
+    const resting = s.aside.map((a, i) => (a ? i : -1)).filter((i) => i !== -1);
+    const small = p.size * scale * 0.7;
+    const beside = up || box.x - small - 8 >= 8;
+    resting.forEach((i, k) => {
+      const slot = (k - (resting.length - 1) / 2) * small * 1.15;
+      const at = !beside
+        ? { x: box.x + box.width / 2 + slot - small / 2, y: box.y - small - 8 }
+        : up
+          ? { x: across + slot - small / 2, y: box.y - small - 8 }
+          : { x: box.x - small - 8, y: across + slot - small / 2 };
+      if (!kept(i)) {
+        const k2 = small / p.size;
+        for (const pt of s.pics[i].points) s.shed.push({ x: at.x + small / 2 + pt.x * k2, y: at.y + small / 2 + pt.y * k2, color: pt.color });
+        s.aside[i] = null;
+        return;
+      }
+      s.aside[i] = { ...at, size: small, alpha: 1 };
+    });
+
+    // The window began to change: each picture moves from where it was to where it now belongs.
+    if (win.morphAt !== s.morphAt) {
+      s.morphAt = win.morphAt;
+      s.from = win.morphAt === null ? null : before;
+    }
+    if (s.from && s.morphAt !== null) {
+      const e = ease((t.now - s.morphAt) / MORPH);
+      const from = s.from;
+      const move = (d: Drawn | null, i: number) => (d && d.size && from[i]?.size ? blend(from[i]!, d, e) : d);
+      s.drawn = s.drawn.map(move);
+      s.aside = s.aside.map(move);
     }
 
     if (!s.goneSent && s.gone.every(Boolean)) {
@@ -157,6 +222,7 @@ export const Moments = kind<MomentsProps, MomentsState, MomentsOut>({
   frame: (s) => ({
     pics: s.pics,
     drawn: s.drawn,
+    aside: s.aside,
     shed: s.shed,
     remaining: s.gone.filter((g) => !g).length,
     edgeAt: s.edgeAt,
@@ -164,10 +230,10 @@ export const Moments = kind<MomentsProps, MomentsState, MomentsOut>({
   }),
 
   draw(g, o) {
-    o.drawn.forEach((d, i) => {
-      if (!d) return;
+    [...o.drawn, ...o.aside].forEach((d, j) => {
+      if (!d || !d.size) return;
       g.globalAlpha = d.alpha;
-      g.drawImage(o.pics[i].sprite, d.x, d.y, d.size, d.size);
+      g.drawImage(o.pics[j % o.pics.length].sprite, d.x, d.y, d.size, d.size);
     });
     g.globalAlpha = 1;
   },
@@ -182,10 +248,14 @@ export const Moments = kind<MomentsProps, MomentsState, MomentsOut>({
     return { rect: [x0, y0, x1 - x0, y1 - y0] };
   },
   count: () => MOMENTS.length,
-  item: (_s, o, i) => (o.drawn[i] ? rect(o.drawn[i]) : null),
+  item: (_s, o, i) => {
+    const d = o.drawn[i] ?? o.aside[i];
+    return d && d.size ? rect(d) : null;
+  },
   itemName: (i) => MOMENT_NAMES[i],
   inspect: (s) => ({
     remembered: MOMENT_NAMES.filter((_, i) => !s.gone[i]),
+    kept: MOMENT_NAMES.filter((_, i) => s.aside[i]),
     wearing: s.edgeAt === -1 ? null : MOMENT_NAMES[s.edgeAt],
   }),
 

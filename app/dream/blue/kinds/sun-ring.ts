@@ -20,7 +20,7 @@ export type SunRingOut = { x: number; y: number; r: number; kept: number; rgb: [
 export const SunRing = kind<SunRingProps, null, SunRingOut | null>({
   name: "SunRing",
   kind: "agent",
-  names: ["the sun's ring", "the drawn sun", "太阳圆环"],
+  names: ["the sun's ring", "the drawn sun", "太阳圆环", "the sun", "太阳"],
   intent: "The sun as a description: a ring where the real one will be, faintly warm once it has been seen.",
   source: "app/dream/blue/kinds/sun-ring.ts",
   params: { x: { range: [0.1, 0.9] }, y: { range: [0.1, 0.9] }, size: { range: [0.02, 0.12] } },

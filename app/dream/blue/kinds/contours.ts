@@ -23,12 +23,13 @@ const rgb = (s: string) => s.split(",").map(Number) as [number, number, number];
 export const Contours = kind<ContoursProps, { kept: number }, ContoursOut>({
   name: "Contours",
   kind: "field",
-  names: ["contour lines", "the drawing", "the grey sea", "线稿"],
+  names: ["contour lines", "the drawing", "the grey sea", "线稿", "the sea", "海"],
   intent: "The sea as I know it: a description, grey lines rolling to the horizon, each hiding the ones behind it.",
   source: "app/dream/blue/kinds/contours.ts",
   params: {
     horizon: { range: [0.3, 0.6], note: "share of the height, the same in both seas" },
     lines: { range: [8, 60] },
+    kept: { note: '"r, g, b": the colour the lines keep after every look (the sea\'s, as they remember it)' },
   },
 
   init: () => ({ kept: 0 }),

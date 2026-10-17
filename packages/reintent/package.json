@@ -1,0 +1,11 @@
+{
+  "name": "reintent",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Intents as a probabilistic, context-indexed decision table (closed kinds; a person's decision > their preference > a confident model > code), on signals. Vendored from airtalk's reintent lab.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.js"
+  }
+}
