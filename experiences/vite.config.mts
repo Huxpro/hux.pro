@@ -12,7 +12,13 @@ const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 export default defineConfig({
   root: here("."),
   base: "/scenes/",
-  resolve: { alias: { scene: here("../packages/scene/src/index.ts") } },
+  resolve: {
+    alias: {
+      scene: here("../packages/scene/src/index.ts"),
+      reintent: here("../packages/reintent/src/reintent.js"),
+      intents: here("../packages/intents/src/index.ts"),
+    },
+  },
   build: {
     outDir: here("../public/scenes"),
     emptyOutDir: true,

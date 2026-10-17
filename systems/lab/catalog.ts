@@ -48,7 +48,7 @@ import vitrePackage from "@/packages/vitre/package.json";
  * the rest.
  */
 
-export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre" | "wardrobe";
+export type LabId = "works" | "attachments" | "icon" | "legibility" | "glow" | "band" | "vitre" | "wardrobe" | "dream" | "screens";
 
 /** Words in both languages. */
 export type Text = Record<Locale, string>;
@@ -89,8 +89,8 @@ export type LabEntry = StudyLab | LibraryLab | ExperienceLab;
 export interface ExperienceInfo {
   /** The document itself, under public/: what the lab frames and the app opens. */
   src: string;
-  /** Its entry in content/apps.json: the icon on the home screen. */
-  app: string;
+  /** Its entry in content/apps.json: the icon on the home screen (none: only in the lab). */
+  app?: string;
 }
 
 /** What a library's header says about the package, read from it, not retyped. */
@@ -225,6 +225,39 @@ export const LABS: readonly LabEntry[] = [
     blurb: {
       en: "A tall thin man in black, under a round hat far too big for him, stood in my wardrobe, then at my bed. I woke, and the wardrobe door really was opening. Hold to close your eyes; each time you open them, he is closer.",
       zh: "一个穿黑衣服、又高又瘦、戴着一顶大得出奇的圆帽子的男人，先站在我的衣柜里，后来站在我的床头。我醒了，衣柜门真的正在打开。按住闭上眼睛；每次睁开，他都更近一些。",
+    },
+  },
+  {
+    id: "dream",
+    href: "/lab/dream",
+    name: { en: "A Dream, Told", zh: "讲一个梦" },
+    mark: "intents",
+    kind: "experience",
+    experience: {
+      src: "/scenes/dream/index.html",
+    },
+    hint: {
+      en: "A player for dreams written as intent trees",
+      zh: "梦写成意图树，播放器把它演出来",
+    },
+    blurb: {
+      en: "No dream of its own: a player. A dream is a tree the model writes from the words (the beats, and in each where he is, the door, his gaze, how long), and the player plays it over the Wardrobe's bedroom, a blink between beats. Inspect it to tell it another dream, answer where the model was unsure, drag him, keep a version or pass one on.",
+      zh: "它自己没有梦，只是一个播放器。梦是一棵树，由模型根据你讲的话写出来（分几幕，每一幕他在哪、柜门开多大、看不看你、多久），播放器在《衣柜》的卧室里把它演出来，幕与幕之间眨一下眼。打开检查：讲另一个梦，回答模型拿不准的地方，拖动他，存下一个版本或者传给别人。",
+    },
+  },
+  {
+    id: "screens",
+    href: "/lab/screens",
+    name: { en: "One Dream, Any Screen", zh: "一个梦，任意屏幕" },
+    mark: "reintent",
+    kind: "study",
+    hint: {
+      en: "A scene's framing, as a few decisions",
+      zh: "取景，是少数几个决定",
+    },
+    blurb: {
+      en: "The Wardrobe was composed once, for a phone. Everywhere else its framing is a few closed decisions (fill or whole; how much of him, of the door, must stay; what to centre on), made by Reintent's precedence: yours, then your rule, then a confident model, then code. A solver frames every screen from where the scene says its things are. The model asks only where it cannot tell; a switch on one screen moves the crossover for all.",
+      zh: "《衣柜》只为手机构图过一次。在其他屏幕上，取景是少数几个封闭的决定（铺满还是原样；他、那扇门至少要留多少；以谁为中心），按 Reintent 的先后来定：你的选择 > 你的规则 > 够确定的模型 > 代码。求解器按场景自己量出的位置为每块屏幕取景。模型只在拿不准时才问；在一块屏幕上切换，会挪动所有屏幕的交叉点。",
     },
   },
   {

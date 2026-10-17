@@ -1,12 +1,13 @@
 "use client";
 
 import { ArrowUpRight, RotateCcw, ScanSearch } from "lucide-react";
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 import { experienceById, type LabId } from "../catalog";
 import { useLabStrings, type LabTable } from "../i18n";
+import { BindingLines } from "./binding";
 import { InspectorOverlay, InspectorPanel, useInspection } from "./inspector";
 import { LabButton, LabChip, LabShell, labButtonClass } from "./shell";
 
@@ -28,6 +29,9 @@ import { LabButton, LabChip, LabShell, labButtonClass } from "./shell";
 // the bar's Inspect switch lays the running scene open beside the frame
 // (components/inspector.tsx) in place of the story. Everything it shows, the
 // words included, comes from the running scene; nothing is imported here.
+//
+// The page's fragment is handed to the document: a shared version of an
+// experience's intent tree (`#v=…`, packages/intents) opens in the frame.
 // =============================================================================
 
 const en = {
@@ -45,9 +49,19 @@ const zh: typeof en = {
 const STRINGS: LabTable<typeof en> = { en, zh };
 
 /** The document's address in a language, with whatever else it is asked to do. */
-export function experienceSrc(src: string, lang: string, extra?: Record<string, string>) {
+export function experienceSrc(src: string, lang: string, extra?: Record<string, string>, hash = "") {
   const query = new URLSearchParams({ lang, ...extra });
-  return `${src}?${query}`;
+  return `${src}?${query}${hash}`;
+}
+
+const onHash = (fn: () => void) => {
+  window.addEventListener("hashchange", fn);
+  return () => window.removeEventListener("hashchange", fn);
+};
+
+/** The page's fragment (a shared version rides there), live. */
+function useHash() {
+  return useSyncExternalStore(onHash, () => location.hash, () => "");
 }
 
 export function ExperienceShell({
@@ -69,7 +83,8 @@ export function ExperienceShell({
   const S = useLabStrings(STRINGS);
   const [run, setRun] = useState(0);
   const [inspecting, setInspecting] = useState(false);
-  const src = experienceSrc(lab.experience.src, locale);
+  const hash = useHash();
+  const src = experienceSrc(lab.experience.src, locale, undefined, hash);
 
   const tools = inspect ? (
     <LabChip on={inspecting} onClick={() => setInspecting((v) => !v)}>
@@ -94,7 +109,7 @@ export function ExperienceShell({
   return (
     <LabShell lab={id} layout="canvas" tools={tools} actions={actions}>
       {/* Keyed, so a replay or a new language is a fresh frame and a fresh inspection. */}
-      <Body key={`${locale}:${run}`} src={src} title={lab.name[locale]} inspecting={inspecting && !!inspect}>
+      <Body key={`${locale}:${run}:${hash}`} src={src} title={lab.name[locale]} inspecting={inspecting && !!inspect}>
         <article lang={locale} className="ink-bare w-full max-w-md space-y-5 lg:pt-10">
           {children}
           {how && <p className={cn(TYPE.meta, "pt-3")}>{how}</p>}
@@ -106,9 +121,13 @@ export function ExperienceShell({
 
 function Body({ src, title, inspecting, children }: { src: string; title: string; inspecting: boolean; children: ReactNode }) {
   const frame = useRef<HTMLIFrameElement>(null);
+  const body = useRef<HTMLDivElement>(null);
   const inspection = useInspection(frame);
+  const tree = inspection.intents.snap?.tree ?? null;
   return (
-    <div className="flex flex-col items-center gap-10 lg:flex-row lg:items-start lg:justify-center lg:gap-16">
+    <div ref={body} className="relative flex flex-col items-center gap-10 lg:flex-row lg:items-start lg:justify-center lg:gap-16">
+      {/* Inspecting a tree: the bindings drawn across, words → tree → picture. */}
+      {inspecting && tree && <BindingLines container={body} frame={frame} tree={tree} scene={inspection.snapshot} chain={inspection.chain} onScreen={inspection.intents.snap?.focus ?? null} />}
       <div
         className={cn(
           "relative shrink-0 overflow-hidden rounded-[2.25rem] border border-border/60 bg-black shadow-overlay",

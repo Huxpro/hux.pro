@@ -1,0 +1,9 @@
+{
+  "name": "intents",
+  "private": true,
+  "version": "0.0.0",
+  "description": "A model-and-person collaboration loop over Reintent: the intent tree as state, events resolved to presets or inferred by a routed model.",
+  "type": "module",
+  "exports": "./src/index.ts",
+  "peerDependencies": { "react": ">=19" }
+}

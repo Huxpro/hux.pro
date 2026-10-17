@@ -66,3 +66,6 @@ packages/vitre/node_modules/
 # Lynx example bundles, built elsewhere and dropped in here for the windows
 # to load. Binary output, 4MB of it, and nothing in this repo builds it.
 public/lynx-examples/
+
+# The dev bridge to a model working in this repository (app/api/intents/infer)
+.intents-bridge/

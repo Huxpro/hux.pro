@@ -1,0 +1,468 @@
+// =============================================================================
+// ② The model, routed.
+//
+// When no preset reads an event, what is needed goes to a model:
+//
+//   weak     a kind more on an intent the tree already has (a place he was
+//            dropped, an opening the door was left at, one past the end of a
+//            scale): small, local, cheap.
+//   strong   a new thing (with its own intents, and a drawing), a sentence
+//            nothing in the tree is about, a whole new dream: open-ended.
+//
+// The model is shown what a ReAct step shows it (`observe`: the tree as text,
+// the context, the need) and answers in one fixed shape (`Answer`), which
+// becomes a tree here: kinds added, things added, the person's part as picks.
+// A real model answers through the server route (/api/intents/infer, with a
+// key); without one, the host's recorded answers and the generic weak rules
+// below stand in, and say so.
+// =============================================================================
+
+import type { Need } from "./recognize";
+import { bindWords } from "./words";
+import { toXml, type Action, type By, type Drawing, type Intent, type Kind, type Node, type Pt, type State, type Text, type Tree } from "./tree";
+
+export type Tier = "weak" | "strong";
+
+export function tierOf(need: Need): Tier {
+  // Rewritten words that name something new (一把伞) reprompt a part: that is the strong model's.
+  if (need.kind === "reword") return need.intent && !need.noun ? "weak" : "strong";
+  return need.kind === "learn-at" || need.kind === "learn-value" || need.kind === "extend" || need.kind === "unsay" ? "weak" : "strong";
+}
+
+// -----------------------------------------------------------------------------
+// The one shape a model answers in (strict-schema friendly: arrays, no maps).
+// -----------------------------------------------------------------------------
+
+export interface RealizeField {
+  field: string;
+  num: number | null;
+  x: number | null;
+  y: number | null;
+  flag: boolean | null;
+}
+export interface AnswerKind {
+  id: string;
+  label_zh: string;
+  label_en: string;
+  aka: string[];
+  realize: RealizeField[];
+  p: number;
+}
+export interface AnswerIntent {
+  name: string;
+  label_zh: string;
+  label_en: string;
+  aka: string[];
+  resolve: "ask" | "switch";
+  ordered: boolean;
+  kinds: AnswerKind[];
+}
+export interface AnswerNode {
+  id: string;
+  label_zh: string;
+  label_en: string;
+  aka: string[];
+  prompt: string;
+  draws: string | null;
+  svg: string | null;
+  intents: AnswerIntent[];
+  /** A library slot it is drawn in ("man.hat"), replacing what was there; null: a thing of its own. */
+  fills?: string | null;
+  /** Drawings that depend on one of its intents (one per kind): intent "" for one that holds always. */
+  drawings?: { intent: string; kind: string; svg: string }[];
+}
+export interface Answer {
+  note_zh: string;
+  note_en: string;
+  /** Kinds added to intents the tree has. */
+  kinds: { node: string; intent: string; kind: AnswerKind }[];
+  /** Things added (or, for a dream, the whole cast). */
+  nodes: AnswerNode[];
+  /** The person's part of the event, as picks on the new tree. */
+  picks: { node: string; intent: string; kind: string }[];
+  /** A dream's beats, in order (node ids); empty when not a dream. */
+  phases: string[];
+  title_zh: string;
+  title_en: string;
+  /** For a dream: which words of it are about what (in reading order; intent and kind "" when none). */
+  spans: { text: string; node: string; intent: string; kind: string }[];
+  /** Beliefs revised (the words they rested on were deleted): one row per kind. */
+  beliefs: { node: string; intent: string; kind: string; p: number }[];
+  // --- Structural: the answer replaces part of the tree, not only adds to it. ---
+  /** Intents (or whole things: intent "") the new reading makes meaningless. */
+  remove?: { node: string; intent: string }[];
+  /** A person's picks carried across the rewrite: what they chose, in the new part's terms. */
+  carry?: { from_node: string; from_intent: string; from_kind: string; node: string; intent: string; kind: string }[];
+  /** Words bound again, to what they are about now (exact stretches of the prompt). */
+  rebind?: { text: string; node: string; intent: string; kind: string }[];
+  /** "tree": the tree can say it. "code": it cannot; the experience's code has to change, and `plan` says how. */
+  scope?: "tree" | "code";
+  plan_zh?: string;
+  plan_en?: string;
+}
+
+/** What a structural answer does, in a person's terms: shown before it is applied. */
+export interface Proposal {
+  scope: "tree" | "code";
+  plan: Text | null;
+  removed: string[];
+  added: string[];
+  carried: string[];
+  rebound: string[];
+  fills: string[];
+}
+
+export const isStructural = (a: Answer) => !!(a.remove?.length || a.carry?.length || a.nodes.some((n) => n.fills) || a.scope === "code");
+
+export const toRealize = (fs: RealizeField[]): Record<string, unknown> =>
+  Object.fromEntries(fs.map((f) => [f.field, f.x !== null && f.y !== null ? [f.x, f.y] : f.num !== null ? f.num : f.flag]));
+export const fromRealize = (r: Record<string, unknown>): RealizeField[] =>
+  Object.entries(r).map(([field, v]) => ({
+    field,
+    num: typeof v === "number" ? v : null,
+    x: Array.isArray(v) ? v[0] : null,
+    y: Array.isArray(v) ? v[1] : null,
+    flag: typeof v === "boolean" ? v : null,
+  }));
+
+const toKind = (k: AnswerKind, by: By): Kind => ({ label: { zh: k.label_zh, en: k.label_en }, aka: k.aka, realize: toRealize(k.realize), learned: by });
+const toIntent = (i: AnswerIntent, by: By): Intent => ({
+  label: { zh: i.label_zh, en: i.label_en },
+  aka: i.aka,
+  resolve: i.resolve,
+  ordered: i.ordered || undefined,
+  kinds: Object.fromEntries(i.kinds.map((k) => [k.id, { ...toKind(k, by), learned: undefined }])),
+  p: normalize(Object.fromEntries(i.kinds.map((k) => [k.id, k.p]))),
+});
+const normalize = (p: Record<string, number>) => {
+  const s = Object.values(p).reduce((a, b) => a + b, 0) || 1;
+  return Object.fromEntries(Object.entries(p).map(([k, v]) => [k, v / s]));
+};
+
+/** A model's answer, as the tree it means, and the person's picks on it. */
+export function applyAnswer(tree: Tree, a: Answer, need: Need, by: By): { tree: Tree; then: Action[]; drawNeeded: string[]; proposal: Proposal | null } {
+  const from: NonNullable<Intent["from"]> = need.kind === "learn-at" || need.kind === "learn-value" ? "dragged" : need.kind === "reword" ? "worded" : "said";
+  let next: Tree;
+  if (need.kind === "dream") {
+    next = {
+      scene: tree.scene,
+      title: { zh: a.title_zh, en: a.title_en },
+      prompt: need.text,
+      spans: bindWords(need.text, (a.spans ?? []).map((x) => [x.text, x.node, x.intent || undefined, x.kind || undefined] as const)),
+      by,
+      nodes: a.nodes.map((n) => toNode(n, by, false)),
+      phases: a.phases.map((node) => ({ node })),
+    };
+  } else {
+    next = {
+      ...tree,
+      nodes: [
+        ...tree.nodes.map((n) => {
+          const adds = a.kinds.filter((k) => k.node === n.id);
+          if (!adds.length) return n;
+          const intents = { ...n.intents };
+          for (const add of adds) {
+            const i = intents[add.intent];
+            if (!i) continue;
+            // The new kind takes its p; the others keep their proportions in what is left.
+            const rest = Object.fromEntries(Object.entries(i.p).map(([k, v]) => [k, v * (1 - add.kind.p)]));
+            intents[add.intent] = { ...i, kinds: { ...i.kinds, [add.kind.id]: toKind(add.kind, by) }, p: { ...rest, [add.kind.id]: add.kind.p } };
+          }
+          return { ...n, intents };
+        }),
+        ...a.nodes.filter((n) => !tree.nodes.some((x) => x.id === n.id)).map((n) => toNode(n, by, true)),
+      ],
+    };
+  }
+  // Structural: what the new reading makes meaningless goes, with the words bound to it (unless bound again below).
+  const removed: string[] = [];
+  for (const r of a.remove ?? []) {
+    removed.push(r.intent ? `${r.node}.${r.intent}` : r.node);
+    next = {
+      ...next,
+      nodes: r.intent
+        ? next.nodes.map((n) => (n.id !== r.node ? n : { ...n, intents: Object.fromEntries(Object.entries(n.intents).filter(([k]) => k !== r.intent)) }))
+        : next.nodes.filter((n) => n.id !== r.node),
+      spans: next.spans?.filter((s) => !(s.node === r.node && (!r.intent || s.intent === r.intent))),
+    };
+  }
+  // Words bound again: the stretch (the first not already bound to the same), or a new span for it.
+  const rebound: string[] = [];
+  for (const rb of a.rebind ?? []) {
+    const spans = next.spans ?? [];
+    const at = spans.find((s) => next.prompt.slice(s.from, s.to) === rb.text);
+    const patch = { node: rb.node, intent: rb.intent || undefined, kind: rb.kind || undefined, unread: false, by: by.who };
+    if (at) next = { ...next, spans: spans.map((s) => (s === at ? { ...s, ...patch } : s)) };
+    else {
+      const from = next.prompt.indexOf(rb.text);
+      if (from < 0) continue;
+      next = { ...next, spans: [...spans.filter((s) => s.to <= from || s.from >= from + rb.text.length), { id: `r${from}`, from, to: from + rb.text.length, ...patch }].sort((x, y) => x.from - y.from) };
+    }
+    rebound.push(`「${rb.text}」→ ${rb.node}${rb.intent ? `.${rb.intent}` : ""}${rb.kind ? ` = ${rb.kind}` : ""}`);
+  }
+  // Beliefs revised: each intent named gets the kinds' new p (normalized; kinds not named keep theirs).
+  for (const [k, rows] of Object.entries(Object.groupBy(a.beliefs ?? [], (b) => `${b.node}|${b.intent}`))) {
+    const [node, intent] = k.split("|");
+    next = {
+      ...next,
+      nodes: next.nodes.map((n) =>
+        n.id !== node || !n.intents[intent] ? n : { ...n, intents: { ...n.intents, [intent]: { ...n.intents[intent], p: normalize({ ...n.intents[intent].p, ...Object.fromEntries((rows ?? []).map((r) => [r.kind, r.p])) }) } } },
+      ),
+    };
+  }
+  const then: Action[] = [
+    ...a.picks.map((p) => ({ type: "decide" as const, node: p.node, intent: p.intent, kind: p.kind, from })),
+    // A person's pick, carried into the new part: still theirs.
+    ...(a.carry ?? []).map((c) => ({ type: "decide" as const, node: c.node, intent: c.intent, kind: c.kind, from: "carried" as const })),
+  ];
+  // Things to draw: what the library cannot (a dream's beats are moments, not things).
+  const beats = new Set((next.phases ?? []).map((p) => p.node));
+  const drawNeeded = next.nodes.filter((n) => !n.draws && !n.drawings?.length && !beats.has(n.id)).map((n) => n.id);
+  const proposal: Proposal | null = isStructural(a)
+    ? {
+        scope: a.scope ?? "tree",
+        plan: a.plan_zh || a.plan_en ? { zh: a.plan_zh ?? "", en: a.plan_en ?? "" } : null,
+        removed,
+        added: [
+          ...a.nodes.filter((n) => !tree.nodes.some((x) => x.id === n.id)).map((n) => `${n.id}${n.fills ? ` (in ${n.fills})` : ""}: ${n.intents.map((i) => i.name).join(", ")}`),
+          ...a.kinds.map((k) => `${k.node}.${k.intent} + ${k.kind.id}`),
+        ],
+        carried: (a.carry ?? []).map((c) => `${c.from_node}.${c.from_intent} = ${c.from_kind} → ${c.node}.${c.intent} = ${c.kind}`),
+        rebound,
+        fills: a.nodes.filter((n) => n.fills).map((n) => `${n.fills} ← ${n.id}`),
+      }
+    : null;
+  return { tree: next, then, drawNeeded, proposal };
+}
+
+function toNode(n: AnswerNode, by: By, learned: boolean): Node {
+  const drawings = [...(n.drawings ?? []).map((d) => ({ svg: d.svg, under: d.intent ? { [d.intent]: d.kind } : {}, by })), ...(n.svg ? [{ svg: n.svg, under: {}, by }] : [])];
+  return {
+    id: n.id,
+    label: { zh: n.label_zh, en: n.label_en },
+    aka: n.aka,
+    prompt: n.prompt,
+    draws: n.draws ?? undefined,
+    learned: learned ? by : undefined,
+    intents: Object.fromEntries(n.intents.map((i) => [i.name, toIntent(i, by)])),
+    drawings: drawings.length ? drawings : undefined,
+    fills: n.fills ?? undefined,
+    view: n.fills ?? undefined,
+  };
+}
+
+// -----------------------------------------------------------------------------
+// What the model is shown
+// -----------------------------------------------------------------------------
+
+export function observe(state: State, need: Need): string {
+  const said = state.ctx.prompts.map((p) => `  <said>${p}</said>`).join("\n");
+  const ask =
+    need.kind === "learn-at"
+      ? `<need kind="learn-at" node="${need.node}" intent="${need.intent}" at="${need.at.map((v) => Math.round(v)).join(",")}">A thing was dropped where none of its kinds is. Add one kind there; pick it.</need>`
+      : need.kind === "learn-value"
+        ? `<need kind="learn-value" node="${need.node}" intent="${need.intent}" ${need.field}="${need.value.toFixed(2)}">Left between two kinds. Add one kind at this value; pick it.</need>`
+        : need.kind === "extend"
+          ? `<need kind="extend" node="${need.node}" intent="${need.intent}" dir="${need.dir}">Already at the end of this scale. Add one kind further along; pick it.</need>`
+          : need.kind === "new-thing"
+            ? `<need kind="new-thing" noun="${need.noun}">${need.text}</need>`
+            : need.kind === "dream"
+              ? `<need kind="dream">${need.text}</need>`
+              : need.kind === "reword"
+                ? `<need kind="reword" node="${need.node}"${need.intent ? ` intent="${need.intent}"` : ""} was="${need.old}">${need.text}</need> <!-- The person rewrote these words in the prompt; no kind reads them. ${need.intent && !need.noun ? "Add the kind they say to this intent; pick it." : "They reprompt it: decide how much of the tree the new words make meaningless. If a new thing takes the old one's place, answer structurally: remove what no longer means anything, add the new thing (it fills the library slot the old one was drawn in, e.g. man.hat), carry the person's picks that still mean something, rebind the words. If the tree and the library cannot say it at all, set scope \"code\" and give the plan."} -->`
+                : need.kind === "unsay"
+                  ? `<need kind="unsay" node="${need.node}" intent="${need.intent}">${need.text}</need> <!-- The person deleted these words from the prompt: they were your evidence for this intent. Give your beliefs again, without them. -->`
+                  : `<need kind="unknown" on="${need.node ?? "scene"}">${need.text}</need>`;
+  return `${toXml(state)}\n<context>\n${said}\n</context>\n${ask}\n<!-- No preset intent reads this. Change the tree as little as it takes; keep every person's pick. -->`;
+}
+
+// -----------------------------------------------------------------------------
+// The host: what an experience tells the router about itself.
+// -----------------------------------------------------------------------------
+
+export interface Host {
+  scene: string;
+  /** What the realize fields mean, which library things there are: shown to a real model. */
+  grammar: string;
+  /** Answers recorded for this experience (a stand-in for the strong model). */
+  recorded?: (need: Need, state: State) => Answer | null;
+  /** A drawing recorded for a thing a model added (a stand-in for the strong model's drawing). */
+  recordedDrawing?: (node: Node) => string | null;
+  /** A place's name, for a point (for a learned place). */
+  placeName?: (at: Pt) => Text;
+  /** The server route; null: never call one. */
+  endpoint?: string | null;
+  /**
+   * The experience's own conventions, laid over any tree a model writes for it
+   * (a dream's beats get their gestures and their words for "longer"): what the
+   * answer's shape has no room for, and the player needs.
+   */
+  shape?: (tree: Tree) => Tree;
+}
+
+export interface Inference {
+  tree?: Tree;
+  then: Action[];
+  note: Text;
+  by: By;
+  tier: Tier;
+  /** A real model answered (false: a stand-in). */
+  live: boolean;
+  ms: number;
+  observation: string;
+  drawNeeded: string[];
+  dream: boolean;
+  /** A structural answer: shown to the person as a proposal, applied only when they accept it. */
+  proposal?: Proposal | null;
+}
+
+async function callModel(host: Host, body: unknown): Promise<{ answer: unknown; model: string } | null> {
+  if (host.endpoint === null) return null;
+  try {
+    const res = await fetch(host.endpoint ?? "/api/intents/infer", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    if (!res.ok) return null;
+    return (await res.json()) as { answer: unknown; model: string };
+  } catch {
+    return null;
+  }
+}
+
+export async function infer(state: State, need: Need, host: Host): Promise<Inference> {
+  const t0 = performance.now();
+  const tier = tierOf(need);
+  const observation = observe(state, need);
+  const real = await callModel(host, { task: "infer", tier, observation, need, grammar: host.grammar, scene: host.scene });
+  let answer: Answer | null = null;
+  let by: By;
+  if (real) {
+    answer = real.answer as Answer;
+    by = { who: `model:${tier}`, model: real.model, event: describe(need) };
+  } else {
+    // The stand-in: a weak model's rules are generic; a strong model's answers are the host's, recorded.
+    await new Promise((r) => setTimeout(r, tier === "weak" ? 450 : 1100));
+    answer = (tier === "weak" ? weakStandIn(state, need, host) : null) ?? host.recorded?.(need, state) ?? null;
+    by = { who: "model:recorded", event: describe(need) };
+  }
+  const ms = Math.round(performance.now() - t0);
+  if (!answer) {
+    return {
+      then: [],
+      note: real
+        ? { zh: "模型也读不懂：树不变", en: "The model cannot read it either: the tree stays" }
+        : { zh: "替身答不了这个（要真实模型）：树不变", en: "The stand-in cannot answer this (it needs a real model): the tree stays" },
+      by,
+      tier,
+      live: !!real,
+      ms,
+      observation,
+      drawNeeded: [],
+      dream: false,
+    };
+  }
+  const applied = applyAnswer(state.tree, answer, need, by);
+  if (host.shape) applied.tree = host.shape(applied.tree);
+  return { ...applied, note: { zh: answer.note_zh, en: answer.note_en }, by, tier, live: !!real, ms, observation, dream: need.kind === "dream" };
+}
+
+/** A lazy effect: a thing a model added is drawn by a (strong) model, later. */
+export async function draw(state: State, node: Node, host: Host): Promise<Drawing | null> {
+  const real = await callModel(host, { task: "draw", tier: "strong", observation: toXml(state), node: { id: node.id, prompt: node.prompt, label: node.label, fills: node.fills ?? null }, grammar: host.grammar, scene: host.scene });
+  if (real) return { svg: String((real.answer as { svg: string }).svg), under: {}, by: { who: "model:strong", model: real.model, event: `draw ${node.id}` } };
+  await new Promise((r) => setTimeout(r, 1400));
+  const svg = host.recordedDrawing?.(node);
+  return svg ? { svg, under: {}, by: { who: "model:recorded", event: `draw ${node.id}` } } : null;
+}
+
+const describe = (need: Need) =>
+  need.kind === "learn-at"
+    ? `drop ${need.node}.${need.intent} at ${need.at.map(Math.round).join(",")}`
+    : need.kind === "learn-value"
+      ? `leave ${need.node}.${need.intent} at ${need.value.toFixed(2)}`
+      : need.kind === "extend"
+        ? `past the end of ${need.node}.${need.intent}`
+        : need.kind === "new-thing" || need.kind === "dream" || need.kind === "unknown"
+          ? need.text
+          : need.kind === "reword"
+            ? `「${need.old}」→「${need.text}」`
+            : need.kind === "unsay"
+              ? `「${need.text}」 deleted`
+              : "";
+
+// -----------------------------------------------------------------------------
+// The weak model's work, as rules (what a weak model is for: one kind more).
+// -----------------------------------------------------------------------------
+
+let seq = 0;
+
+function weakStandIn(state: State, need: Need, host: Host): Answer | null {
+  const base = { nodes: [], phases: [], title_zh: "", title_en: "", spans: [], beliefs: [] };
+  const n = state.tree.nodes.find((x) => x.id === (need as { node?: string }).node);
+  const intent = n && "intent" in need && need.intent ? n.intents[need.intent] : undefined;
+  if (!n || !intent) return null;
+  if (need.kind === "learn-at") {
+    const g = intent.gesture;
+    const [y0, s0, y1, s1] = g?.depth ?? [0, 1, 1, 1];
+    const scale = Math.max(Math.min(s0, s1) * 0.8, Math.min(Math.max(s0, s1) * 1.05, s0 + ((need.at[1] - y0) / (y1 - y0)) * (s1 - s0)));
+    const name = host.placeName?.(need.at) ?? { zh: `新位置`, en: "a new place" };
+    const id = `spot${++seq}`;
+    return {
+      ...base,
+      note_zh: `一个新的位置：${name.zh}（离已有的几个都太远），近大远小，比例 ${scale.toFixed(2)}`,
+      note_en: `A new place: ${name.en} (too far from the ones it had), scaled by depth to ${scale.toFixed(2)}`,
+      kinds: [{ node: n.id, intent: need.intent, kind: { id, label_zh: name.zh, label_en: name.en, aka: [name.zh], realize: fromRealize({ [g?.field ?? "at"]: need.at.map(Math.round), scale: +scale.toFixed(3) }), p: 0.8 } }],
+      picks: [{ node: n.id, intent: need.intent, kind: id }],
+    };
+  }
+  if (need.kind === "learn-value") {
+    const pct = Math.round(need.value * 100);
+    const id = `${need.field}${pct}`;
+    return {
+      ...base,
+      note_zh: `停在两种之间：记成一种新的（${pct}%），以后也能说出来`,
+      note_en: `Left between two kinds: a new one (${pct}%), nameable from now on`,
+      kinds: [{ node: n.id, intent: need.intent, kind: { id, label_zh: `${pct}%`, label_en: `${pct}%`, aka: [], realize: fromRealize({ [need.field]: +need.value.toFixed(3) }), p: 0.8 } }],
+      picks: [{ node: n.id, intent: need.intent, kind: id }],
+    };
+  }
+  if (need.kind === "unsay") {
+    // Without its words, the belief falls back halfway to even: unsure where it was sure.
+    const ks = Object.keys(intent.kinds);
+    const flat = Object.fromEntries(ks.map((k) => [k, +(0.5 * (intent.p[k] ?? 0) + 0.5 / ks.length).toFixed(3)]));
+    return {
+      ...base,
+      kinds: [],
+      picks: [],
+      note_zh: `「${need.text}」删了：它是这个意图的依据，信念退回一半到平均`,
+      note_en: `"${need.text}" deleted: it was the evidence; the belief falls back halfway to even`,
+      beliefs: ks.map((k) => ({ node: n.id, intent: need.intent, kind: k, p: flat[k] })),
+    };
+  }
+  if (need.kind === "reword" && need.dir === 0) return null;
+  if (need.kind === "extend" || need.kind === "reword") {
+    const dir = need.dir || 1;
+    // One step further along: every number in the last two kinds, extrapolated.
+    const ks = Object.values(intent.kinds);
+    const [a, b] = dir > 0 ? [ks[ks.length - 2], ks[ks.length - 1]] : [ks[1], ks[0]];
+    const realize: Record<string, unknown> = {};
+    for (const [f, v] of Object.entries(b.realize)) {
+      const w = a?.realize[f];
+      realize[f] = typeof v === "number" && typeof w === "number" ? +Math.max(0, v + (v - w)).toFixed(3) : v;
+    }
+    const id = `${need.intent}${dir > 0 ? "+" : "-"}${ks.length}`;
+    // Reworded: the new kind is called what the person wrote.
+    const label =
+      need.kind === "reword"
+        ? { zh: need.text, en: need.text }
+        : dir > 0
+          ? { zh: `比「${b.label.zh}」更甚`, en: `more than ${b.label.en}` }
+          : { zh: `比「${b.label.zh}」更轻`, en: `less than ${b.label.en}` };
+    return {
+      ...base,
+      note_zh: `已经在这个尺度的尽头：往外再延一档（${label.zh}）`,
+      note_en: `Already at the end of the scale: one more step out (${label.en})`,
+      kinds: [{ node: n.id, intent: need.intent!, kind: { id, label_zh: label.zh, label_en: label.en, aka: need.kind === "reword" ? [need.text] : [], realize: fromRealize(realize), p: 0.8 } }],
+      picks: [{ node: n.id, intent: need.intent!, kind: id }],
+    };
+  }
+  return null;
+}

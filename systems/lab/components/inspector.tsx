@@ -7,7 +7,10 @@ import { Slider } from "@/components/ui/slider";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
+import { gestureFor, type IntentsApi, type Pt, type Snapshot as IntentsSnapshot } from "intents";
 import { useLabStrings, type LabTable } from "../i18n";
+import { chainOf, colorOf, sceneBoxes, type BindFocus, type Chain } from "./binding";
+import { IntentsPanel, useIntentsApi } from "./intents-panel";
 import { LabButton, LabChip } from "./shell";
 
 // =============================================================================
@@ -26,6 +29,11 @@ import { LabButton, LabChip } from "./shell";
 // state are sliders, and so are a selected beat's time and length; moving one
 // is an override, which lies over the code and survives the code being
 // rewritten (over a param or a beat, an edit; over state, a pin).
+//
+// An experience that keeps an intent tree (packages/intents) also opens its
+// loop, as window.__intents: the panel leads with it (intents-panel.tsx), and
+// on the frame a drag on a thing an intent's gesture names is an event in that
+// loop (previewed while it moves, recognized when it lands); a click selects.
 // =============================================================================
 
 const en = {
@@ -162,18 +170,27 @@ function useSnapshot(api: SceneApi | null): Snapshot | null {
 export interface Inspection {
   api: SceneApi | null;
   snapshot: Snapshot | null;
+  /** The intent loop, where the experience keeps one. */
+  intents: { api: IntentsApi | null; snap: IntentsSnapshot | null };
   selected: string | null;
   select: (ref: string | null) => void;
   report: Report | null;
+  /** What is hovered in any of words, tree, picture; and what it binds to in the other two. */
+  hover: BindFocus;
+  setHover: (f: BindFocus) => void;
+  chain: Chain;
 }
 
 /** The inspector's state, shared by the overlay on the frame and the panel beside it. */
 export function useInspection(frame: RefObject<HTMLIFrameElement | null>): Inspection & { setReport: (r: Report | null) => void } {
   const api = useScene(frame);
   const snapshot = useSnapshot(api);
+  const intents = useIntentsApi(frame);
   const [selected, setSelected] = useState<string | null>(null);
   const [report, setReport] = useState<Report | null>(null);
-  return { api, snapshot, selected, select: (ref) => setSelected((cur) => (cur === ref ? null : ref)), report, setReport };
+  const [hover, setHover] = useState<BindFocus>(null);
+  const chain = chainOf(intents.snap?.tree ?? { scene: "", title: { zh: "", en: "" }, prompt: "", by: { who: "" }, nodes: [] }, hover, intents.snap?.focus ?? null);
+  return { api, snapshot, intents, selected, select: (ref) => setSelected((cur) => (cur === ref ? null : ref)), report, setReport, hover, setHover, chain };
 }
 
 // -----------------------------------------------------------------------------
@@ -182,11 +199,35 @@ export function useInspection(frame: RefObject<HTMLIFrameElement | null>): Inspe
 
 type Matrix = Snapshot["toClient"];
 const apply = (m: Matrix, x: number, y: number) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]] as const;
+/** From the frame back into the scene's units. */
+const invert = (m: Matrix, x: number, y: number): Pt => {
+  const det = m[0] * m[3] - m[1] * m[2];
+  const dx = x - m[4];
+  const dy = y - m[5];
+  return [(m[3] * dx - m[2] * dy) / det, (m[0] * dy - m[1] * dx) / det];
+};
+
+interface Drag {
+  path: string;
+  from: Pt;
+  to: Pt;
+  /** Where it started and is now, on the frame. */
+  a: readonly [number, number];
+  b: readonly [number, number];
+  moved: boolean;
+}
 
 export function InspectorOverlay({ inspection }: { inspection: Inspection }) {
-  const { api, snapshot, selected, select } = inspection;
+  const { api, snapshot, selected, select, intents, hover, setHover, chain } = inspection;
   const S = useLabStrings(STRINGS);
   const ref = useRef<SVGSVGElement>(null);
+  const [drag, setDrag] = useState<Drag | null>(null);
+  // The drag as the handlers see it, between renders.
+  const live = useRef<Drag | null>(null);
+  const move = (d: Drag | null) => {
+    live.current = d;
+    setDrag(d);
+  };
   if (!snapshot) return null;
   const m = snapshot.toClient;
   const nodes: { path: string; box: NonNullable<InstanceView["visible"]>; geo: InstanceView["geometry"]; on: boolean }[] = [];
@@ -220,11 +261,44 @@ export function InspectorOverlay({ inspection }: { inspection: Inspection }) {
       className="absolute inset-0 z-10 h-full w-full cursor-crosshair"
       role="img"
       aria-label={S.runtime}
-      onClick={(e) => {
+      onPointerDown={(e) => {
         const r = ref.current?.getBoundingClientRect();
         if (!r || !api) return;
-        const hit = api.hitTest(e.clientX - r.left, e.clientY - r.top);
-        if (hit) select(hit);
+        const p = [e.clientX - r.left, e.clientY - r.top] as const;
+        const hit = api.hitTest(p[0], p[1]);
+        if (!hit) return;
+        // A thing an intent's gesture names is dragged through the loop; anything else is selected.
+        if (!intents.api || !intents.snap || !gestureFor(intents.snap.tree, hit, intents.snap.focus)) return select(hit);
+        e.currentTarget.setPointerCapture(e.pointerId);
+        const at = invert(m, p[0], p[1]);
+        move({ path: hit, from: at, to: at, a: p, b: p, moved: false });
+      }}
+      onPointerMove={(e) => {
+        const r = ref.current?.getBoundingClientRect();
+        const drag = live.current;
+        if (!drag && r && api && intents.snap) {
+          // Hovering the picture: the chain back through the tree to the words.
+          const hit = api.hitTest(e.clientX - r.left, e.clientY - r.top);
+          if (hit !== (hover?.view ?? null)) setHover(hit ? { view: hit } : null);
+        }
+        if (!drag || !r) return;
+        const b = [e.clientX - r.left, e.clientY - r.top] as const;
+        const moved = drag.moved || Math.hypot(b[0] - drag.a[0], b[1] - drag.a[1]) > 4;
+        const next = { ...drag, b, to: invert(m, b[0], b[1]), moved };
+        move(next);
+        if (moved) intents.api?.preview({ path: next.path, from: next.from, to: next.to });
+      }}
+      onPointerUp={() => {
+        const drag = live.current;
+        if (!drag) return;
+        move(null);
+        if (!drag.moved) return select(drag.path);
+        void intents.api?.dispatch({ type: "drag", path: drag.path, from: drag.from, to: drag.to });
+      }}
+      onPointerLeave={() => hover?.view && setHover(null)}
+      onPointerCancel={() => {
+        move(null);
+        intents.api?.preview(null);
       }}
     >
       {nodes.map(({ path, box, geo, on }) => {
@@ -243,6 +317,25 @@ export function InspectorOverlay({ inspection }: { inspection: Inspection }) {
           </g>
         );
       })}
+      {/* What the hovered words or intent move, boxed in its thing's colour. */}
+      {intents.snap &&
+        [...chain.views].flatMap((v) =>
+          sceneBoxes(v, snapshot).map((b, i) => {
+            const r = rect(b);
+            const k = [...chain.intents][0];
+            const color = k ? colorOf(intents.snap!.tree, k.split("|")[1]) : "#a78bfa";
+            return <rect key={`${v}:${i}`} x={r.x} y={r.y} width={r.w} height={r.h} fill={`${color}1f`} stroke={color} strokeWidth="1.8" rx="3" pointerEvents="none" />;
+          }),
+        )}
+      {drag?.moved && (
+        <g pointerEvents="none">
+          <line x1={drag.a[0]} y1={drag.a[1]} x2={drag.b[0]} y2={drag.b[1]} stroke="#a78bfa" strokeWidth="1.5" strokeDasharray="4 3" />
+          <circle cx={drag.b[0]} cy={drag.b[1]} r="5" fill="none" stroke="#a78bfa" strokeWidth="1.5" />
+          <text x={Math.max(4, drag.b[0] + 9)} y={drag.b[1] - 8} fontFamily="var(--font-mono)" fontSize="11" fill="#c4b5fd" stroke="#05070d" strokeWidth="3" paintOrder="stroke">
+            {drag.path} → [{drag.to[0].toFixed(0)}, {drag.to[1].toFixed(0)}]
+          </text>
+        </g>
+      )}
       {snapshot.unclaimed && snapshot.unclaimed.px > 8 && (() => {
         const r = rect(snapshot.unclaimed);
         const l = label(S.unclaimed, r);
@@ -336,7 +429,7 @@ function editable(
 }
 
 export function InspectorPanel({ inspection }: { inspection: Inspection & { setReport: (r: Report | null) => void } }) {
-  const { api, snapshot, selected, select, report, setReport } = inspection;
+  const { api, snapshot, selected, select, report, setReport, intents } = inspection;
   const S = useLabStrings(STRINGS);
   const { locale } = useLocale();
   const [verifying, setVerifying] = useState(false);
@@ -378,6 +471,9 @@ export function InspectorPanel({ inspection }: { inspection: Inspection & { setR
 
   return (
     <div className="space-y-5">
+      {/* The intent loop leads: the tree is the experience's state. */}
+      {intents.api && intents.snap && <IntentsPanel api={intents.api} snap={intents.snap} chain={inspection.chain} setHover={inspection.setHover} />}
+
       {/* Controls: where in the scene, and the two demonstrations. */}
       <div className="flex flex-wrap items-center gap-2">
         <span className={TYPE.rowMeta}>{S.stills}</span>

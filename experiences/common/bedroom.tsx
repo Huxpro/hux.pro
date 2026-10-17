@@ -1,12 +1,73 @@
 // =============================================================================
-// The things in the dream, each declared where it is drawn.
+// The bedroom of the dreams, and him: each thing declared where it is drawn.
 //
-// The declaration is what everything else reads: the inspector's panel, the
-// language index ("他", "柜门"), the verifier. The drawing is the hand-written
-// page's own SVG, moved in as it was: a boundary around it, not a rewrite.
+// Shared by every dream (experiences/common): the same man, the same
+// wardrobe, the same room by moonlight. The declaration is what everything
+// else reads: the inspector's panel, the language index ("他", "柜门"), the
+// verifier. The drawing is the hand-written page's own SVG, moved in as it
+// was. <BedroomDefs> holds the gradients and clips they paint with: draw it
+// once, first.
 // =============================================================================
 
+import type { ReactNode } from "react";
 import { Atmosphere, Draw, Part, choice, num, semantic, type DrawFn } from "scene";
+
+// -----------------------------------------------------------------------------
+// Paints
+// -----------------------------------------------------------------------------
+
+/** The paints the bedroom uses (gradients, a blur, the wardrobe's inside as a clip). */
+export function BedroomDefs() {
+  return (
+    <defs>
+      <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#0a0e1b" />
+        <stop offset="0.75" stopColor="#0e1426" />
+        <stop offset="1" stopColor="#0a0e1b" />
+      </linearGradient>
+      <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#080b15" />
+        <stop offset="1" stopColor="#04060c" />
+      </linearGradient>
+      <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="#3c4e78" />
+        <stop offset="1" stopColor="#1b2642" />
+      </linearGradient>
+      <radialGradient id="moonGlow" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" stopColor="#5a6d9c" stopOpacity="0.32" />
+        <stop offset="1" stopColor="#5a6d9c" stopOpacity="0" />
+      </radialGradient>
+      <linearGradient id="beam" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="#8ea2d6" stopOpacity="0.12" />
+        <stop offset="1" stopColor="#8ea2d6" stopOpacity="0" />
+      </linearGradient>
+      <linearGradient id="wood" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stopColor="#1a2440" />
+        <stop offset="1" stopColor="#101729" />
+      </linearGradient>
+      <linearGradient id="doorFace" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stopColor="#18213a" />
+        <stop offset="1" stopColor="#0d1322" />
+      </linearGradient>
+      <linearGradient id="inside" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#0a1020" />
+        <stop offset="0.6" stopColor="#101830" />
+        <stop offset="1" stopColor="#0b1122" />
+      </linearGradient>
+      <linearGradient id="blanket" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#1b2440" />
+        <stop offset="0.35" stopColor="#111829" />
+        <stop offset="1" stopColor="#070a12" />
+      </linearGradient>
+      <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="6" />
+      </filter>
+      <clipPath id="wardrobeInside">
+        <rect x="213" y="222" width="145" height="418" />
+      </clipPath>
+    </defs>
+  );
+}
 
 // -----------------------------------------------------------------------------
 // Him. Very tall, very thin, all in black; arms hanging nearly to his knees;
@@ -23,7 +84,12 @@ const BODY = [
   "M 32 -179 L 34 -146 L 32.6 -146 L 30.6 -176 L 29.6 -144 L 28.2 -144 L 28 -176 L 26.4 -148 L 25 -148 L 24.4 -179 Z",
 ];
 
-function ManShapes({ hatScale, brim }: { hatScale: number; brim: number }) {
+/**
+ * Him, in shapes. The hat is a slot: a tree can fill it with a thing of its own
+ * (`Node.fills: "man.hat"`, drawn with its base at the top of his head), which
+ * then rides with him wherever he stands; the path man[…].hat stays.
+ */
+function ManShapes({ hatScale, brim, slot }: { hatScale: number; brim: number; slot?: ReactNode }) {
   return (
     <>
       <Part name="body">{BODY.map((d) => <path key={d} d={d} />)}</Part>
@@ -31,10 +97,16 @@ function ManShapes({ hatScale, brim }: { hatScale: number; brim: number }) {
         <ellipse cx="0" cy="-362" rx="12" ry="17" />
         <rect x="-5" y="-350" width="10" height="16" />
       </Part>
-      <Part name="hat" transform={`translate(0 -379) scale(${hatScale}) translate(0 379)`}>
-        <path d={CROWN} />
-        <ellipse cx="0" cy="-379" rx={brim} ry="8.5" />
-      </Part>
+      {slot ? (
+        <Part name="hat" transform="translate(0 -379)">
+          {slot}
+        </Part>
+      ) : (
+        <Part name="hat" transform={`translate(0 -379) scale(${hatScale}) translate(0 379)`}>
+          <path d={CROWN} />
+          <ellipse cx="0" cy="-379" rx={brim} ry="8.5" />
+        </Part>
+      )}
     </>
   );
 }
@@ -52,16 +124,22 @@ export const Man = semantic(
     state: {
       eyes: num(0, { min: 0, max: 1, step: 0.05, aka: ["眼睛", "反光", "glint"], affects: ["eyes"], effect: "appearance" }),
     },
-    instances: { wardrobe: "衣柜里 · in the wardrobe", bedside: "床头 · at the bed" },
+    instances: {
+      wardrobe: "衣柜里 · in the wardrobe",
+      bedside: "床头 · at the bed",
+      foot: "床尾 · at the foot of the bed",
+      window: "窗边 · by the window",
+      room: "屋里 · in the room",
+    },
   },
-  ({ hatScale, eyes }) => (
+  ({ hatScale, eyes, children }) => (
     <>
-      {/* Moonlight on his left edge: a copy of him, a little to the left. */}
+      {/* Moonlight on his left edge: a copy of him, a little to the left (not of what fills the hat: it has its own light). */}
       <Atmosphere name="rim" fill="#4a5c94" opacity="0.55" transform="translate(-1.5 0)">
-        <ManShapes hatScale={hatScale} brim={72} />
+        <ManShapes hatScale={hatScale} brim={72} slot={children ? <g /> : undefined} />
       </Atmosphere>
       <g fill="#000">
-        <ManShapes hatScale={hatScale} brim={72} />
+        <ManShapes hatScale={hatScale} brim={72} slot={children} />
       </g>
       <Part name="eyes" opacity={eyes} fill="#d3dcf2">
         <circle cx="-4.6" cy="-361.5" r="1.25" />

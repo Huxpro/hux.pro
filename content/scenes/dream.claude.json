@@ -1,0 +1,73 @@
+[
+  {
+    "at": "2026-10-17T00:06:06.956Z",
+    "task": "infer",
+    "need": {
+      "kind": "unknown",
+      "text": "每一幕他都离我更近一点。",
+      "node": null
+    },
+    "answer": {
+      "note_zh": "这是一条跨三幕的关系，不是对某一个东西的修改：每一幕他的脚都要比上一幕离床更近。按画面的纵深（衣柜 640 < 窗边 708 ≈ 屋子中间 712 < 床尾 858 < 床头 872），第二幕不能在衣柜、床头，也不会不在；「一点」说的是一步步匀着走近，中点约 756，最像屋子中间。所以我改的是我自己的信念，不替你选：第二幕我现在够有把握，不用再问你了。",
+      "note_en": "A relation across the three beats, not an edit to one thing: each beat his feet are closer to the bed than the last. By the picture's depth (wardrobe 640 < window 708 ≈ middle of the room 712 < foot of the bed 858 < bedside 872) the second beat cannot be the wardrobe or the bedside, nor gone; \"a little\" says even steps, and the midpoint, about 756, is most like the middle of the room. So I revise my own belief rather than pick for you: about the second beat I am now sure enough not to ask.",
+      "kinds": [],
+      "nodes": [],
+      "picks": [],
+      "phases": [],
+      "title_zh": "",
+      "title_en": "",
+      "spans": [],
+      "beliefs": [
+        {
+          "node": "b2",
+          "intent": "where",
+          "kind": "inside",
+          "p": 0
+        },
+        {
+          "node": "b2",
+          "intent": "where",
+          "kind": "window",
+          "p": 0.2
+        },
+        {
+          "node": "b2",
+          "intent": "where",
+          "kind": "room",
+          "p": 0.52
+        },
+        {
+          "node": "b2",
+          "intent": "where",
+          "kind": "foot",
+          "p": 0.28
+        },
+        {
+          "node": "b2",
+          "intent": "where",
+          "kind": "bedside",
+          "p": 0
+        },
+        {
+          "node": "b2",
+          "intent": "where",
+          "kind": "gone",
+          "p": 0
+        }
+      ],
+      "remove": [],
+      "carry": [],
+      "rebind": [
+        {
+          "text": "每一幕他都离我更近一点",
+          "node": "man",
+          "intent": "",
+          "kind": ""
+        }
+      ],
+      "scope": "tree",
+      "plan_zh": "",
+      "plan_en": ""
+    }
+  }
+]
