@@ -6,7 +6,7 @@ origin: "AI-translated from the original"
 
 Dock 是屏幕顶部 **Live Activity** 的归宿：收起时是一颗颗胶囊，展开后变形为面板（借用 iOS 灵动岛 / 通知中心的隐喻）。它是"Global Player"界面的共同基础：音乐播放器和环境相位通知都是 Dock activity，所以长相和行为完全一致。
 
-站内一行字的 **notice** 也出现在这里："Dark Mode · Following the Sun"、"Reading in Chinese · Preference unchanged"、"Sky window · swipe up to come back"。见 [通知](#notices)。
+站内一行字的 **notice** 也出现在这里："Dark Mode · Following the Sun"、"Reading in Chinese · Preference unchanged"、"Sky window · swipe up to come back"。见 [通知](#通知notice)。
 
 ## 做好了是什么样
 
@@ -25,7 +25,7 @@ Dock 是屏幕顶部 **Live Activity** 的归宿：收起时是一颗颗胶囊�
 手机上的一颗胶囊和一条 notice（无头浏览器，393pt 宽，没有安全区 inset）。这条 notice 由文章的语言切换触发，形状和锚点都与胶囊相同：顶部一行字，底部命令栏所在的地方什么都没有。
 
 - 顶部正中同一时间只归一样东西：胶囊、一个打开的面板，或一条 notice。
-- 胶囊是一眼看完的东西（胶囊形）；面板是要读或要操作的东西（圆角矩形）。见 [形状](#shape)。
+- 胶囊是一眼看完的东西（胶囊形）；面板是要读或要操作的东西（圆角矩形）。见 [形状](#形状)。
 - 面板双向跟手：从胶囊往下拉出来，往上甩过顶边收回去。
 - 玻璃从进场到退场始终是玻璃：任何承载模糊的盒子都不做淡入淡出。
 
@@ -88,7 +88,7 @@ drawer 通常从它锚定的那条边滑进来。这个不是，因为它来自�
 | 规则 | 原因 | 打破之后 |
 |---|---|---|
 | swiping 规则限定在 `[data-starting-style]` 上（说明 1） | 关闭方向的拖动会写一个内联 `transform`；`SwipeArea` 的拖动只写 `--drawer-swipe-movement-y`，所以得由 CSS 来移动它。关闭方向松手时，popup 同时是 `data-swiping` 和 `data-ending-style` | 松手时被钉在手指上，面板卡在屏幕上下不去 |
-| 不用 snap points（说明 2） | `--drawer-snap-point-offset` 对 `up` 做了符号修正，但实时拖动的算法是为 `down` 写的 | 见 [试过但没有采用](#tried-and-left-out) |
+| 不用 snap points（说明 2） | `--drawer-snap-point-offset` 对 `up` 做了符号修正，但实时拖动的算法是为 `down` 写的 | 见 [试过但没有采用](#试过但没有采用) |
 | `SwipeArea` 上加 `aria-hidden={false}`（说明 3） | 它渲染出来是 `role="presentation" aria-hidden` | 胶囊按钮从无障碍树里消失 |
 | 透明度加在玻璃上，绝不加在包含玻璃的盒子上（说明 4） | `opacity < 1` 的元素会成为自己的 backdrop root，于是里面的 `backdrop-filter` 采样到的是一个空组 | 在淡入淡出期间面板是透明的，后面页面的文字清清楚楚 |
 | 关闭状态的 transform 只缩放，绝不位移（说明 5） | `SwipeArea` 拖动开始时，Base UI 在把 popup 标记为 swiping 之前读取它的 transform（`resolveClosedOffset`，`min(height, abs(translateY))`） | 下拉只跟十个像素而不是面板的高度，然后冲过头 |
@@ -236,7 +236,7 @@ Notice 的来源：太阳切换主题（`systems/ambient/components/solar-theme.
 
 ### `--dock-clear`
 
-Dock 把它的胶囊向下延伸到多远，以 `--dock-clear` 发布在 `<html>` 上（没有胶囊时为 0），用布局盒子而不是 rect 来测量，因为胶囊进场时是缩放过的。任何吸顶在页面顶部的东西（/works 工具栏、lab 工具栏的 `--lab-bar-top`）都按它避开 Dock，而不是去猜有没有 Live Activity。notice 不发布到这个变量（见 [通知](#notices)）。
+Dock 把它的胶囊向下延伸到多远，以 `--dock-clear` 发布在 `<html>` 上（没有胶囊时为 0），用布局盒子而不是 rect 来测量，因为胶囊进场时是缩放过的。任何吸顶在页面顶部的东西（/works 工具栏、lab 工具栏的 `--lab-bar-top`）都按它避开 Dock，而不是去猜有没有 Live Activity。notice 不发布到这个变量（见 [通知](#通知notice)）。
 
 ## 历史
 
@@ -244,7 +244,7 @@ Dock 把它的胶囊向下延伸到多远，以 `--dock-clear` 发布在 `<html>
 
 以前，胶囊 / 面板 / 拖动 / Esc / 路由收起这一整套机制都在 `MusicDock` 里。加第二种通知（环境相位变化）就意味着把它们全部复制粘贴一遍。Dock 把这套机制抽出来，只写一次。
 
-把面板换成 drawer 删掉了手写的 `drag="y"` + `dragConstraints` + `onDragEnd` 40px 阈值、两个 `AnimatePresence` 块、`Dock` 里的透明遮罩，以及 `DockProvider` 里的 Escape 监听。它还删掉了"胶囊行不能带 transform"这条规则（否则行里的 `fixed` 面板会以这一行为锚点）：现在面板是 portal 出去的。它唯一没有复刻的，是遮罩吞掉所有点击这件事（[规则](#rules) 的最后一条）。
+把面板换成 drawer 删掉了手写的 `drag="y"` + `dragConstraints` + `onDragEnd` 40px 阈值、两个 `AnimatePresence` 块、`Dock` 里的透明遮罩，以及 `DockProvider` 里的 Escape 监听。它还删掉了"胶囊行不能带 transform"这条规则（否则行里的 `fixed` 面板会以这一行为锚点）：现在面板是 portal 出去的。它唯一没有复刻的，是遮罩吞掉所有点击这件事（[规则](#规则) 的最后一条）。
 
 ### 试过但没有采用
 

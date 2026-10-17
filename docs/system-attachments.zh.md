@@ -61,7 +61,7 @@ origin: "AI-translated from the original"
 
 ### Lightbox
 
-图片附上来通常是为了让人看清（一张海报、一张图表），而 sheet 的宽度会把它变成缩略图。它的去处是 lightbox（`components/image-lightbox.tsx`，在根 layout 中挂载一次，和 surface 并列）：用 Base UI 的 Dialog 做模态（焦点、Escape、滚动锁定），放在 theater 的遮罩之下，图片适配视口、四周留出边距，用 `react-zoom-pan-pinch` 提供滚轮 / 触控板 / 双指缩放、双击切换、拖动平移，以及 `+` / `-` / `0`。缩放为 1 时是"适配"；上限是文件自身像素的两倍，所以 `url` 要写全分辨率的文件，`thumbnail` 写一张轻量的封面（tile、行内插图和 sheet 画的都是封面）。在手机上，sheet 的 `View` 按钮打开它，sheet 会让开，而不是和第二个模态争夺焦点。
+图片附上来通常是为了让人看清（一张海报、一张图表），而 sheet 的宽度会把它变成缩略图。它的去处是 lightbox（`systems/attachments/components/image-lightbox.tsx`，在根 layout 中挂载一次，和 surface 并列）：用 Base UI 的 Dialog 做模态（焦点、Escape、滚动锁定），放在 theater 的遮罩之下，图片适配视口、四周留出边距，用 `react-zoom-pan-pinch` 提供滚轮 / 触控板 / 双指缩放、双击切换、拖动平移，以及 `+` / `-` / `0`。缩放为 1 时是"适配"；上限是文件自身像素的两倍，所以 `url` 要写全分辨率的文件，`thumbnail` 写一张轻量的封面（tile、行内插图和 sheet 画的都是封面）。在手机上，sheet 的 `View` 按钮打开它，sheet 会让开，而不是和第二个模态争夺焦点。
 
 ### Set
 

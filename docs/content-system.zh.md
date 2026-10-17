@@ -119,7 +119,7 @@ frontmatter 是可选的：
 | 中文页上的页内链接用翻译后标题的 id（`lib/heading-id.ts`） | id 由标题文字生成 | 链接指向不存在的位置 |
 | 正文里不要出现裸的、后面紧跟字母或 `/` 的 `<`，也不要出现裸的 `{`；放进反引号或代码块 | MDX 把 `<x` 当作标签，把 `{` 当作 JS 表达式 | `Expected a closing tag`、`Could not parse expression with acorn`：页面构建失败。两边有空格的 `a < b` 没问题 |
 | `<https://…>` 自动链接和 `<!-- -->` 注释不是 MDX | 同一个解析器 | 编译错误。写成 `[text](url)` 和 `{/* note */}` |
-| 一段里成对的 `$` 是数学公式 | `remark-math` | "costs $5 and $10" 会把 `5 and ` 渲染成代码 |
+| 一段里成对的 `$` 是数学公式 | `remark-math` | `costs $5 and $10` 会把 `5 and ` 渲染成代码 |
 | JSX 属性是 JavaScript：`style={{ display: "flex" }}`、`width={2}`、`className` | 这是 JSX，不是 HTML | `style="display: flex"` 能编译，但 React 遇到字符串 style 会抛错 |
 | 图片放在 `public/`，用绝对路径引用：文章放在 `/img/in-post/<post>/` 下（头图 `/img/post-bg-*.jpg`），文档放在 `/img/docs/<slug>/` 下 | `content/` 和 `docs/` 里的东西都不对外提供，相对路径会相对于 `/docs/<slug>/<lang>` 解析 | 图片 404；没有出血（尺寸是从 `public/` 读的） |
 | 正文有图片的文章要跑 `pnpm og:sizes` | 第一张图是它的封面，`og:complete` 检查每个封面的尺寸 | CI 失败："cover size not recorded" |
