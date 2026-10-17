@@ -19,6 +19,12 @@
  * When the intent lists its kinds, a person's value that is not one of them does not apply: the
  * program no longer has that kind (a model rewrote it). It falls through to the next writer and
  * is reported as `waiting`; it is not deleted, so when the kind is back, so is the decision.
+ *
+ * A model's belief may be conditional (`Given`): one distribution per case of the intents read
+ * before this one in the same render (an ancestor's, an earlier sibling's). The render picks the
+ * case that holds and settles on it; which case it was is part of the read (`Read.given`). This
+ * is what keeps correlated choices together: a belief about the door given how the dream ends,
+ * not one about the door alone.
  */
 
 export type Dist = Record<string, number>;
@@ -28,6 +34,14 @@ export type Segment<T> = { lo?: number | null; hi?: number | null; value: T | un
 export type Piecewise<T> = { $axis: string; segments: Segment<T>[] };
 export type Not = { $not: string[] };
 export type Said<T> = T | Piecewise<T> | Not;
+
+/**
+ * A model's belief conditioned on intents read before it: the first case whose `when` holds (every
+ * path read, in this render, with that value) applies; else `else`; else no belief.
+ */
+export type Given = { $given: Array<{ when: Record<string, unknown>; p: Dist }>; else?: Dist };
+/** What a model writes about an intent: a distribution (partial along an axis), or one per case. */
+export type Belief = Said<Dist> | Given;
 
 export type Writer = 'human' | 'model';
 /** Where a person's decision was made: about this intent, or about every intent of its name in the deck. */
@@ -54,6 +68,7 @@ export const isUnresolved = <T>(v: unknown): v is Unresolved<T> =>
   !!v && typeof v === 'object' && (v as any).$unresolved === true;
 export const isPiecewise = (v: unknown): v is Piecewise<unknown> =>
   !!v && typeof v === 'object' && typeof (v as any).$axis === 'string';
+export const isGiven = (v: unknown): v is Given => !!v && typeof v === 'object' && Array.isArray((v as any).$given);
 export const isNot = (v: unknown): v is Not => !!v && typeof v === 'object' && Array.isArray((v as any).$not);
 
 export function margin(p: Dist): number {
@@ -88,7 +103,7 @@ export type Inputs<T> = {
 };
 export type Outcome<T> = { value: T | Unresolved<T>; by: By; scope?: Scope; belief?: Dist; waiting?: unknown };
 
-const sameKind = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
+export const sameKind = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
 
 export function settle<T>(i: Inputs<T>): Outcome<T> {
   // A person's value of a kind the program does not have (now): kept, not applied.

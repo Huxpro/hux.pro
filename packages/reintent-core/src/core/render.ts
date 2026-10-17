@@ -31,6 +31,8 @@ import {
 } from './jsx';
 import type { Source } from './source';
 import {
+  isGiven,
+  sameKind,
   settle,
   UNKNOWN,
   type By,
@@ -53,6 +55,8 @@ export type Read = {
   /** For a person's decision: made about this intent, or about every intent of its name in the deck. */
   scope?: Scope;
   belief?: Dist;
+  /** For a conditional belief: the case it was read under (paths read before it, and their values). */
+  given?: Record<string, unknown>;
   not?: string[];
   ask?: boolean;
   open: boolean;
@@ -196,10 +200,24 @@ export function useIntent<T>(name: string, opts: IntentOptions<T> = {}): T | Unr
     for (const [c, v] of f.ctx) if (c.name === cname && c.axes[aname]) return c.axes[aname](v);
     return undefined;
   };
+  // A conditional belief: the case that holds for what this render has read so far.
+  let model = entry?.model;
+  let given: Record<string, unknown> | undefined;
+  if (isGiven(model)) {
+    const before = (p: string) => r.reads.findLast((x) => x.path === p);
+    const c = model.$given.find((c) =>
+      Object.entries(c.when).every(([p, v]) => {
+        const b = before(p);
+        return !!b && b.by !== 'unknown' && sameKind(b.value, v);
+      }),
+    );
+    given = c?.when;
+    model = c ? c.p : model.else;
+  }
   const o = settle<T>({
     human: (path in r.overrides ? r.overrides[path] : entry?.human) as Said<T> | undefined,
     deck: r.source.deck(name) as Said<T> | undefined,
-    model: entry?.model,
+    model,
     code: opts.default,
     kinds,
     open,
@@ -213,6 +231,7 @@ export function useIntent<T>(name: string, opts: IntentOptions<T> = {}): T | Unr
     by: o.by,
     ...(o.scope && { scope: o.scope }),
     ...(o.belief && { belief: o.belief }),
+    ...(given && { given }),
     ...(u?.not && { not: u.not }),
     ...(u && { ask: u.ask }),
     ...(o.waiting !== undefined && { waiting: o.waiting }),

@@ -28,6 +28,13 @@ const en = {
   askedNote: "The model is not sure, and the intent asks rather than guessing.",
   answer: "Answer",
 
+  worlds: "Worlds",
+  worldsNote:
+    "The likeliest choice maps, each with its joint probability: a world is chosen whole, then rendered. The render above settles each intent on its own, which can pick a combination the model holds unlikely.",
+  worldNow: "rendered",
+  chooseWorld: "Choose",
+  given: "given",
+
   cells: "Intents",
   cellsNote: "Each intent the render read: its value now, who said so, and the belief under it. A kind is a decision; ≠ rules the current one out; forget hands it back.",
   ruleOut: "≠",
@@ -82,6 +89,12 @@ const zh: typeof en = {
   asked: "在问",
   askedNote: "模型拿不准，这个意图选择问你而不是猜。",
   answer: "回答",
+
+  worlds: "世界",
+  worldsNote: "最可能的几组选择，每组带着它的联合概率：先整组选定一个世界，再渲染。上面的渲染是每个意图各自定，可能拼出模型认为不太可能的组合。",
+  worldNow: "当前渲染",
+  chooseWorld: "选这个",
+  given: "条件",
 
   cells: "意图",
   cellsNote: "这次渲染读到的每个意图：现在的值、谁说的、背后的判断。点一个 kind 就是决定它；≠ 排除当前这个；忘掉就交还给模型和代码。",

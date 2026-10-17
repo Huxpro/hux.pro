@@ -11,6 +11,9 @@
  *                  no undo; this is the host's). A program change starts the history over: the
  *                  program is code, and undo does not unwrite it
  *
+ *   the worlds     the likeliest whole choice maps (lib/worlds), next to the one the render
+ *                  settled cell by cell: choosing one is a person writing its choices
+ *
  * A model stands behind two of its doors (`Model`): a kind more past the end of a scale, and
  * beliefs again when something is said of the whole. Without one, both are reported, not done.
  */
@@ -18,8 +21,8 @@ import {
   createSource,
   render,
   watch,
+  type Belief,
   type Child,
-  type Dist,
   type Read,
   type RenderOptions,
   type Result,
@@ -28,6 +31,7 @@ import {
 import { changes, diff, type ProgramChange } from './changes';
 import { observe } from './observe';
 import type { KindAbout } from './vocab';
+import { worlds, type World } from './worlds';
 import { recognize, said, type Need, type Reading, type Recognized } from './words';
 
 export interface ProgramFile {
@@ -41,7 +45,7 @@ export interface Version {
   note: string;
   program: Child;
   /** The model's beliefs as it wrote this version, by path. */
-  beliefs?: Record<string, Dist>;
+  beliefs?: Record<string, Belief>;
   /** Its source as written: what a model reads and rewrites. */
   files?: ProgramFile[];
 }
@@ -49,8 +53,11 @@ export interface Version {
 export interface Model {
   /** A kind past the end of an ordered intent, for a person who asked for more. */
   extend?(need: Extract<Need, { kind: 'extend' }>, read: Read): { kind: string; about: KindAbout } | null;
-  /** Beliefs again, under what has been said of the whole (`said`), for the intents read. */
-  rebelieve?(reads: readonly Read[], said: readonly string[]): Record<string, Dist>;
+  /**
+   * Beliefs again, under what has been said of the whole (`said`), for the intents read. `stored`
+   * is what it believed before (a conditional belief is more than the case a read went on).
+   */
+  rebelieve?(reads: readonly Read[], said: readonly string[], stored: (path: string) => Belief | undefined): Record<string, Belief>;
   /** Who it is, for the log ("model:stand-in"). */
   name: string;
 }
@@ -75,6 +82,8 @@ export interface SessionSnapshot {
   versions: Omit<Version, 'program' | 'beliefs'>[];
   current: string;
   source: ReturnType<WritableSource['snapshot']>;
+  /** The likeliest worlds; `now` marks the one the render settled on, when it is one of them. */
+  worlds: (Omit<World, 'result'> & { now: boolean })[];
 }
 
 /** What a sentence came to: its reading, and what was done about it. */
@@ -89,6 +98,8 @@ export interface Session {
   say(text: string): Said;
   answer(reading: Reading): void;
   use(id: string): void;
+  /** Choose a world: a person writes its choices. */
+  choose(choices: Record<string, string>): void;
   undo(): void;
   reset(): void;
   observe(): string;
@@ -97,7 +108,13 @@ export interface Session {
 
 type Kept = { source: ReturnType<WritableSource['snapshot']>; said: string[]; under: Record<string, string> };
 
-export function createSession(o: { versions: Version[]; model?: Model; render?: RenderOptions }): Session {
+export function createSession(o: {
+  versions: Version[];
+  model?: Model;
+  render?: RenderOptions;
+  /** Which worlds to show: how many, and over which choices (the rest summed out). */
+  worlds?: { k?: number; only?: (r: Read) => boolean };
+}): Session {
   const source = createSource();
   const byId = (id: string) => o.versions.find((v) => v.id === id)!;
   let current = o.versions[0].id;
@@ -132,9 +149,12 @@ export function createSession(o: { versions: Version[]; model?: Model; render?: 
     const stale = [
       ...new Set(reads.filter((r) => r.by !== 'human' && source.get(r.path)?.model !== undefined && (under[r.path] ?? '') !== k).map((r) => r.path)),
     ];
+    const now = (c: Record<string, string>) => Object.entries(c).every(([p, k]) => reads.some((r) => r.path === p && r.value === k));
+    const ws = worlds(byId(current).program, source, { ...o.render, ...o.worlds }).map(({ choices, p }) => ({ choices, p, now: now(choices) }));
     return {
       result,
       reads,
+      worlds: ws,
       decided,
       asks: reads.filter((r) => r.by === 'unresolved' && r.ask).filter((r, i, a) => a.findIndex((x) => x.path === r.path) === i),
       stale,
@@ -223,7 +243,7 @@ export function createSession(o: { versions: Version[]; model?: Model; render?: 
           step(`“${text}”, said of the whole → ${o.model.name} believes again`, () => {
             whole = [...whole, text];
             const k = key();
-            const beliefs = o.model!.rebelieve!(w.value.trace.reads, whole);
+            const beliefs = o.model!.rebelieve!(w.value.trace.reads, whole, (p) => source.get(p)?.model);
             for (const [p, dist] of Object.entries(beliefs)) {
               source.write(p, 'model', dist);
               under[p] = k;
@@ -261,6 +281,10 @@ export function createSession(o: { versions: Version[]; model?: Model; render?: 
       start = first();
       publish();
     },
+    choose: (choices) =>
+      step(`world: ${Object.entries(choices).map(([p, k]) => `${p} = ${k}`).join(', ')}`, () => {
+        for (const [p, k] of Object.entries(choices)) source.write(p, 'human', k);
+      }),
     undo() {
       const k = history[history.length - 1];
       if (!k) return;

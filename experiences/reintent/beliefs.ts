@@ -1,6 +1,6 @@
 // The model's beliefs, as it wrote each version of the program: kept in the
 // source as the model's, by path (what reintent's settle weighs against TAU).
-import type { Dist } from "reintent-core";
+import type { Belief, Dist } from "reintent-core";
 
 const MAN = "Dream:wardrobe/Man:man";
 const WARDROBE = "Dream:wardrobe/Wardrobe:wardrobe";
@@ -20,3 +20,25 @@ export const V2: Record<string, Dist> = {
   [`${MAN}#stand`]: { bedside: 0.46, foot: 0.42, window: 0.12 },
   [`${WARDROBE}#door`]: { ajar: 0.12, half: 0.58, wide: 0.3 },
 };
+
+const ENDING = "Dream:wardrobe/Choose:ending#ending";
+
+/**
+ * The tree's own choice: is he still there? The model is torn (0.55 / 0.45). Its belief about the
+ * door is given the ending: gone into the wardrobe, it is left ajar behind him; still waiting, it
+ * is flung wide. Settled on its own, the ending is code's (he waits) and the door wide (0.33 in
+ * all); the likeliest world is the other one (gone, ajar: 0.36).
+ */
+export const V3: Record<string, Belief> = {
+  ...V2,
+  [ENDING]: { waits: 0.55, gone: 0.45 },
+  [`${WARDROBE}#door`]: {
+    $given: [
+      { when: { [ENDING]: "gone" }, p: { ajar: 0.8, half: 0.15, wide: 0.05 } },
+      { when: { [ENDING]: "waits" }, p: { ajar: 0.05, half: 0.35, wide: 0.6 } },
+    ],
+  },
+};
+
+/** The choices the lab's worlds are over: the tree's, and the door that goes with it. The rest are summed out. */
+export const WORLD_OF = (path: string) => path === ENDING || path === `${WARDROBE}#door`;

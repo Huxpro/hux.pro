@@ -271,8 +271,8 @@ export const LABS: readonly LabEntry[] = [
       zh: "《衣柜》，跑在独立的意图内核上",
     },
     blurb: {
-      en: "packages/reintent-core: intents as values, not signals. The Wardrobe as an intent tree a model writes, on intent components with no view, each value decided by one rule (you, your rule, a sure model, code), and drawn by the Wardrobe's own stage. Say something, answer what it asks, switch to the model's rewrite and back.",
-      zh: "packages/reintent-core：意图是值，不是 signal。《衣柜》写成一棵模型写的意图树，跑在不含视图的意图组件上，每个值按同一条规则决定（你 > 你的规则 > 有把握的模型 > 代码），再由《衣柜》自己的舞台画出来。说一句话，回答它问的，切到模型的改写版再切回来。",
+      en: "packages/reintent-core: intents as values, not signals. The Wardrobe as an intent tree a model writes, on intent components with no view, each value decided by one rule (you, your rule, a sure model, code), and drawn by the Wardrobe's own stage. Say something, answer what it asks, switch to the model's rewrites and back; in v3 the tree itself is a choice, and worlds are chosen whole.",
+      zh: "packages/reintent-core：意图是值，不是 signal。《衣柜》写成一棵模型写的意图树，跑在不含视图的意图组件上，每个值按同一条规则决定（你 > 你的规则 > 有把握的模型 > 代码），再由《衣柜》自己的舞台画出来。说一句话，回答它问的，切到模型的改写版再切回来；v3 里树本身就是一个选择，世界整组选定。",
     },
   },
   {

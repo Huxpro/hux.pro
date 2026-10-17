@@ -8,13 +8,13 @@
  * name (`write('fit', 'human', 'fill', { scope: 'deck' })`). There is no
  * undo here: undo is the host's history going back to an earlier value.
  */
-import type { Dist, Said, Scope, Writer } from './value';
+import type { Belief, Said, Scope, Writer } from './value';
 
 /**
  * One intent's stored values. `path` is the intent's identity (`Slide:gallery/Row:g0,g1,g2#arrange`).
  * `learned`: kinds a model added after the program was written (kind → what the host keeps about it).
  */
-export type Entry = { human?: Said<unknown>; model?: Said<Dist>; learned?: Record<string, unknown> };
+export type Entry = { human?: Said<unknown>; model?: Belief; learned?: Record<string, unknown> };
 
 export type Change = { path?: string; name?: string; scope?: string };
 

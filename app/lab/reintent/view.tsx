@@ -188,6 +188,28 @@ function Panel({ S, dt, snap, half }: { S: ReintentStrings; dt: Session; snap: S
         </section>
       )}
 
+      {snap.worlds.length > 1 && (
+        <Section title={S.worlds} note={S.worldsNote}>
+          <div className="divide-y divide-border/60">
+            {snap.worlds.map((w) => (
+              <div key={JSON.stringify(w.choices)} className="flex items-center justify-between gap-3 py-2">
+                <span className="min-w-0 text-sm text-foreground">
+                  <span className={cn(TYPE.hash, "mr-2")}>{pct(w.p)}</span>
+                  {Object.entries(w.choices)
+                    .map(([p, k]) => `${short(p)} = ${kindLabel(readOf(p), k)}`)
+                    .join(" · ")}
+                </span>
+                {w.now ? (
+                  <Badge tone="plain">{S.worldNow}</Badge>
+                ) : (
+                  <LabButton onClick={() => dt.choose(w.choices)}>{S.chooseWorld}</LabButton>
+                )}
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
       <Section title={S.cells} note={S.cellsNote}>
         <div className="divide-y divide-border/60">
           {reads.map((r) => (
@@ -325,6 +347,14 @@ function IntentRow({
           <Badge tone={by === "human" || by === "deck" ? "firm" : r.ask ? "ask" : "plain"}>{r.ask ? S.from.ask : S.from[by]}</Badge>
         </span>
       </div>
+      {r.given && (
+        <p className={cn(TYPE.rowMeta, "text-[11px]")}>
+          {S.given}{" "}
+          {Object.entries(r.given)
+            .map(([p, k]) => `${short(p)} = ${String(k)}`)
+            .join(" · ")}
+        </p>
+      )}
       {r.belief && (
         <div className="flex h-1.5 overflow-hidden rounded-full bg-muted">
           {kinds.map((k) => (

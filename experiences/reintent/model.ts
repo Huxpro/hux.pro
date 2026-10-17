@@ -5,13 +5,14 @@
 //   extend      past the end of an ordered intent: a kind more, its numbers
 //               carried one step further along the scale (a weak model's job)
 //   rebelieve   something said of the whole ("更压抑一点"): every belief it is
-//               asked about, inferred again; a person's decisions are not touched
+//               asked about, inferred again; a person's decisions are not touched.
+//               A belief given another choice leans case by case
 //
 // A real model would answer the same needs the same way (a learned kind, beliefs
 // by path); lib/observe is what it would be shown.
 // =============================================================================
 
-import type { Dist, Read } from "reintent-core";
+import { isGiven, type Belief, type Dist, type Read } from "reintent-core";
 import type { Model } from "reintent-core/lib/session";
 import { kindAbout, type About } from "reintent-core/lib/vocab";
 
@@ -42,10 +43,10 @@ export const standIn: Model = {
   },
 
   // Darker leans along each ordered scale, gentler back; anything else keeps what it believed.
-  rebelieve(reads: readonly Read[], said: readonly string[]) {
+  rebelieve(reads: readonly Read[], said: readonly string[], stored: (path: string) => Belief | undefined) {
     const all = said.join(" ");
     const lean = (DARKER.test(all) ? 1 : 0) - (GENTLER.test(all) ? 1 : 0);
-    const out: Record<string, Dist> = {};
+    const out: Record<string, Belief> = {};
     const seen = new Set<string>();
     for (const r of reads) {
       if (!r.belief || r.by === "human" || seen.has(r.path)) continue;
@@ -53,13 +54,14 @@ export const standIn: Model = {
       const kinds = (r.kinds ?? []).map(String);
       const ordered = (r.about as About | undefined)?.ordered;
       const n = kinds.length;
-      if (!ordered || !lean || n < 2) {
-        out[r.path] = { ...r.belief };
-        continue;
-      }
       const t = (i: number) => (lean > 0 ? i / (n - 1) : 1 - i / (n - 1));
       const total = kinds.reduce((a, _, j) => a + t(j) ** 2, 0);
-      out[r.path] = Object.fromEntries(kinds.map((k, i) => [k, (r.belief![k] ?? 0) * 0.25 + (0.75 * t(i) ** 2) / total]));
+      const again = (p: Dist): Dist =>
+        !ordered || !lean || n < 2 ? { ...p } : Object.fromEntries(kinds.map((k, i) => [k, (p[k] ?? 0) * 0.25 + (0.75 * t(i) ** 2) / total]));
+      const was = stored(r.path);
+      out[r.path] = isGiven(was)
+        ? { $given: was.$given.map((c) => ({ when: c.when, p: again(c.p) })), ...(was.else && { else: again(was.else) }) }
+        : again(r.belief);
     }
     return out;
   },

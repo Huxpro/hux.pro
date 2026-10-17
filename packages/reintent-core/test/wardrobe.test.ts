@@ -9,9 +9,11 @@ import { meaning } from "../src/lib/vocab";
 import { observe } from "../src/lib/observe";
 import V1 from "../../../experiences/reintent/program/v1.tsx";
 import V2 from "../../../experiences/reintent/program/v2.tsx";
+import V3 from "../../../experiences/reintent/program/v3.tsx";
 import * as I1 from "../../../experiences/reintent/intents/v1";
 import * as I2 from "../../../experiences/reintent/intents/v2";
-import { V1 as B1, V2 as B2 } from "../../../experiences/reintent/beliefs";
+import { isGiven } from "../src/core/index";
+import { V1 as B1, V2 as B2, V3 as B3, WORLD_OF } from "../../../experiences/reintent/beliefs";
 import { standIn } from "../../../experiences/reintent/model";
 
 const MAN = "Dream:wardrobe/Man:man";
@@ -132,4 +134,46 @@ test("decide, rule out, forget, answer, undo and start over", () => {
 test("observe: the state as a model is shown it", () => {
   const text = observe(session().get().reads);
   assert.match(text, /Dream:wardrobe\/Man:man#hat \(帽子有多大 · the hat\) = "big" \[unresolved, asking\] · usual 4% · big 52% · absurd 44%/);
+});
+
+const ENDING = "Dream:wardrobe/Choose:ending#ending";
+
+test("v3: whether he is still there is a choice of the tree, and the door is believed given it", () => {
+  const s = createSession({
+    versions: [
+      { id: "v2", note: "rewritten", program: V2, beliefs: B2 },
+      { id: "v3", note: "the tree chooses", program: V3, beliefs: B3 },
+    ],
+    model: standIn,
+    worlds: { k: 3, only: (r) => WORLD_OF(r.path) },
+  });
+  s.use("v3");
+  // Settled one by one: the ending is code's (he waits; the model is torn, so it asks), the door
+  // wide given that, the pace sudden after the door. His paths are as they were.
+  assert.deepEqual([read(s, ENDING).value, read(s, ENDING).by, read(s, ENDING).ask], ["waits", "unresolved", true]);
+  assert.deepEqual([at(s, "w.door"), read(s, `${WARDROBE}#door`).given, at(s, "w.pace")], ["wide:model", { [ENDING]: "waits" }, "sudden:unresolved"]);
+  assert.equal(at(s, "hat"), "big:unresolved");
+  // The worlds over the ending and the door, the rest summed out: the likeliest is not the one rendered.
+  const ws = s.get().worlds;
+  assert.deepEqual(ws.map((w) => [w.choices[ENDING], w.choices[`${WARDROBE}#door`], Math.round(w.p * 1000), w.now]), [
+    ["gone", "ajar", 360, false],
+    ["waits", "wide", 330, true],
+    ["waits", "half", 193, false],
+  ]);
+  // Choosing it is a person's decision: he is gone, nothing about him is read, the door is ajar behind him.
+  s.choose(ws[0].choices);
+  assert.equal(read(s, `${MAN}#hat`), undefined);
+  assert.deepEqual([at(s, "w.door"), at(s, "w.pace")], ["ajar:human", "slow:unresolved"]);
+  assert.ok(s.get().worlds.every((w) => Object.keys(w.choices).length === 0));
+  s.undo();
+  // A sentence names an alternative by its words.
+  assert.equal(s.say("他走了").outcome, "resolve");
+  assert.deepEqual([read(s, ENDING).value, read(s, ENDING).by, at(s, "w.door")], ["gone", "human", "ajar:model"]);
+  // The stand-in believes again case by case: the door stays given the ending.
+  s.say("更压抑一点");
+  assert.ok(isGiven(s.source.get(`${WARDROBE}#door`)?.model));
+  // Back to v2: the choice is not read, and his decisions are where they were.
+  s.use("v2");
+  assert.equal(read(s, ENDING), undefined);
+  assert.equal(at(s, "hat"), "big:unresolved");
 });

@@ -42,6 +42,59 @@ Because the reads are not React hooks, React's call-order lint is off for the
 intent layer (`eslint.config.mjs`, `REINTENT_INTENT_LAYER`). Vocabularies read
 with `.read(...)`, not `.use(...)`, so they are not named like hooks.
 
+## Choices, and worlds
+
+A model's belief about an intent is a distribution over its kinds, so a program
+with beliefs in it is a distribution over trees. Reintent is a trace-based
+probabilistic program:
+
+| probabilistic program | here |
+|---|---|
+| a choice site, at an address | `useIntent(name)`, at its path |
+| the trace | the render's reads |
+| the choice map | the source (and `whatIf`'s overrides) |
+| an intervention (`do`) | `whatIf`: as if a person had decided |
+| bind (`flatMap`) | JSX nesting: what a component renders depends on what it read, and is read after it |
+
+A render settles every intent on its own, from its belief. That is fine while
+choices are independent and wrong when they are not: the likeliest title and
+the likeliest layout, each taken alone, can be a pair the model holds unlikely.
+Three pieces keep correlated choices together:
+
+- **Beliefs given other choices** (core, `Given`). The model writes
+  `{ $given: [{ when: { [path]: kind }, p }], else? }`. A case holds when every
+  path in `when` was read earlier in the same render with that value (an
+  ancestor's, an earlier sibling's). `Read.given` says which case it was, so a
+  belief, like a cached result, is known by what it was made under.
+- **Worlds** (`lib/worlds`). The world is chosen whole, then rendered. A beam
+  over the choice sites a model holds, in the order the render reads them, with
+  each site's belief read again in the world so far, gives the likeliest whole
+  choice maps and their joint probability. `beam: 1` is greedy. `only` keeps
+  some sites and sums out the rest, so `p` is the marginal of the kept choices.
+  `split(worlds)` is the one question that tells the likeliest apart. Nothing
+  here writes: choosing a world is writing its choices.
+- **Structural choice** (`lib/choose`, `<Choose>`). Its kinds are subtrees:
+  one intent over named alternatives, and only the chosen one is rendered (and
+  read). What is under it is read after it, so it can be believed given it, and
+  worlds branch on it before what it holds. A keyed component keeps its path in
+  whichever alternative holds it.
+
+```tsx
+<Choose key="ending" name="ending" default="waits" ask
+  alternatives={{ waits: [<Man key="man" />, <Wardrobe key="wardrobe" />], gone: <Wardrobe key="wardrobe" /> }} />
+```
+
+The Wardrobe's v3 shows the gap. The model is torn about whether he is still
+there (0.55 / 0.45) and believes the door given it (gone: ajar 0.8; waits: wide
+0.6). The render goes on code's pick (he waits) and the door wide (0.33 in
+all). The likeliest world is the other one (gone, the door ajar: 0.36).
+
+Rendering stays deterministic: a probabilistic program is resolved by
+choosing a choice map (a person, a sure model, a world picked whole), and the
+render of a choice map is a function. Alternatives generated only when asked
+for (a model writing a subtree for an alternative named but not yet written)
+are not here yet.
+
 ## Three layers
 
 | layer | what | in The Wardrobe |
@@ -103,23 +156,26 @@ What this repository adds to it, each in value semantics:
 | `words` | a sentence read against the trace: resolve, ask, infer (a step past the end of a scale), or context |
 | `changes` | what a program change did to the decisions: added, removed, kept, waiting, back; plus `diff` of two renders |
 | `observe` | what a model is shown, from the trace |
-| `session` | the loop a host runs: the source, a render under `watch`, versions of the program with the model's beliefs for each, undo (the host's history; a program change starts it over), say/answer/decide/rule out/forget, a `Model` behind two doors (`extend`, `rebelieve`), and `window.__reintent` for an inspector |
+| `worlds` | the likeliest whole choice maps and their joint probability (a beam; greedy with `beam: 1`; `only` sums the other sites out), and `split`: the question that tells them apart |
+| `choose` | `<Choose name default alternatives>`: a structural choice, one intent over subtrees |
+| `session` | the loop a host runs: the worlds (choose one: a person writes its choices), the source, a render under `watch`, versions of the program with the model's beliefs for each, undo (the host's history; a program change starts it over), say/answer/decide/rule out/forget, a `Model` behind two doors (`extend`, `rebelieve`), and `window.__reintent` for an inspector |
 
 ## Files
 
 ```
 packages/reintent-core/
 ├── src/core/        the core (ported): jsx, jsx-runtime, context, value, source, render, cache, index
-├── src/lib/         axis, alternatives, questions, orphans (ported); vocab, words, changes, observe, session
+├── src/lib/         axis, alternatives, questions, orphans (ported); vocab, words, changes, observe, session, worlds, choose
 └── test/
     ├── core.test.ts       airtalk's core tests, as written (its email-reply host in email.ts)
     ├── structure.test.ts  the layering, and literal instance files (The Wardrobe's)
     ├── value.test.ts      values, not signals; and what this repository adds to the core
-    ├── wardrobe.test.ts   The Wardrobe's intent layer, headless, step by step through a session
+    ├── choice.test.ts     beliefs given other choices, <Choose>, worlds (a brief in brief.tsx)
+    ├── wardrobe.test.ts   The Wardrobe's intent layer, headless, step by step through a session (v3 included)
     └── hooks.mjs, register.mjs   Node runs .tsx (TypeScript's transpiler) and the package's subpaths
 
 experiences/reintent/
-├── program/v1.tsx, v2.tsx   the intent tree, as written and as rewritten
+├── program/v1–v3.tsx      the intent tree, as written, as rewritten, and with a choice of the tree
 ├── intents/v1.ts, v2.ts     the intent components
 ├── kinds.ts                 the vocabularies
 ├── beliefs.ts               the model's beliefs, per version
@@ -128,7 +184,7 @@ experiences/reintent/
 app/lab/reintent/            the lab: the frame, and a panel on the session
 ```
 
-`pnpm reintent:test` (30 tests) and `pnpm reintent:typecheck` check it.
+`pnpm reintent:test` (36 tests) and `pnpm reintent:typecheck` check it.
 
 ## In the lab
 
@@ -137,7 +193,9 @@ app/lab/reintent/            the lab: the frame, and a panel on the session
 | | |
 |---|---|
 | Program | v1 ⇄ v2 (the model's rewrite of the components): what is new, gone, kept, waiting, back. Under v2, a person's `absurd` hat waits, his gaze is not read at the window, and the pace's default follows the door |
-| Say | `帽子大一点` steps along the scale. `帽子还要大` goes past its end, where the stand-in learns a kind. `门慢一点` is the pace (its own step words). `别看我` is a kind, not a refusal. `帽子不要大得离谱` rules a kind out. `更压抑一点` is said of the whole: the stand-in believes again |
+| Program v3 | `<Choose>`: he waits, or he is gone into the wardrobe. Gone, nothing about him is read. The door is believed given the ending |
+| Worlds | the likeliest choice maps over the ending and the door, with their probability, and which one the render settled on. Choosing one writes its choices |
+| Say | `他走了` names an alternative. `帽子大一点` steps along the scale. `帽子还要大` goes past its end, where the stand-in learns a kind. `门慢一点` is the pace (its own step words). `别看我` is a kind, not a refusal. `帽子不要大得离谱` rules a kind out. `更压抑一点` is said of the whole: the stand-in believes again |
 | Asked, Intents | answer, decide, rule out, forget. Each value shows who said it and whether a decision waits |
 | Details | what a model is shown, the source files of the running version, the source |
 

@@ -44,6 +44,11 @@ test('instance files hold only elements and literal props', () => {
       n.kind === ts.SyntaxKind.TrueKeyword ||
       n.kind === ts.SyntaxKind.FalseKeyword ||
       (ts.isPrefixUnaryExpression(n) && ts.isNumericLiteral(n.operand)) ||
+      // An element is literal too (its own props are checked as the walk reaches them): a
+      // structural choice's alternatives are subtrees.
+      ts.isJsxElement(n) ||
+      ts.isJsxSelfClosingElement(n) ||
+      ts.isJsxFragment(n) ||
       (ts.isArrayLiteralExpression(n) && n.elements.every(literal)) ||
       (ts.isObjectLiteralExpression(n) &&
         n.properties.every((p) => ts.isPropertyAssignment(p) && literal(p.initializer)));

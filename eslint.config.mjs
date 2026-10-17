@@ -41,7 +41,7 @@ const GLASS_TOKENS_ONLY = {
  * apply to them. The React view (experiences/reintent/main.tsx) keeps it.
  */
 const REINTENT_INTENT_LAYER = {
-  files: ["packages/reintent-core/src/**/*.ts", "packages/reintent-core/test/**/*.ts", "experiences/reintent/intents/**/*.ts"],
+  files: ["packages/reintent-core/src/**/*.ts", "packages/reintent-core/test/**/*.{ts,tsx}", "experiences/reintent/intents/**/*.ts"],
   rules: { "react-hooks/rules-of-hooks": "off" },
 };
 

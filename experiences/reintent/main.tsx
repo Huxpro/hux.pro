@@ -28,11 +28,13 @@ import { SHAPE } from "../wardrobe/timeline";
 import { LANG } from "../common/words";
 import V1 from "./program/v1";
 import V2 from "./program/v2";
+import V3 from "./program/v3";
 import V1_PROGRAM from "./program/v1.tsx?raw";
 import V2_PROGRAM from "./program/v2.tsx?raw";
+import V3_PROGRAM from "./program/v3.tsx?raw";
 import V1_INTENTS from "./intents/v1.ts?raw";
 import V2_INTENTS from "./intents/v2.ts?raw";
-import { V1 as B1, V2 as B2 } from "./beliefs";
+import { V1 as B1, V2 as B2, V3 as B3, WORLD_OF } from "./beliefs";
 import { standIn } from "./model";
 import "../common/styles.css";
 
@@ -58,8 +60,19 @@ const session = createSession({
         { file: "experiences/reintent/intents/v2.ts", source: V2_INTENTS },
       ],
     },
+    {
+      id: "v3",
+      note: "as the model rewrote the tree: whether he is still there is a choice of the tree (<Choose>), and the door is believed given it",
+      program: V3,
+      beliefs: B3,
+      files: [
+        { file: "experiences/reintent/program/v3.tsx", source: V3_PROGRAM },
+        { file: "experiences/reintent/intents/v2.ts", source: V2_INTENTS },
+      ],
+    },
   ],
   model: standIn,
+  worlds: { k: 3, only: (r) => WORLD_OF(r.path) },
 });
 window.__reintent = session;
 
@@ -68,6 +81,8 @@ window.__reintent = session;
 // -----------------------------------------------------------------------------
 
 interface Meaning {
+  /** Whether he is in the tree (v3's ending may leave only the wardrobe). */
+  here: boolean;
   hatScale: number;
   /** How much his eyes catch the light: 0 when he does not look (or is not asked to, at the window). */
   eyes: number;
@@ -79,13 +94,16 @@ interface Meaning {
 type Ref = { kind: string; path: string } | null;
 
 function meaningOf(s: SessionSnapshot): Meaning {
-  const dream = s.result.tree as HostNode;
-  const node = (kind: string) => (dream?.children as HostNode[] | undefined)?.find((n) => n.kind === kind)?.props ?? {};
-  const man = node("man");
-  const wardrobe = node("wardrobe");
+  // Anywhere in the tree: under the dream, or under the choice that holds them (v3).
+  const find = (n: HostNode | undefined, kind: string): HostNode | undefined =>
+    !n || typeof n !== "object" ? undefined : n.kind === kind ? n : n.children.map((c) => find(c as HostNode, kind)).find(Boolean);
+  const node = (kind: string) => find(s.result.tree as HostNode, kind)?.props;
+  const man = node("man") ?? {};
+  const wardrobe = node("wardrobe") ?? {};
   const of = <D,>(ref: Ref) => (ref ? meaning<D>(s.reads, ref) : undefined);
   const stand = of<Meaning["stand"]>(man.stand);
   return {
+    here: node("man") !== undefined,
     hatScale: of<{ hatScale: number }>(man.hat)?.hatScale ?? 1,
     eyes: man.gaze === null ? 0 : (of<{ eyes: number }>(man.gaze)?.eyes ?? 1),
     stand: stand ? { at: stand.at, scale: stand.scale, lean: stand.lean } : SHAPE.stand,
@@ -94,11 +112,12 @@ function meaningOf(s: SessionSnapshot): Meaning {
   };
 }
 
-const MeaningContext = createContext<Meaning>({ hatScale: 1, eyes: 1, stand: SHAPE.stand, open: SHAPE.doorEnd, over: undefined });
+const MeaningContext = createContext<Meaning>({ here: true, hatScale: 1, eyes: 1, stand: SHAPE.stand, open: SHAPE.doorEnd, over: undefined });
 
 /** Him, as the timeline poses him and the render says he is: at the bed he stands where his intent says, the drift on top. */
 function ManView({ instance, eyes, at, scale, lean, children }: ManPose & { children?: ReactNode }) {
   const m = useContext(MeaningContext);
+  if (!m.here) return null;
   const pose =
     instance === "bedside"
       ? { at: m.stand.at, scale: m.stand.scale + scale - SHAPE.stand.scale, lean: m.stand.lean + lean - SHAPE.stand.lean }
