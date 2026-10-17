@@ -2,8 +2,9 @@
 
 import { ArrowUpRight, RotateCcw, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode, type RefObject } from "react";
-import { cells, kindOf, type Cell, type Snapshot, type Source, type Value } from "reintent-core";
-import type { ReintentDevtools, Said } from "reintent-core/devtools";
+import type { Read } from "reintent-core";
+import type { Said, Session, SessionSnapshot } from "reintent-core/lib/session";
+import { kindAbout, type About } from "reintent-core/lib/vocab";
 import { LabButton, LabChip, LabShell, experienceSrc, labButtonClass, useLabStrings } from "@/systems/lab";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
@@ -13,11 +14,11 @@ import { REINTENT_STRINGS, type ReintentStrings } from "./strings";
 // =============================================================================
 // /lab/reintent: The Wardrobe on Reintent core (packages/reintent-core).
 //
-// The frame runs experiences/reintent: the Wardrobe's own stage, its intents
-// held by a core root. The root opens itself as `window.__reintent` (the
-// core's devtools protocol), and everything here is read from it and
-// dispatched through it: nothing is imported from the scene, and nothing
-// here is state but what the frame holds.
+// The frame runs experiences/reintent: the Wardrobe's intent tree, rendered
+// by the core as a value, and drawn by the Wardrobe's own stage. Its session
+// (reintent-core/lib/session) lays itself open as `window.__reintent`, and
+// everything here is read from it and done through it: nothing is imported
+// from the scene, and nothing here is state but what the frame holds.
 // =============================================================================
 
 const SRC = "/scenes/reintent/index.html";
@@ -30,7 +31,7 @@ const EXAMPLES = ["帽子大一点", "帽子还要大", "门慢一点", "站到�
  * load event is not to be counted on. Null until then; `failed` after a while.
  */
 function useDevtools(frame: RefObject<HTMLIFrameElement | null>, key: string) {
-  const [found, setFound] = useState<{ key: string; dt: ReintentDevtools | null; failed: boolean }>({ key, dt: null, failed: false });
+  const [found, setFound] = useState<{ key: string; dt: Session | null; failed: boolean }>({ key, dt: null, failed: false });
   useEffect(() => {
     let tries = 0;
     const id = setInterval(() => {
@@ -53,9 +54,9 @@ function useDevtools(frame: RefObject<HTMLIFrameElement | null>, key: string) {
   return found.key === key ? found : { key, dt: null, failed: false };
 }
 
-function useDevtoolsSnapshot(dt: ReintentDevtools | null): Snapshot | null {
-  const subscribe = useCallback((fn: () => void) => (dt ? dt.root.subscribe(fn) : () => {}), [dt]);
-  const get = useCallback(() => dt?.root.get() ?? null, [dt]);
+function useDevtoolsSnapshot(dt: Session | null): SessionSnapshot | null {
+  const subscribe = useCallback((fn: () => void) => (dt ? dt.subscribe(fn) : () => {}), [dt]);
+  const get = useCallback(() => dt?.get() ?? null, [dt]);
   return useSyncExternalStore(subscribe, get, () => null);
 }
 
@@ -75,11 +76,11 @@ export function ReintentLabView() {
 
   const actions = (
     <>
-      <LabButton disabled={!snap?.canUndo} onClick={() => dt?.root.undo()}>
+      <LabButton disabled={!snap?.canUndo} onClick={() => dt?.undo()}>
         <Undo2 />
         {S.undo}
       </LabButton>
-      <LabButton disabled={!snap?.log.length} onClick={() => dt?.root.reset()}>
+      <LabButton disabled={!snap?.log.length} onClick={() => dt?.reset()}>
         <RotateCcw />
         {S.reset}
       </LabButton>
@@ -90,7 +91,7 @@ export function ReintentLabView() {
     </>
   );
 
-  const meta = snap && <span className={TYPE.rowMeta}>{S.meta(Object.keys(snap.values).length, snap.asks.length, snap.stale.length)}</span>;
+  const meta = snap && <span className={TYPE.rowMeta}>{S.meta(unique(snap.reads).length, snap.asks.length, snap.stale.length)}</span>;
 
   return (
     <LabShell lab="reintent" layout="canvas" meta={meta} actions={actions}>
@@ -114,21 +115,26 @@ export function ReintentLabView() {
 
 type Half = (label: string | undefined, fallback: string) => string;
 
-function Panel({ S, dt, snap, half }: { S: ReintentStrings; dt: ReintentDevtools; snap: Snapshot; half: Half }) {
-  const kindLabel = (c: Cell, k: string) => half(kindOf(c, snap.doc, k)?.label, k);
-  const all = cells(snap.program);
-  const cellOf = (key: string) => all.find((c) => c.key === key)!;
-  const current = dt.current();
-  const version = dt.versions.find((v) => v.id === current);
-  // The last time the program changed (a version switched, an `if` in a part went the other way).
+/** One read per intent (a render reads an intent once per context it is in). */
+const unique = (reads: readonly Read[]) => reads.filter((r, i, a) => a.findIndex((x) => x.path === r.path) === i);
+/** A path as the panel shows it: the part and the intent (`Man:man#hat`), the scope left out. */
+const short = (path: string) => path.split("/").slice(-1)[0];
+
+function Panel({ S, dt, snap, half }: { S: ReintentStrings; dt: Session; snap: SessionSnapshot; half: Half }) {
+  const reads = unique(snap.reads);
+  const readOf = (path: string) => reads.find((r) => r.path === path);
+  const kindLabel = (r: Read | undefined, k: string) => (r ? half(kindAbout(r, k)?.label, k) : k);
+  const version = snap.versions.find((v) => v.id === snap.current);
+  // The last time the program changed (a version switched).
   const changed = snap.log.find((e) => e.program)?.program;
+  const list = (paths: string[]) => paths.map(short).join(", ") || "—";
 
   return (
     <>
       <Section title={S.program} note={S.programNote}>
         <div className="flex flex-wrap items-center gap-2">
-          {dt.versions.map((v) => (
-            <LabChip key={v.id} on={v.id === current} onClick={() => dt.use(v.id)}>
+          {snap.versions.map((v) => (
+            <LabChip key={v.id} on={v.id === snap.current} onClick={() => dt.use(v.id)}>
               {v.id}
             </LabChip>
           ))}
@@ -138,28 +144,28 @@ function Panel({ S, dt, snap, half }: { S: ReintentStrings; dt: ReintentDevtools
           <div className={cn(TYPE.rowMeta, "flex flex-wrap gap-x-4 gap-y-1 text-[11px]")}>
             {changed.added.length > 0 && (
               <span>
-                {S.added}: {changed.added.join(", ")}
+                {S.added}: {list(changed.added)}
               </span>
             )}
             {changed.removed.length > 0 && (
               <span>
-                {S.removed}: {changed.removed.join(", ")}
+                {S.removed}: {list(changed.removed)}
               </span>
             )}
             <span>
-              {S.kept}: {changed.kept.join(", ") || "—"}
+              {S.kept}: {list(changed.kept)}
             </span>
-            <span className={changed.suspended.length ? "text-amber-600 dark:text-amber-300" : undefined}>
-              {S.suspended}: {changed.suspended.join(", ") || "—"}
+            <span className={changed.waiting.length ? "text-amber-600 dark:text-amber-300" : undefined}>
+              {S.suspended}: {list(changed.waiting)}
             </span>
             <span>
-              {S.restored}: {changed.restored.join(", ") || "—"}
+              {S.restored}: {list(changed.back)}
             </span>
           </div>
         )}
       </Section>
 
-      <Say S={S} dt={dt} cellOf={cellOf} kindLabel={kindLabel} />
+      <Say S={S} dt={dt} readOf={readOf} kindLabel={kindLabel} />
 
       {snap.asks.length > 0 && (
         <section className="space-y-3 rounded-xl bg-amber-500/[0.07] p-4">
@@ -167,30 +173,26 @@ function Panel({ S, dt, snap, half }: { S: ReintentStrings; dt: ReintentDevtools
             <h3 className={TYPE.label}>{S.asked}</h3>
             <p className={TYPE.caption}>{S.askedNote}</p>
           </div>
-          {snap.asks.map((v) => {
-            const c = cellOf(v.key);
-            return (
-              <div key={v.key} className="space-y-2">
-                <p className="text-sm text-foreground">{half(c.decl.label, v.key)}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {v.kinds.map((k) => (
-                    <LabButton key={k} tone="primary" onClick={() => dt.answer({ key: v.key, kind: k, via: "kind" })}>
-                      {kindLabel(c, k)} {pct(v.p[k])}
-                    </LabButton>
-                  ))}
-                </div>
+          {snap.asks.map((r) => (
+            <div key={r.path} className="space-y-2">
+              <p className="text-sm text-foreground">{half((r.about as About | undefined)?.label, short(r.path))}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {(r.kinds ?? []).map(String).map((k) => (
+                  <LabButton key={k} tone="primary" onClick={() => dt.answer({ path: r.path, kind: k, via: "kind" })}>
+                    {kindLabel(r, k)} {pct(r.belief?.[k])}
+                  </LabButton>
+                ))}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </section>
       )}
 
       <Section title={S.cells} note={S.cellsNote}>
         <div className="divide-y divide-border/60">
-          {all.map((c) => {
-            const v = snap.values[c.key];
-            return v ? <CellRow key={c.key} S={S} dt={dt} c={c} v={v} snap={snap} label={half(c.decl.label, c.decl.name)} kindLabel={kindLabel} /> : null;
-          })}
+          {reads.map((r) => (
+            <IntentRow key={r.path} S={S} dt={dt} r={r} snap={snap} label={half((r.about as About | undefined)?.label, r.name)} kindLabel={kindLabel} />
+          ))}
         </div>
       </Section>
 
@@ -210,9 +212,13 @@ function Panel({ S, dt, snap, half }: { S: ReintentStrings; dt: ReintentDevtools
       </Section>
 
       <Details title={S.observe}>{dt.observe()}</Details>
-      <Details title={`${S.source} · ${version?.file ?? ""}`}>{version?.source ?? ""}</Details>
+      {version?.files?.map((f) => (
+        <Details key={f.file} title={`${S.source} · ${f.file}`}>
+          {f.source}
+        </Details>
+      ))}
       <Details title={S.doc} note={S.docNote}>
-        {JSON.stringify(snap.doc, null, 2)}
+        {JSON.stringify(snap.source, null, 2)}
       </Details>
     </>
   );
@@ -221,13 +227,13 @@ function Panel({ S, dt, snap, half }: { S: ReintentStrings; dt: ReintentDevtools
 function Say({
   S,
   dt,
-  cellOf,
+  readOf,
   kindLabel,
 }: {
   S: ReintentStrings;
-  dt: ReintentDevtools;
-  cellOf: (key: string) => Cell;
-  kindLabel: (c: Cell, k: string) => string;
+  dt: Session;
+  readOf: (path: string) => Read | undefined;
+  kindLabel: (r: Read | undefined, k: string) => string;
 }) {
   const [text, setText] = useState("");
   const [said, setSaid] = useState<(Said & { text: string }) | null>(null);
@@ -270,14 +276,14 @@ function Say({
             <div className="flex flex-wrap gap-1.5">
               {said.readings.map((r) => (
                 <LabButton
-                  key={`${r.key}=${r.kind}`}
+                  key={`${r.path}=${r.kind}`}
                   tone="primary"
                   onClick={() => {
                     dt.answer(r);
                     setSaid(null);
                   }}
                 >
-                  {r.key} = {kindLabel(cellOf(r.key), r.kind)}
+                  {short(r.path)} = {kindLabel(readOf(r.path), r.kind)}
                 </LabButton>
               ))}
             </div>
@@ -288,54 +294,58 @@ function Say({
   );
 }
 
-function CellRow({
+function IntentRow({
   S,
   dt,
-  c,
-  v,
+  r,
   snap,
   label,
   kindLabel,
 }: {
   S: ReintentStrings;
-  dt: ReintentDevtools;
-  c: Cell;
-  v: Value;
-  snap: Snapshot;
+  dt: Session;
+  r: Read;
+  snap: SessionSnapshot;
   label: string;
-  kindLabel: (c: Cell, k: string) => string;
+  kindLabel: (r: Read | undefined, k: string) => string;
 }) {
-  const decided = !!snap.doc.decisions[c.key];
+  const decided = snap.decided.includes(r.path);
+  const kinds = (r.kinds ?? []).map(String);
+  const value = String(r.value);
+  const by = r.scope === "deck" ? "deck" : r.by;
   return (
     <div className="space-y-2 py-3">
       <div className="flex items-baseline justify-between gap-3">
         <span className="min-w-0 truncate text-sm text-foreground">
-          {label} <span className={TYPE.hash}>{c.key}</span>
+          {label} <span className={TYPE.hash}>{short(r.path)}</span>
         </span>
         <span className="flex shrink-0 items-center gap-1.5">
-          {v.stale && <Badge tone="warn">{S.stale}</Badge>}
-          <Badge tone={v.source === "person" || v.source === "rule" ? "firm" : v.source === "ask" ? "ask" : "plain"}>{S.from[v.source as Source]}</Badge>
+          {r.waiting !== undefined && <Badge tone="warn">{S.waiting(kindLabel(r, String(r.waiting)))}</Badge>}
+          {snap.stale.includes(r.path) && <Badge tone="warn">{S.stale}</Badge>}
+          <Badge tone={by === "human" || by === "deck" ? "firm" : r.ask ? "ask" : "plain"}>{r.ask ? S.from.ask : S.from[by]}</Badge>
         </span>
       </div>
-      <div className="flex h-1.5 overflow-hidden rounded-full bg-muted">
-        {v.kinds.map((k) => (
-          <div key={k} title={`${kindLabel(c, k)} ${pct(v.p[k])}`} className={k === v.kind ? "bg-foreground/70" : "bg-foreground/20"} style={{ width: `${(v.p[k] ?? 0) * 100}%` }} />
-        ))}
-      </div>
+      {r.belief && (
+        <div className="flex h-1.5 overflow-hidden rounded-full bg-muted">
+          {kinds.map((k) => (
+            <div key={k} title={`${kindLabel(r, k)} ${pct(r.belief?.[k])}`} className={k === value ? "bg-foreground/70" : "bg-foreground/20"} style={{ width: `${(r.belief?.[k] ?? 0) * 100}%` }} />
+          ))}
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-1.5">
-        {v.kinds.map((k) => {
-          const out = v.not.includes(k);
+        {kinds.map((k) => {
+          const out = !!r.not?.includes(k);
           return (
-            <LabChip key={k} on={k === v.kind} disabled={out} className={cn(out && "line-through")} onClick={() => dt.root.dispatch({ type: "narrow", key: c.key, pick: k, from: "picked" })}>
-              {kindLabel(c, k)}
-              {kindOf(c, snap.doc, k)?.learned && <span className="opacity-60">· {S.learned}</span>}
+            <LabChip key={k} on={k === value} disabled={out} className={cn(out && "line-through")} onClick={() => dt.decide(r.path, k, `${short(r.path)} = ${k}`)}>
+              {kindLabel(r, k)}
+              {r.learned?.[k] !== undefined && <span className="opacity-60">· {S.learned}</span>}
             </LabChip>
           );
         })}
-        <LabButton title={S.ruleOutTitle} onClick={() => dt.root.dispatch({ type: "narrow", key: c.key, pick: { not: [v.kind] }, from: "ruled out" })}>
-          {S.ruleOut} {kindLabel(c, v.kind)}
+        <LabButton title={S.ruleOutTitle} onClick={() => dt.ruleOut(r.path, value)}>
+          {S.ruleOut} {kindLabel(r, value)}
         </LabButton>
-        {decided && <LabButton onClick={() => dt.root.dispatch({ type: "narrow", key: c.key, pick: null })}>{S.forget}</LabButton>}
+        {decided && <LabButton onClick={() => dt.forget(r.path)}>{S.forget}</LabButton>}
       </div>
     </div>
   );

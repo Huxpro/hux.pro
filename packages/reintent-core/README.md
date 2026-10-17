@@ -1,14 +1,17 @@
 # reintent-core
 
-Intents as a reactive, typed program. A part takes intents in (`useIntent`,
-a closed set of kinds each) and gives the world out. Each value is decided by
-one rule: a person, then a rule, then the author, then a relation, then a
-viewer, then a sure model, then code (or a question). When a part is
-rewritten, values are reconciled by path.
+Reintent in `.tsx`, after [Huxpro/airtalk#845](https://github.com/Huxpro/airtalk/pull/845):
+intents as values, not signals. A model writes an intent tree (elements and
+literal props) on intent components that read their intents as values and
+return host nodes saying what was decided. A view in any host draws them.
 
-- `reintent-core`: the core. No dependencies; its hooks need a frame, not React.
-- `reintent-core/words`, `/observe`, `/devtools`: libraries on the core.
-- `reintent-core/react`: the React binding. `useIntent` as a React hook under a `<Thing>`, `<Scope>`, `reactPart`, `useCell`. Render reads, commit declares, and each subscribes to the cells it read.
+- `reintent-core`: the core. Elements and the render with its trace, `whatIf`,
+  `watch`, contexts with axes, one intent's value from its writers (a person >
+  a sure model > code), stamped results, a pluggable source.
+- `reintent-core/jsx-runtime`: `/** @jsxImportSource reintent-core */`.
+- `reintent-core/lib/*`: libraries on the core's public entry. From airtalk:
+  `axis`, `alternatives`, `questions`, `orphans`. From this repository: `vocab`,
+  `words`, `changes`, `observe`, `session`.
 
-See docs/system-reintent-core.md, and `/lab/reintent` for The Wardrobe running on it.
+See docs/system-reintent-core.md, and `/lab/reintent` for The Wardrobe on it.
 `pnpm reintent:test` and `pnpm reintent:typecheck` check it.

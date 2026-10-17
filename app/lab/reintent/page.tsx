@@ -2,7 +2,7 @@ import { ReintentLabView } from "./view";
 
 export const metadata = {
   title: "Reintent Core | Hux.Pro",
-  description: "The Wardrobe on a standalone intent core: parts take intents in and give the picture out, each value decided by one rule, reconciled when the model rewrites a part.",
+  description: "The Wardrobe on Reintent: an intent tree a model writes, intents read as values, drawn by the Wardrobe's own stage.",
   robots: { index: false, follow: false },
 };
 

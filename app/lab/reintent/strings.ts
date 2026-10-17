@@ -1,8 +1,8 @@
 import type { LabTable } from "@/systems/lab";
-import type { Source } from "reintent-core";
+import type { By } from "reintent-core";
 
 const en = {
-  meta: (cells: number, asks: number, stale: number) => `${cells} cells · ${asks ? `${asks} asked` : "nothing asked"}${stale ? ` · ${stale} stale` : ""}`,
+  meta: (cells: number, asks: number, stale: number) => `${cells} intents · ${asks ? `${asks} asked` : "nothing asked"}${stale ? ` · ${stale} stale` : ""}`,
   undo: "Undo",
   reset: "Start over",
   open: "Full screen",
@@ -11,7 +11,7 @@ const en = {
 
   program: "Program",
   programNote:
-    "The program is the parts the model wrote: each declares its intents and returns its drawing. Switch to its rewrite and back: every decision whose path and kind remain is kept; the rest wait, and return with their kind.",
+    "The program is what the model wrote: an intent tree (elements and literal props) on intent components that read their intents as values and say what was decided, with no view. Switch to its rewrite and back: every decision whose intent and kind remain still applies; the rest wait in the source, and apply again when their kind is back.",
   added: "new",
   removed: "gone",
   kept: "kept",
@@ -28,12 +28,13 @@ const en = {
   askedNote: "The model is not sure, and the intent asks rather than guessing.",
   answer: "Answer",
 
-  cells: "Cells",
-  cellsNote: "Each intent of each thing: its kind now, who said so, and the belief under it. A kind is a decision; ≠ rules the current one out; forget hands it back.",
+  cells: "Intents",
+  cellsNote: "Each intent the render read: its value now, who said so, and the belief under it. A kind is a decision; ≠ rules the current one out; forget hands it back.",
   ruleOut: "≠",
   ruleOutTitle: "Rule this kind out",
   forget: "Forget",
   stale: "stale",
+  waiting: (kind: string) => `${kind} waiting`,
   learned: "learned",
 
   log: "What happened",
@@ -43,22 +44,21 @@ const en = {
   observe: "What a model is shown",
   source: "Source",
   doc: "Doc",
-  docNote: "The only state: what people decided, the model's beliefs (a cache, held under a context), kinds learned, decisions waiting.",
+  docNote: "The only state: the source, by path. What people decided, the model's beliefs, kinds a model learned. The render is computed from it.",
 
   from: {
-    person: "you",
-    rule: "your rule",
-    author: "author",
-    derived: "relation",
-    viewer: "viewer",
+    human: "you",
+    deck: "your rule",
     model: "model",
     code: "code",
+    unresolved: "code's pick",
+    unknown: "not here",
     ask: "asking",
-  } satisfies Record<Source, string>,
+  } satisfies Record<By | "deck" | "ask", string>,
 };
 
 const zh: typeof en = {
-  meta: (cells, asks, stale) => `${cells} 个格子 · ${asks ? `${asks} 个在问` : "没有要问的"}${stale ? ` · ${stale} 个过期` : ""}`,
+  meta: (cells, asks, stale) => `${cells} 个意图 · ${asks ? `${asks} 个在问` : "没有要问的"}${stale ? ` · ${stale} 个过期` : ""}`,
   undo: "撤销",
   reset: "重来",
   open: "全屏",
@@ -66,7 +66,7 @@ const zh: typeof en = {
   failed: "场景没有打开。请先构建：pnpm experiences:build",
 
   program: "程序",
-  programNote: "程序就是模型写的 part：每个 part 声明自己的意图，返回自己的画面。切到它的改写版再切回来：路径和 kind 都还在的决定会保留；其余的先等着，kind 回来时它们也回来。",
+  programNote: "程序是模型写的：一棵意图树（只有元素和字面量 props），跑在意图组件上；意图组件把意图当作值来读，说出决定了什么，不含视图。切到它的改写版再切回来：意图和 kind 都还在的决定照样生效；其余的留在 source 里等着，kind 回来时再生效。",
   added: "新增",
   removed: "移除",
   kept: "保留",
@@ -83,12 +83,13 @@ const zh: typeof en = {
   askedNote: "模型拿不准，这个意图选择问你而不是猜。",
   answer: "回答",
 
-  cells: "格子",
-  cellsNote: "每个物体的每个意图：现在是哪个 kind、谁说的、背后的判断。点一个 kind 就是决定它；≠ 排除当前这个；忘掉就交还给模型和代码。",
+  cells: "意图",
+  cellsNote: "这次渲染读到的每个意图：现在的值、谁说的、背后的判断。点一个 kind 就是决定它；≠ 排除当前这个；忘掉就交还给模型和代码。",
   ruleOut: "≠",
   ruleOutTitle: "排除这个 kind",
   forget: "忘掉",
   stale: "过期",
+  waiting: (kind) => `${kind} 在等`,
   learned: "学到的",
 
   log: "发生了什么",
@@ -98,16 +99,15 @@ const zh: typeof en = {
   observe: "模型看到的",
   source: "源码",
   doc: "Doc",
-  docNote: "唯一的状态：人做的决定、模型的判断（缓存，挂在某个上下文下）、学到的 kind、在等待的决定。",
+  docNote: "唯一的状态：source，按路径存。人做的决定、模型的判断、模型学到的 kind。渲染结果由它算出来。",
 
   from: {
-    person: "你",
-    rule: "你的规则",
-    author: "作者",
-    derived: "关系",
-    viewer: "观看者",
+    human: "你",
+    deck: "你的规则",
     model: "模型",
     code: "代码",
+    unresolved: "代码先选",
+    unknown: "不在这里",
     ask: "在问",
   },
 };

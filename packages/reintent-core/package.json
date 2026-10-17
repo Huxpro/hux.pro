@@ -2,20 +2,13 @@
   "name": "reintent-core",
   "version": "0.1.0",
   "private": true,
-  "description": "Intents as a reactive, typed program: parts declare intents (a closed set of kinds each) and return the world; each value is decided by a person, a model and code in that order, and reconciled by path when a part is rewritten.",
+  "description": "Reintent in .tsx: intents as values, not signals. A host-neutral core (elements, contexts with axes, one intent's value from its writers, a render with its trace, whatIf, watch, stamped results), libraries on its public entry, after Huxpro/airtalk#845.",
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": "./src/index.ts",
-    "./words": "./src/words.ts",
-    "./observe": "./src/observe.ts",
-    "./devtools": "./src/devtools.ts",
-    "./react": "./src/react.ts"
-  },
-  "peerDependencies": {
-    "react": ">=19"
-  },
-  "peerDependenciesMeta": {
-    "react": { "optional": true }
+    ".": "./src/core/index.ts",
+    "./jsx-runtime": "./src/core/jsx-runtime.ts",
+    "./jsx-dev-runtime": "./src/core/jsx-dev-runtime.ts",
+    "./lib/*": "./src/lib/*.ts"
   }
 }

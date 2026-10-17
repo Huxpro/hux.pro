@@ -5,6 +5,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
+    "jsxImportSource": "reintent-core",
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
@@ -12,9 +13,11 @@
     "allowImportingTsExtensions": true,
     "types": ["node"],
     "paths": {
-      "reintent-core": ["./src/index.ts"],
-      "reintent-core/*": ["./src/*"]
+      "reintent-core": ["./src/core/index.ts"],
+      "reintent-core/jsx-runtime": ["./src/core/jsx-runtime.ts"],
+      "reintent-core/jsx-dev-runtime": ["./src/core/jsx-dev-runtime.ts"],
+      "reintent-core/lib/*": ["./src/lib/*"]
     }
   },
-  "include": ["src/**/*.ts", "test/**/*.ts", "test/**/*.tsx"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "test/**/*.tsx", "../../experiences/reintent/intents/**/*.ts", "../../experiences/reintent/program/**/*.tsx"]
 }

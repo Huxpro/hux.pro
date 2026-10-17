@@ -1,120 +1,138 @@
 // =============================================================================
-// The Wardrobe, on Reintent core.
+// The Wardrobe, on Reintent: three layers.
 //
-// The same experience as experiences/wardrobe (its stage, its timeline, its
-// sound), with its things drawn by parts on Reintent core:
+//   program/*.tsx    the intent tree a model writes: elements, literal props
+//   intents/*.ts     the intent components: intents in (values), what was
+//                    decided out (host nodes of kinds and paths). No view
+//   main.tsx         the view: React, reading the render's host nodes and
+//                    drawing them with the Wardrobe's own stage
 //
-//   kinds.ts         the intent types: kinds, words, what each means
-//   parts.tsx        him and the wardrobe as the model wrote them: intents in, drawing out
-//   parts.v2.tsx     the same, as the model rewrote them
+// The session (reintent-core/lib/session) runs the loop: the source of what
+// people and the model said, the render (a value, rendered again when what it
+// read changes), undo, versions. React never subscribes to an intent: it reads
+// the session's latest render, as it would any other value.
+//
+//   kinds.ts         the vocabularies: kinds, their words, what each means here
+//   beliefs.ts       the model's beliefs, as it wrote each version
 //   model.ts         a stand-in model, in rules
-//   main.tsx         the root, the director (its pace, a React hook under <Thing>), and the devtools
-//                    the Lab's /lab/reintent drives it through
 // =============================================================================
 
-import { useMemo, useSyncExternalStore } from "react";
-import { createRoot as createReactRoot } from "react-dom/client";
-import { createRoot } from "reintent-core";
-import { ReintentRoot, Thing, reactPart } from "reintent-core/react";
-import { readingAction, recognize } from "reintent-core/words";
-import { observe } from "reintent-core/observe";
-import { expose, type ProgramVersion, type Said } from "reintent-core/devtools";
-import { WardrobeStage, type Read, type Things } from "../wardrobe/Wardrobe";
+import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
+import { createRoot } from "react-dom/client";
+import type { HostNode } from "reintent-core";
+import { createSession, type SessionSnapshot } from "reintent-core/lib/session";
+import { meaning } from "reintent-core/lib/vocab";
+import { WardrobeStage, transformOf, type ManPose, type Read, type Things, type WardrobePose } from "../wardrobe/Wardrobe";
+import { Man as Figure, Wardrobe as Box } from "../common/bedroom";
 import { SHAPE } from "../wardrobe/timeline";
 import { LANG } from "../common/words";
-import { extend, rebelieve, STAND_IN } from "./model";
-import * as V1 from "./parts";
-import * as V2 from "./parts.v2";
-import V1_SOURCE from "./parts.tsx?raw";
-import V2_SOURCE from "./parts.v2.tsx?raw";
+import V1 from "./program/v1";
+import V2 from "./program/v2";
+import V1_PROGRAM from "./program/v1.tsx?raw";
+import V2_PROGRAM from "./program/v2.tsx?raw";
+import V1_INTENTS from "./intents/v1.ts?raw";
+import V2_INTENTS from "./intents/v2.ts?raw";
+import { V1 as B1, V2 as B2 } from "./beliefs";
+import { standIn } from "./model";
 import "../common/styles.css";
 
-const VERSIONS: ProgramVersion[] = [
-  { id: "v1", note: "as the model first wrote it", file: "experiences/reintent/parts.tsx", source: V1_SOURCE },
-  {
-    id: "v2",
-    note: "as the model rewrote it: a towering hat, a gaze asked only away from the window, a pace that follows the door",
-    file: "experiences/reintent/parts.v2.tsx",
-    source: V2_SOURCE,
-  },
-];
-
-/** Each version's parts, as the stage's things, and the director's own intent. */
-const VERSION: Record<string, { things: Things; usePace: () => { data: { over: number } } }> = {
-  v1: { things: { Man: reactPart(V1.Man), Wardrobe: reactPart(V1.Wardrobe) }, usePace: V1.usePace },
-  v2: { things: { Man: reactPart(V2.Man), Wardrobe: reactPart(V2.Wardrobe) }, usePace: V2.usePace },
-};
-
-const root = createRoot({ id: "wardrobe" });
-
-// Which version runs: a small store the frame and the devtools share.
-let current = "v1";
-const versionSubs = new Set<() => void>();
-const onVersion = (fn: () => void) => {
-  versionSubs.add(fn);
-  return () => versionSubs.delete(fn);
-};
-
-function say(text: string): Said {
-  const s = root.get();
-  const r = recognize(text, s);
-  switch (r.outcome) {
-    case "resolve":
-      root.dispatch(r.action, `“${text}” → ${r.reading.key} ${r.reading.not ? "≠" : "="} ${r.reading.kind}`);
-      return { ...r, done: "resolved: a person's decision, no model" };
-    case "ask":
-      return { ...r, done: "more than one reading: asking" };
-    case "context": {
-      root.dispatch(r.action, `“${text}”, said of the whole`);
-      const believed = rebelieve(root.get());
-      if (believed.length) root.dispatch({ type: "batch", actions: believed }, `${STAND_IN}: ${believed.length} beliefs again, under the new context`);
-      return { ...r, done: `context: ${believed.length} stale beliefs inferred again` };
-    }
-    case "infer": {
-      if (r.need.kind === "extend") {
-        const actions = extend(s, r.need);
-        if (actions) {
-          root.dispatch({ type: "batch", actions }, `“${text}” → ${STAND_IN} learned a kind past the end of ${r.need.key}`);
-          return { ...r, done: "past the end: a model learned a kind more, and it is yours" };
-        }
-      }
-      return { ...r, done: "nothing in the program can say this: it would go to a strong model (none here)" };
-    }
-  }
-}
-
-expose({
-  root,
-  versions: VERSIONS,
-  current: () => current,
-  use(id) {
-    if (id === current || !VERSION[id]) return;
-    current = id;
-    versionSubs.forEach((fn) => fn());
-  },
-  say,
-  answer: (reading) => root.dispatch({ ...readingAction(reading, "answered") }, `answered: ${reading.key} = ${reading.kind}`),
-  observe: () => observe(root.get()),
+const session = createSession({
+  versions: [
+    {
+      id: "v1",
+      note: "as the model first wrote it",
+      program: V1,
+      beliefs: B1,
+      files: [
+        { file: "experiences/reintent/program/v1.tsx", source: V1_PROGRAM },
+        { file: "experiences/reintent/intents/v1.ts", source: V1_INTENTS },
+      ],
+    },
+    {
+      id: "v2",
+      note: "as the model rewrote it: a towering hat, a gaze read only away from the window, a pace whose default follows the door",
+      program: V2,
+      beliefs: B2,
+      files: [
+        { file: "experiences/reintent/program/v2.tsx", source: V2_PROGRAM },
+        { file: "experiences/reintent/intents/v2.ts", source: V2_INTENTS },
+      ],
+    },
+  ],
+  model: standIn,
 });
+window.__reintent = session;
 
-/** The director's share of the intents: the pace is time, declared where it is used. */
-function Stage({ things, usePace }: (typeof VERSION)[string]) {
-  const over = usePace().data.over;
-  const rd = useMemo<Read>(() => ({ shape: SHAPE, hatScale: 1, gaze: 1, over }), [over]);
-  return <WardrobeStage rd={rd} things={things} />;
+// -----------------------------------------------------------------------------
+// What the render says, in the picture's terms.
+// -----------------------------------------------------------------------------
+
+interface Meaning {
+  hatScale: number;
+  /** How much his eyes catch the light: 0 when he does not look (or is not asked to, at the window). */
+  eyes: number;
+  stand: { at: readonly [number, number]; scale: number; lean: number };
+  open: number;
+  over: number | undefined;
 }
+
+type Ref = { kind: string; path: string } | null;
+
+function meaningOf(s: SessionSnapshot): Meaning {
+  const dream = s.result.tree as HostNode;
+  const node = (kind: string) => (dream?.children as HostNode[] | undefined)?.find((n) => n.kind === kind)?.props ?? {};
+  const man = node("man");
+  const wardrobe = node("wardrobe");
+  const of = <D,>(ref: Ref) => (ref ? meaning<D>(s.reads, ref) : undefined);
+  const stand = of<Meaning["stand"]>(man.stand);
+  return {
+    hatScale: of<{ hatScale: number }>(man.hat)?.hatScale ?? 1,
+    eyes: man.gaze === null ? 0 : (of<{ eyes: number }>(man.gaze)?.eyes ?? 1),
+    stand: stand ? { at: stand.at, scale: stand.scale, lean: stand.lean } : SHAPE.stand,
+    open: of<{ open: number }>(wardrobe.door)?.open ?? SHAPE.doorEnd,
+    over: of<{ over: number }>(wardrobe.pace)?.over,
+  };
+}
+
+const MeaningContext = createContext<Meaning>({ hatScale: 1, eyes: 1, stand: SHAPE.stand, open: SHAPE.doorEnd, over: undefined });
+
+/** Him, as the timeline poses him and the render says he is: at the bed he stands where his intent says, the drift on top. */
+function ManView({ instance, eyes, at, scale, lean, children }: ManPose & { children?: ReactNode }) {
+  const m = useContext(MeaningContext);
+  const pose =
+    instance === "bedside"
+      ? { at: m.stand.at, scale: m.stand.scale + scale - SHAPE.stand.scale, lean: m.stand.lean + lean - SHAPE.stand.lean }
+      : { at, scale, lean };
+  return (
+    <Figure instance={instance} hatScale={m.hatScale} eyes={eyes * m.eyes} transform={transformOf(pose)}>
+      {children}
+    </Figure>
+  );
+}
+
+/** The wardrobe: awake, its door opens as far as the render says (the timeline's opening, scaled to it). */
+function WardrobeView({ openLeft, openRight, waking, children }: WardrobePose) {
+  const m = useContext(MeaningContext);
+  return (
+    <Box openLeft={openLeft} openRight={waking ? (openRight / SHAPE.doorEnd) * m.open : openRight}>
+      {children}
+    </Box>
+  );
+}
+
+const THINGS: Things = { Man: ManView, Wardrobe: WardrobeView };
 
 function App() {
-  const version = useSyncExternalStore(onVersion, () => current);
+  const snap = useSyncExternalStore(session.subscribe, session.get);
+  const m = useMemo(() => meaningOf(snap), [snap]);
+  // The director's share: the door's pace is time, on the timeline.
+  const rd = useMemo<Read>(() => ({ shape: SHAPE, hatScale: 1, gaze: 1, over: m.over }), [m.over]);
   return (
-    <ReintentRoot root={root}>
-      <Thing id="wardrobe" label="衣柜 · the wardrobe" aka={["衣柜", "柜子", "柜门", "门", "wardrobe", "door"]}>
-        {/* Not keyed, so the dream runs on through a switch: each version's usePace calls the same React hooks in the same order. */}
-        <Stage {...VERSION[version]} />
-      </Thing>
-    </ReintentRoot>
+    <MeaningContext.Provider value={m}>
+      <WardrobeStage rd={rd} things={THINGS} />
+    </MeaningContext.Provider>
   );
 }
 
 document.documentElement.lang = LANG;
-createReactRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(<App />);

@@ -18,8 +18,9 @@ export default defineConfig({
       { find: /^reintent$/, replacement: here("../packages/reintent/src/reintent.js") },
       { find: /^intents$/, replacement: here("../packages/intents/src/index.ts") },
       // Reintent core, and its subpaths (the JSX runtime a program in TSX imports, the React binding).
-      { find: /^reintent-core$/, replacement: here("../packages/reintent-core/src/index.ts") },
-      { find: /^reintent-core\/(.*)$/, replacement: here("../packages/reintent-core/src/$1.ts") },
+      { find: /^reintent-core$/, replacement: here("../packages/reintent-core/src/core/index.ts") },
+      { find: /^reintent-core\/(jsx-runtime|jsx-dev-runtime)$/, replacement: here("../packages/reintent-core/src/core/$1.ts") },
+      { find: /^reintent-core\/lib\/(.*)$/, replacement: here("../packages/reintent-core/src/lib/$1.ts") },
     ],
   },
   build: {

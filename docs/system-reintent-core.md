@@ -1,149 +1,150 @@
 # Reintent core
 
-`packages/reintent-core`: intents as a reactive, typed program. Parts take
-intents in and give the world out. A standalone core (no React, no host, no
-model), the libraries on it, and one host: The Wardrobe, at `/lab/reintent`.
+`packages/reintent-core`: Reintent in `.tsx`. A model writes an **intent tree**
+(a pure semantic layer, with no view in it), on **intent components** that read
+intents as values. A view, in any host, draws what the render says.
 
-It is the minimal API the design discussion converged on, built next to the
+The core is the one in [Huxpro/airtalk#845](https://github.com/Huxpro/airtalk/pull/845)
+(`prototypes/reintent-tsx`), ported with its tests. It is built next to the
 vendored `packages/reintent` and the scene-specific `packages/intents`
 (docs/system-intents.md), not yet in place of them.
 
-## The model, in React's terms
+## Values, not signals
 
-`UI = f(state)` becomes `World = f(intents)`. A **part** is the component: intents
-come in through hooks, and the world goes out as whatever the host draws (JSX, in a
-React host).
+The execution model is React's, without React's runtime:
+
+- **A render is a function**: (element, source, contexts, overrides) → (host
+  tree, trace). The same inputs give the same outputs, and nothing in a render
+  writes.
+- **A component is a function of its props.** It keeps no state of its own.
+  Every intent's value comes from the source, read by path. Reads are known by
+  name, not by call order, so any control flow is allowed (a guard is a branch).
+- **`useIntent` returns a value** (`T | Unresolved<T> | Unknown`), not a getter
+  or a signal. Read twice in one render, it is the same value. To see a new
+  value, render again.
+- **Change propagates by rendering again.** `watch` re-runs a render when a
+  write touches something it read, and skips the rest. No dependency graph
+  outlives a render but its trace.
+- **Many worlds at once.** Renders over other contexts or other overrides
+  (`whatIf`) are just more calls, and never disturb one another.
+- **A host consumes values.** The host tree and the trace are plain data. A
+  view (React here, a layout solver in airtalk) reads them; it never subscribes
+  to an intent.
+
+Why values rather than a signal graph: the program is written and rewritten by
+a model, so identity has to come from structure (paths, keys, scopes), not
+object references. Counterfactual and multi-context renders (alternatives,
+"would asking change anything", one tree on many screens) are the everyday
+operations. Code is nearly free next to a model's inference and a person's
+attention. These are the test files' first group (`test/value.test.ts`).
+
+Because the reads are not React hooks, React's call-order lint is off for the
+intent layer (`eslint.config.mjs`, `REINTENT_INTENT_LAYER`). Vocabularies read
+with `.read(...)`, not `.use(...)`, so they are not named like hooks.
+
+## Three layers
+
+| layer | what | in The Wardrobe |
+|---|---|---|
+| intent tree | what a model writes: elements and literal props only (`test/structure.test.ts` holds it to that) | `experiences/reintent/program/v1.tsx`, `v2.tsx` |
+| intent components | the semantics: read intents (values), branch on them, return host nodes saying what was decided, in kinds and paths. No view | `experiences/reintent/intents/v1.ts`, `v2.ts` |
+| view | a host: reads the render's host nodes and draws them | `experiences/reintent/main.tsx`: React, the Wardrobe's own stage (`WardrobeStage({ rd, things })`) |
 
 ```tsx
-const Man = part("man", { aka: ["他"] }, ({ pose }: { pose: Pose }) => {
-  const hat = useIntent("hat", Size, { p: { big: 0.52, absurd: 0.44 }, resolve: "ask" });
-  const stand = useIntent("stand", Place);
-  return <Figure at={stand.data.at} hatScale={hat.data.hatScale} {...pose} />;
-});
+/** @jsxImportSource reintent-core */
+export default (
+  <Dream key="wardrobe">
+    <Man key="man" />
+    <Wardrobe key="wardrobe" />
+  </Dream>
+);
+
+export function Man() {
+  const hat = Size.read("hat", { thing: MAN, aka: ["帽子"], default: "big", ask: true });
+  const stand = Place.read("stand", { thing: MAN, default: "bedside" });
+  return host("man", { hat: ref(hat), stand: ref(stand) });   // kinds and paths, not pixels
+}
 ```
 
-| Reintent | React | |
-|---|---|---|
-| `intent({...})` | a type | a closed set of kinds, each with the words that say it and its data |
-| `part(id, meta, render)` | a component | a thing: its intents in, its world out |
-| `useIntent(label, Type, opts)` | `useState` | declares a cell and reads its value. In a part, known by its **label**, not its call order, so it may sit under an `if`, and a model may rewrite the part |
-| `useDerived` / `useCell` | lifting state, context | a relation to other cells (code writes it); another part's cell read sideways |
-| `useLazy(effect)` | Suspense | eager code now, a lazy model world later, cached under the kinds it was written for |
-| the program | the fiber tree | everything held (each mounted part or hook holds its declarations): a table of cells, kept by the root |
-| the doc | state | what was said after the parts were written: decisions, rules, beliefs, learned kinds |
-| the context | context | what the cells are seen in: prompts said of the whole, a viewer's leanings, focus |
-| `values()` | render | the one rule, below |
-| `reconcile` | reconciliation | the program changed: decisions kept by path, waiting when their kind is gone |
-| `createRoot` / `collect` / `render` | the root | read (`evaluate`, `view`) apart from declare (`hold`, `release`); actions in, snapshots out, `watch`, undo, `preview`; a part run purely; parts run headless until they settle |
+An intent's identity is its path: the nearest scope, the component's
+`Name:key`, and the intent's name (`Dream:wardrobe/Man:man#hat`). A component
+is named by its `displayName` before its function name, because paths are
+stored and a minifier renames functions. Every intent component here sets one,
+and a test checks it.
 
-The novel part has no React counterpart: a cell's value has three writers.
-A person narrows, a model believes, and code is the part. `values()` decides
-between them:
+## The core (ported)
 
-```
-person > rule (a person's, for every cell of the intent) > author (the part's pick)
-       > derived (a relation the part wrote) > viewer (a leaning) > model (margin ≥ TAU)
-       > code, or ask (on an intent that asks)
-```
+From Huxpro/airtalk#845, unchanged except where noted below:
 
-Kinds a person ruled out (`{ not: [...] }`) are out at every level. A belief
-inferred under another context stays in use and is marked `stale`; a person's
-decision is never stale.
+- elements (`h`, the automatic runtime `reintent-core/jsx-runtime`, `host`, `scope`);
+- contexts with numeric axes;
+- one intent's value from its writers: a person (about this intent > about every intent of its name, `{ scope: 'deck' }`) > a sure model (margin ≥ `TAU`) > code;
+- partial values along an axis (`Piecewise`), `{ $not }`, `open: false`, Unresolved and Unknown;
+- `render` with its trace, `whatIf`, `watch`;
+- results stamped with the values they were made under (`createCache`, `under`, `stale`);
+- a pluggable `Source`.
 
-**Reading and declaring are apart, as rendering and committing are.**
-
-| | root | when |
-|---|---|---|
-| read | `evaluate(thing, decl, scope)`: what a declaration's cell is now; `view(scope)`: every published cell | in a render. Pure, so a render that is thrown away (a transition, Suspense) leaves nothing behind |
-| declare | `hold(holder, thing, decls)`, `release(holder)` | at commit. Each mounted instance is a holder: him in the wardrobe and him at the bed are two holders of one thing |
-| publish | `flush()`, scheduled once after the holds and releases of a commit | the program is everything held. When its shape (cells, kinds, beliefs) changed, the doc is reconciled and the change is logged: cells added and removed, decisions kept, waiting, or back |
-
-The program changes when a model rewrites a part, when an `if` around a hook
-goes the other way, or when a part unmounts. A version switch releases and
-holds again within one commit, so nothing is lost. Undo steps the doc back,
-never the program, which is code.
-
-**Values share structure.** A cell that did not change is the same `Value`
-object from one publish to the next. So whoever reads one cell is told only
-when that cell changes.
-
-**Reading sideways.** A cell another thing has not declared yet reads as
-nothing. After the flush, the reader runs again: the second pass. `render()`
-(headless) loops until the parts settle.
-
-## In a React host (`reintent-core/react`)
-
-```tsx
-<ReintentRoot root={root}>
-  <Thing id="wardrobe">
-    <Director />          {/* useIntent("pace", Pace, …): a React hook, React's rules */}
-  </Thing>
-  <WardrobeView />        {/* reactPart(Wardrobe): a part, its own hooks by label */}
-</ReintentRoot>
-```
+What this repository adds to it, each in value semantics:
 
 | | |
 |---|---|
-| `useIntent(label, Type, opts)` | a React hook in any component under a `<Thing>`. Render reads it through `evaluate` with `useSyncExternalStore`, subscribed to that one cell. A layout effect holds it every commit (a re-run with the same shape is quiet), and unmounting releases it. React's rules of hooks apply: not under an `if` |
-| `reactPart(part)` / `usePart` | a part as a component. Render collects the part (pure). It is subscribed to exactly the cells it read, and a layout effect holds what it declared. The part's hooks are known by label, so an `if` is fine inside |
-| `<Thing id>` | composes paths (`beat:2/man`). A part names its own thing and does not compose under one it happens to be drawn in (`partId` names another) |
-| `<Scope focus lean>` | a subtree's own part of the context. Its values are computed under it (`root.view(scope)`) |
-| `useCell(key)` | a cell read sideways, subscribed to that cell |
+| kinds bound a person's value | when an intent lists its kinds, a person's value that is not one of them does not apply. It falls through to the next writer and is reported as `Read.waiting`. It stays in the source, so it applies again when the kind is back. This replaces the earlier suspend-and-reconcile step without mutating anything. A model's belief is not bounded |
+| learned kinds | `source.learn(path, kind, about)`: a model adds a kind to an intent. It joins the intent's kinds, and `Read.learned` carries what the host keeps about it |
+| `about` | anything a component says about an intent (labels, words), passed through to `Read.about` for the libraries. The core never reads it |
+| `usePath(name)` | the path an intent of this component has, which a host keys the meaning by |
+| `jsx-runtime` | the automatic JSX runtime, with the `JSX` namespace scoped to it (not global, so it never meets React's) |
+
+## Libraries (`reintent-core/lib/*`, on the core's public entry only)
+
+| | |
+|---|---|
+| `axis`, `alternatives`, `questions`, `orphans` | from airtalk: choices along an axis; one-flip alternatives that render differently; what to ask (only where the answer changes something); decisions no render reads |
+| `vocab` | kinds with their words and data. `Size.read(name, opts)` in a component, `meaning(reads, ref)` in a view, `shown`, `half` |
+| `words` | a sentence read against the trace: resolve, ask, infer (a step past the end of a scale), or context |
+| `changes` | what a program change did to the decisions: added, removed, kept, waiting, back; plus `diff` of two renders |
+| `observe` | what a model is shown, from the trace |
+| `session` | the loop a host runs: the source, a render under `watch`, versions of the program with the model's beliefs for each, undo (the host's history; a program change starts it over), say/answer/decide/rule out/forget, a `Model` behind two doors (`extend`, `rebelieve`), and `window.__reintent` for an inspector |
 
 ## Files
 
 ```
-packages/reintent-core/src/
-├── intent.ts       intent(): kinds, words, data; KindOf / DataOf
-├── part.ts         part(), collect (pure), runPart, render; useIntent / useDerived / useCell / useLazy
-├── program.ts      the program as data: what parts declared; cells, signature
-├── doc.ts          the doc; narrow / believe / learn; reconcile
-├── decide.ts       values(): the rule; questions, staleCells
-├── effect.ts       effect(): eager and lazy, cached under kinds
-├── root.ts         createRoot(): evaluate / view (read), hold / release / flush (declare), actions, log, undo, preview, watch
-├── index.ts        the core: everything above, nothing below
-├── words.ts        library: a sentence → resolve / ask / infer / context
-├── observe.ts      library: the state as text, what a model is shown
-├── devtools.ts     library: window.__reintent, how a host opens itself to an inspector
-└── react.ts        binding: ReintentRoot, Thing, Scope, useIntent, reactPart / usePart, useCell
-packages/reintent-core/test/
-├── core.test.ts    each rule, parts, and the words library (pnpm reintent:test)
-└── fixture.ts      hooks typed by their intent (pnpm reintent:typecheck)
+packages/reintent-core/
+├── src/core/        the core (ported): jsx, jsx-runtime, context, value, source, render, cache, index
+├── src/lib/         axis, alternatives, questions, orphans (ported); vocab, words, changes, observe, session
+└── test/
+    ├── core.test.ts       airtalk's core tests, as written (its email-reply host in email.ts)
+    ├── structure.test.ts  the layering, and literal instance files (The Wardrobe's)
+    ├── value.test.ts      values, not signals; and what this repository adds to the core
+    ├── wardrobe.test.ts   The Wardrobe's intent layer, headless, step by step through a session
+    └── hooks.mjs, register.mjs   Node runs .tsx (TypeScript's transpiler) and the package's subpaths
 
-experiences/reintent/      The Wardrobe, its things drawn by parts on the core
-├── kinds.ts               the intent types
-├── parts.tsx              him and the wardrobe as the model wrote them: intents in, drawing out
-├── parts.v2.tsx           the same, as the model rewrote them
-├── model.ts               a stand-in model, in rules: extend a scale; believe again under a new context
-└── main.tsx               the root, the director (the pace, a React useIntent under <Thing id="wardrobe">), the devtools
-app/lab/reintent/          the lab: the frame, and a panel driving the root through window.__reintent
+experiences/reintent/
+├── program/v1.tsx, v2.tsx   the intent tree, as written and as rewritten
+├── intents/v1.ts, v2.ts     the intent components
+├── kinds.ts                 the vocabularies
+├── beliefs.ts               the model's beliefs, per version
+├── model.ts                 a stand-in model, in rules
+└── main.tsx                 the session, and the React view
+app/lab/reintent/            the lab: the frame, and a panel on the session
 ```
 
-The Wardrobe's stage is shared. `experiences/wardrobe/Wardrobe.tsx` exports
-`WardrobeStage({ rd, things })`: the timeline poses him and the wardrobe, and
-`things` draws them. The original experience draws them from `rd`
-(`packages/intents`). This host draws them with its parts. The pace is time,
-not a drawing, so the director declares it where it uses it, with the React
-`useIntent` (`usePace` in each parts file). The wardrobe then has two holders:
-the part holds `door`, and the director's hook holds `pace`.
+`pnpm reintent:test` (30 tests) and `pnpm reintent:typecheck` check it.
 
 ## In the lab
 
-`/lab/reintent` frames `/scenes/reintent/` beside a panel.
+`/lab/reintent` frames `/scenes/reintent/` beside a panel on its session.
 
 | | |
 |---|---|
-| Program | switch v1 ⇄ v2 (the model's rewrite of the parts). The report says which cells are new or gone, and which decisions were kept, wait, or came back. Under v2, a person's `absurd` hat waits (v2 has no `absurd`), the pace follows the door, and his gaze is asked only away from the window (an `if` around its hook) |
-| Say | `帽子大一点` steps along the scale. `帽子还要大` goes past its end, where the stand-in learns a kind. `门慢一点` is the pace (its own step words). `别看我` is a kind, not a refusal. `帽子不要大得离谱` rules a kind out. `更压抑一点` is said of the whole: beliefs go stale, and the stand-in infers them again |
-| Asked, Cells | answer, decide, rule out, forget. Each value shows who said it |
-| What happened | the log, cell by cell |
-| Details | what a model is shown (`observe`), the program's source, the doc |
+| Program | v1 ⇄ v2 (the model's rewrite of the components): what is new, gone, kept, waiting, back. Under v2, a person's `absurd` hat waits, his gaze is not read at the window, and the pace's default follows the door |
+| Say | `帽子大一点` steps along the scale. `帽子还要大` goes past its end, where the stand-in learns a kind. `门慢一点` is the pace (its own step words). `别看我` is a kind, not a refusal. `帽子不要大得离谱` rules a kind out. `更压抑一点` is said of the whole: the stand-in believes again |
+| Asked, Intents | answer, decide, rule out, forget. Each value shows who said it and whether a decision waits |
+| Details | what a model is shown, the source files of the running version, the source |
 
 ## Not yet
 
-- **Index (values that cross over along one dimension of the context).** `/lab/screens` keeps this from the vendored `reintent`. Here it would be a decision that depends on context.
-- **One-flip alternatives and their previews.** `root.preview()` is the base for them.
-- **Words bound to the program (spans).**
-- **Statically reading a part's cells without running it.** For now, the program is what the last run declared.
-- **A real model behind `extend` and `rebelieve`.**
-- **Saving and sharing the doc.**
+- Static reads of a program's intents without rendering it.
+- A real model behind the stand-in.
+- Saving and sharing the source.
+- Piecewise decisions in this lab (the core has them; `/lab/screens` uses the vendored `reintent`).
+- The YSML ⇄ instance file ⇄ source mapping airtalk lists.

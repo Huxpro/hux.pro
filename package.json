@@ -34,7 +34,7 @@
     "scene:verify": "node scripts/scene-verify.mjs",
     "scene:new": "node scripts/scene-new.mjs",
     "reintent:typecheck": "tsc -p packages/reintent-core",
-    "reintent:test": "node --experimental-strip-types --import ./scripts/register-ts.mjs --test packages/reintent-core/test/*.test.ts"
+    "reintent:test": "node --experimental-strip-types --import ./packages/reintent-core/test/register.mjs --test packages/reintent-core/test/*.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
