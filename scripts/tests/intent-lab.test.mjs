@@ -399,5 +399,25 @@ test("“the sea is red”: with the colour a real knob, ③ adds an intent; a n
     o,
     "strong",
   );
-  assert.deepEqual(none.needs, [{ of: "sea", knob: "color", note: "its colour" }]);
+  assert.deepEqual(none.needs, [
+    { of: "sea", knob: "color", note: "its colour" },
+    { of: "the ocean", knob: "tint", new: true },
+  ]);
+  // ③ may extend an intent already there (a kind more, the vocabulary joined), never rewrite it.
+  const heard = tree.find((n) => n.type === "heard");
+  const louder = { ...heard, from: "preset", kinds: { ...heard.kinds, louder: { words: { en: "Louder", zh: "更大声" }, patch: { surf: { volume: 0.8 } } } }, say: { louder: ["海浪再大一点"] } };
+  const extended = acceptAddition({ action: "add", node: louder, kind: "louder", why: "" }, { ...o, event: say("海浪再大一点") }, "strong");
+  assert.deepEqual(Object.keys(extended.action.node.kinds), ["heard", "silent", "louder"]);
+  assert.ok(extended.action.node.say.silent.includes("mute"), "what it already understood stays");
+  assert.equal(extended.action.node.from, "preset", "and whose it was");
+  const rewrite = { ...heard, kinds: { heard: { ...heard.kinds.heard, patch: { surf: { volume: 0.9 } } }, silent: heard.kinds.silent } };
+  assert.match(acceptAddition({ action: "add", node: rewrite, why: "" }, o, "strong").problems?.[0] ?? "", /rewrites heard\|surf/);
+  // A person's decision about an intent survives its being extended.
+  const lab = createLab(tree, {});
+  lab.dispatch({ type: "decide", key: "heard|surf", kind: "silent", from: "asked", screen: by.phone });
+  lab.dispatch(extended.action);
+  assert.equal(lab.view("heard|surf", by.phone)().kind, "louder", "the event's own kind is decided");
+  lab.dispatch({ type: "decide", key: "heard|surf", kind: "silent", from: "asked", screen: by.phone });
+  lab.dispatch({ type: "add", node: extended.action.node });
+  assert.equal(lab.view("heard|surf", by.phone)().kind, "silent", "extending again leaves the decision");
 });

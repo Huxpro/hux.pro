@@ -459,7 +459,7 @@ function Needs({ log, S }: { log: LogEntry[]; S: IntentStrings }) {
       <p className={TYPE.captionQuiet}>{S.needsNote}</p>
       <Code>
         {[...seen.entries()]
-          .map(([k, { n, asked }]) => `${k}${n.note ? `  // ${n.note}` : ""}\n  ← ${asked.join(" · ")}`)
+          .map(([k, { n, asked }]) => `${n.new ? "+ " : ""}${k}${n.note ? `  // ${n.note}` : ""}\n  ← ${asked.join(" · ")}`)
           .join("\n")}
       </Code>
     </Section>
@@ -852,7 +852,7 @@ function EventLog({ log, S }: { log: LogEntry[]; S: IntentStrings }) {
           {e.learned && <p className="mt-0.5 font-mono text-[10px] text-foreground">↺ {S.learned(e.learned)}</p>}
           {e.needs?.map((n) => (
             <p key={`${n.of}.${n.knob}`} className="mt-0.5 font-mono text-[10px] text-foreground">
-              ⚙ {S.needs(`${n.of}.${n.knob}`)}
+              ⚙ {n.new ? S.needsThing(n.of, n.knob) : S.needs(`${n.of}.${n.knob}`)}
               {n.note ? ` · ${n.note}` : ""}
             </p>
           ))}

@@ -1,6 +1,6 @@
 import type { Screen } from "./screens";
 import type { Action, Decision } from "./model";
-import { admit, admitTree, keyOf, type Dir, type Entity, type Gesture, type IntentNode, type Tree, type Words } from "./tree";
+import { admit, admitTree, keyOf, learn, type Dir, type Entity, type Gesture, type IntentNode, type Tree, type Words } from "./tree";
 
 // =============================================================================
 // Events, and the paths they take. A strong model drives everything; every
@@ -155,7 +155,7 @@ export type Addition =
   | { action: "none"; why: string; needs?: Need[] };
 
 /** A knob the stage would need for what a person meant: beyond the tree, a change to a kind's code. */
-export type Need = { of: string; knob: string; note?: string };
+export type Need = { of: string; knob: string; note?: string; /** Not on the stage at all: a new kind, not a knob. */ new?: boolean };
 
 /** Authoring: a strong model writes the whole tree from the scene, and what it believes about it. */
 export type Authoring = { tree: unknown; beliefs?: { key: string; p: Record<string, number> }[]; why?: string };
@@ -265,13 +265,14 @@ export const weakReads = (e: LabEvent) => e.kind === "prompt";
 export function acceptAddition(answer: Addition, o: Observation, by: string): Outcome {
   if (answer.action === "decide" || answer.action === "believe") return acceptChoice(answer, o);
   if (answer.action !== "add") {
-    // A knob it names is a need only if it is about a thing on the stage, and not a knob that thing already has.
+    // A knob it names is a need unless the thing already has it; a thing not on the stage is a new kind to write.
     const needs = (Array.isArray(answer.needs) ? answer.needs : [])
-      .filter((n) => n && typeof n.knob === "string" && n.knob && typeof n.of === "string")
-      .map((n) => ({ ...n, of: n.of.split("#")[0], knob: n.knob.split(".").pop()! }))
-      .filter((n) => {
-        const thing = o.entities.find((x) => x.id === n.of);
-        return thing && !(n.knob in thing.params);
+      .filter((n) => n && typeof n.knob === "string" && n.knob && typeof n.of === "string" && n.of)
+      .flatMap((n): Need[] => {
+        const [of, knob] = [n.of.split("#")[0], n.knob.split(".").pop()!];
+        const thing = o.entities.find((x) => x.id === of);
+        if (thing?.params[knob]) return [];
+        return [{ of, knob, ...(n.note ? { note: String(n.note) } : {}), ...(thing ? {} : { new: true }) }];
       })
       .slice(0, 3);
     return { action: null, why: said(answer.why), ...(needs.length ? { needs } : {}) };
@@ -279,6 +280,18 @@ export function acceptAddition(answer: Addition, o: Observation, by: string): Ou
   const r = admit(answer.node, o.entities, { from: "model", by });
   if ("problems" in r) return { action: null, why: said(answer.why), problems: r.problems };
   let node = r.node;
+  // An intent already there is only extended: its kinds and what they set stay, a kind may be added, the vocabulary joins.
+  const was = o.tree.find((n) => keyOf(n) === keyOf(node));
+  if (was) {
+    const kept = Object.entries(was.kinds).every(([k, kn]) => node.kinds[k] && JSON.stringify(node.kinds[k].patch) === JSON.stringify(kn.patch));
+    const kinds = { ...was.kinds, ...node.kinds };
+    if (!kept || Object.keys(kinds).length > 4)
+      return { action: null, why: said(answer.why), problems: [`it rewrites ${keyOf(was)}: an intent already there keeps its kinds; a kind may be added to it, or a new intent written`] };
+    let merged: IntentNode = { ...was, kinds: Object.fromEntries(Object.keys(kinds).map((k) => [k, was.kinds[k] ?? node.kinds[k]])) };
+    for (const [k, phrases] of Object.entries(node.say ?? {})) for (const phrase of phrases) merged = learn(merged, k, { phrase });
+    for (const [k, gs] of Object.entries(node.gestures ?? {})) for (const gesture of gs) merged = learn(merged, k, { gesture });
+    node = merged;
+  }
   const kind = answer.kind && answer.kind in node.kinds ? answer.kind : undefined;
   if (kind) {
     const e = o.event;

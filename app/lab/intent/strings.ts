@@ -26,9 +26,10 @@ const en = {
   status: { pending: "thinking…", done: "applied", none: "nothing to do", rejected: "not let in", failed: "failed" } as Record<string, string>,
   learned: (what: string) => `learned → ${what}`,
   needs: (knob: string) => `the stage needs a knob: ${knob}`,
+  needsThing: (thing: string, knob: string) => `the stage needs a new thing: ${thing} (${knob})`,
   needsTitle: "Knobs the stage lacks",
   needsNote:
-    "What people meant that no knob can say, as the strong model named it. Past the intent tree: a change to a kind's code, and then an intent the model can add.",
+    "What people meant that no knob can say, as the strong model named it (+ is a thing the stage does not have). Past the intent tree: a change to a kind's code, or a new kind, and then an intent the model can add.",
   // Directions: what the model already sees, previewed on hover, applied on click.
   directions: "Directions the model already sees",
   directionsNote: "Every intent's other kinds, likeliest first by what the model believes. Hover one: every screen moves to it. Click: it is yours.",
@@ -117,8 +118,9 @@ const zh: typeof en = {
   status: { pending: "思考中…", done: "已应用", none: "无事可做", rejected: "没放进来", failed: "失败" },
   learned: (what) => `学会了 → ${what}`,
   needs: (knob) => `舞台缺一个旋钮：${knob}`,
+  needsThing: (thing, knob) => `舞台缺一个新东西：${thing}（${knob}）`,
   needsTitle: "舞台缺的旋钮",
-  needsNote: "人想要、但没有旋钮能表达的东西，由强模型指出。这在意图树之外：要改一个 kind 的代码，之后模型才能为它加意图。",
+  needsNote: "人想要、但没有旋钮能表达的东西，由强模型指出（+ 是舞台上还没有的东西）。这在意图树之外：要改一个 kind 的代码或写一个新 kind，之后模型才能为它加意图。",
   directions: "模型已经想到的方向",
   directionsNote: "每个意图的其他选项，按模型的判断从最可能到最不可能。鼠标移上去：每块屏幕都移动过去。点击：就是你的了。",
   modelSays: (p) => `模型 ${Math.round(p * 100)}%`,

@@ -59,7 +59,7 @@ An intent node: {"type":"<short camelCase>","of":"<the entity it is about: an en
 const SYSTEM: Record<Mode, string> = {
   select: `${WORLD}
 
-You are the fast path. You may ONLY choose within the existing tree, and you say how sure you are ("sure", 0 to 1, that this is what the person means; below 0.7 a stronger model decides instead, so do not overstate it). Answer ONE JSON object, nothing else:
+You are the fast path. You may ONLY choose within the existing tree. A kind means only what its patch sets (each kind is listed with the knobs it sets): when the words ask for something no kind's knobs set (a colour where no kind sets a colour; a thing that is not on the stage), that is NOT the nearest kind: answer none. Say how sure you are ("sure", 0 to 1, that this is what the person means; below 0.7 a stronger model decides instead, so do not overstate it). Answer ONE JSON object, nothing else:
 - {"action":"decide","key":"<key, copied exactly>","kind":"<one of that intent's kinds>","sure":0.9,"why":"..."}  the event plainly means that kind.
 - {"action":"believe","beliefs":[{"key":"<key>","p":{"<kind>":0.7,"<kind>":0.3}}],"sure":0.8,"why":"..."}  a mood or a general wish, over several intents (a mood is never a decision).
 - {"action":"none","escalate":true,"why":"..."}  no kind fits, but a knob listed on an entity could express it: a new intent is needed.
@@ -99,8 +99,8 @@ export async function POST(request: NextRequest) {
     const result = await generateText({
       model: resolved.model,
       system: SYSTEM[mode],
-      // The intents' keys and kinds spelled out, so a decision names them exactly.
-      prompt: `Intents (key: kinds): ${(body.tree ?? []).map((n) => `${n.type}|${n.of}: ${Object.keys(n.kinds ?? {}).join(", ")}`).join("; ") || "none yet"}\n\n${JSON.stringify(body)}`,
+      // The intents' keys and kinds spelled out, each with what it sets, so a decision names them exactly and means what it sets.
+      prompt: `Intents (key: kind {what it sets}, ...):\n${(body.tree ?? []).map((n) => `${n.type}|${n.of}: ${Object.entries(n.kinds ?? {}).map(([k, kn]) => `${k} {${sets(kn)}}`).join(", ")}`).join("\n") || "none yet"}\n\n${JSON.stringify(body)}`,
       // Room for the answer after any thinking (Gemini 2.5 thinks by default, and its thinking counts here).
       maxOutputTokens: mode === "author" ? 24000 : 8000,
       providerOptions: { google: { thinkingConfig: { thinkingBudget: mode === "select" ? 0 : 1024 } } },
@@ -119,6 +119,14 @@ export async function POST(request: NextRequest) {
       { status: 502 },
     );
   }
+}
+
+/** What a kind sets, as "thing.knob=value". */
+function sets(kind: unknown): string {
+  const patch = ((kind ?? {}) as { patch?: Record<string, Record<string, unknown>> }).patch ?? {};
+  return Object.entries(patch)
+    .flatMap(([thing, props]) => Object.entries(props ?? {}).map(([k, v]) => `${thing}.${k}=${JSON.stringify(v)}`))
+    .join(" ");
 }
 
 /** The JSON object in a model's text: inside a ```json fence, or between the first { and the last }. */

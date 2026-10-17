@@ -242,9 +242,11 @@ export function createLab(
         beliefs.set(next);
       } else if (a.type === "add") {
         const key = keyOf(a.node);
-        tree.set([...(tree.peek() as Tree).filter((n) => keyOf(n) !== key), a.node]);
-        // A node rewritten: what was decided about the old one no longer names its kinds.
-        store.forget(key);
+        const was = (tree.peek() as Tree).find((n) => keyOf(n) === key);
+        // An intent extended stays where it was; a new one goes last.
+        tree.set(was ? (tree.peek() as Tree).map((n) => (n === was ? a.node : n)) : [...(tree.peek() as Tree), a.node]);
+        // What was decided about it still holds, unless a kind it named is gone.
+        if (was && Object.keys(was.kinds).some((k) => !(k in a.node.kinds))) store.forget(key);
       } else if (a.type === "replace") {
         // A re-authored tree keeps what was learned (the old vocabulary, for kinds it still has) and the
         // intents added for this person's events, unless it covers the same thing itself.
