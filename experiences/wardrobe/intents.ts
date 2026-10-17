@@ -11,7 +11,8 @@
 // =============================================================================
 
 import { bindWords, type Answer, type Host, type Tree } from "intents";
-import { EMPTY, L, kind, placeName, recordedDrawing, recordedThing, type Need } from "../common/things";
+import { EMPTY, L, kind, placeName, recordedDrawing, recordedThing, sessionAnswer, sessionDrawing, type Need, type SessionEntry } from "../common/things";
+import SESSION from "../../content/scenes/wardrobe.claude.json";
 
 const PROMPT =
   "我梦到一个穿着黑色衣服，很瘦很高的男人站在我的床头看着我。他的头上戴着那种像犹太人一样圆圆的大的帽子，但是比犹太人的帽子大很多。他一开始站在我的衣柜里面，后来把衣柜门打开，走出来站在我的床头看着我。后来我醒了，醒了之后发现我卧室的柜门确实正在打开。";
@@ -135,6 +136,9 @@ A new thing has intents "place" { at: [x, y] its base, scale } and, if it gives 
 /** The strong model's answers, recorded: a lamp, a cat (common/things.ts), "farther away". */
 function recorded(need: Need): Answer | null {
   const text = "text" in need ? need.text.toLowerCase() : "";
+  // What a strong model answered for this very need in a session comes first.
+  const answered = sessionAnswer(SESSION as SessionEntry[])(need);
+  if (answered) return answered;
   const thing = recordedThing(need);
   if (thing) return thing;
   if ((need.kind === "unknown" || need.kind === "new-thing") && /远|退后|后面|深处|far|back/.test(text)) {
@@ -153,6 +157,6 @@ export const HOST: Host = {
   scene: "wardrobe",
   grammar: GRAMMAR,
   recorded,
-  recordedDrawing,
+  recordedDrawing: (node) => sessionDrawing(SESSION as SessionEntry[])(node) ?? recordedDrawing(node),
   placeName,
 };

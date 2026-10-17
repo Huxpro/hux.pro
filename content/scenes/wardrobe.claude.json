@@ -1,0 +1,248 @@
+[
+  {
+    "at": "2026-10-17T00:01:58.126Z",
+    "task": "infer",
+    "need": {
+      "kind": "reword",
+      "node": "man",
+      "intent": "hat",
+      "text": "一把很大的黑伞",
+      "old": "圆圆的大的帽子",
+      "dir": 0,
+      "noun": "很大的黑"
+    },
+    "answer": {
+      "note_zh": "他头上的不再是帽子，是一把很大的黑伞：「帽子有多大」没了主语，去掉；你选的「大得离谱」还有意义，带到伞的大小上；伞放进他帽子的位置，跟着他从衣柜走到床头。撑开还是收着，话里没说，我更信撑开，两种都画了。",
+      "note_en": "What is on his head is no longer a hat but a big black umbrella: \"how big the hat\" has lost its subject and goes; your \"absurd\" still means something, and carries to the umbrella's size; the umbrella takes the hat's place and goes with him from the wardrobe to the bed. Open or furled the words do not say; I believe open, and drew both.",
+      "kinds": [],
+      "nodes": [
+        {
+          "id": "umbrella",
+          "label_zh": "伞",
+          "label_en": "the umbrella",
+          "aka": [
+            "伞",
+            "黑伞",
+            "雨伞",
+            "umbrella"
+          ],
+          "prompt": "一把很大的黑伞，在他头上，代替了那顶帽子",
+          "draws": null,
+          "svg": null,
+          "fills": "man.hat",
+          "intents": [
+            {
+              "name": "size",
+              "label_zh": "伞有多大",
+              "label_en": "how big the umbrella",
+              "aka": [
+                "伞",
+                "多大",
+                "大小",
+                "size"
+              ],
+              "resolve": "switch",
+              "ordered": true,
+              "kinds": [
+                {
+                  "id": "usual",
+                  "label_zh": "寻常",
+                  "label_en": "usual",
+                  "aka": [
+                    "正常",
+                    "普通"
+                  ],
+                  "realize": [
+                    {
+                      "field": "scale",
+                      "num": 1,
+                      "x": null,
+                      "y": null,
+                      "flag": null
+                    }
+                  ],
+                  "p": 0.15
+                },
+                {
+                  "id": "big",
+                  "label_zh": "很大",
+                  "label_en": "big",
+                  "aka": [
+                    "很大",
+                    "大很多"
+                  ],
+                  "realize": [
+                    {
+                      "field": "scale",
+                      "num": 1.4,
+                      "x": null,
+                      "y": null,
+                      "flag": null
+                    }
+                  ],
+                  "p": 0.55
+                },
+                {
+                  "id": "huge",
+                  "label_zh": "大得离谱",
+                  "label_en": "absurd",
+                  "aka": [
+                    "离谱",
+                    "夸张",
+                    "遮天"
+                  ],
+                  "realize": [
+                    {
+                      "field": "scale",
+                      "num": 1.9,
+                      "x": null,
+                      "y": null,
+                      "flag": null
+                    }
+                  ],
+                  "p": 0.3
+                }
+              ]
+            },
+            {
+              "name": "open",
+              "label_zh": "撑开还是收着",
+              "label_en": "open or furled",
+              "aka": [
+                "撑开",
+                "收着",
+                "打开",
+                "收起"
+              ],
+              "resolve": "switch",
+              "ordered": false,
+              "kinds": [
+                {
+                  "id": "open",
+                  "label_zh": "撑开",
+                  "label_en": "open",
+                  "aka": [
+                    "撑开",
+                    "撑着",
+                    "打开"
+                  ],
+                  "realize": [
+                    {
+                      "field": "open",
+                      "num": null,
+                      "x": null,
+                      "y": null,
+                      "flag": true
+                    }
+                  ],
+                  "p": 0.78
+                },
+                {
+                  "id": "closed",
+                  "label_zh": "收着",
+                  "label_en": "furled",
+                  "aka": [
+                    "收着",
+                    "收起",
+                    "合上"
+                  ],
+                  "realize": [
+                    {
+                      "field": "open",
+                      "num": null,
+                      "x": null,
+                      "y": null,
+                      "flag": false
+                    }
+                  ],
+                  "p": 0.22
+                }
+              ]
+            }
+          ],
+          "drawings": [
+            {
+              "intent": "open",
+              "kind": "open",
+              "svg": "<path d=\"M -75 -12 Q -70 -62 0 -72 Q 70 -62 75 -12 Q 56 -21 37 -12 Q 18 -21 0 -12 Q -18 -21 -37 -12 Q -56 -21 -75 -12 Z\" fill=\"#05070d\"/><path d=\"M 0 -72 L -75 -12 M 0 -72 L -37 -12 M 0 -72 L 0 -12 M 0 -72 L 37 -12 M 0 -72 L 75 -12\" stroke=\"#1b2340\" stroke-width=\"1.2\" fill=\"none\"/><path d=\"M -75 -12 Q -70 -62 0 -72\" stroke=\"#4a5c94\" stroke-width=\"1.6\" fill=\"none\" opacity=\"0.75\"/><line x1=\"0\" y1=\"-72\" x2=\"0\" y2=\"-88\" stroke=\"#05070d\" stroke-width=\"3.2\" stroke-linecap=\"round\"/><line x1=\"0\" y1=\"-12\" x2=\"0\" y2=\"0\" stroke=\"#05070d\" stroke-width=\"3.2\"/>"
+            },
+            {
+              "intent": "open",
+              "kind": "closed",
+              "svg": "<path d=\"M -3 0 L -3 -10 L -9 -96 Q 0 -112 9 -96 L 3 -10 L 3 0 Z\" fill=\"#05070d\"/><path d=\"M -9 -96 Q 0 -112 9 -96\" stroke=\"#4a5c94\" stroke-width=\"1.2\" fill=\"none\" opacity=\"0.7\"/><path d=\"M -6 -60 L 6 -66 M -7 -76 L 7 -82\" stroke=\"#1b2340\" stroke-width=\"1\" fill=\"none\"/><line x1=\"0\" y1=\"-108\" x2=\"0\" y2=\"-122\" stroke=\"#05070d\" stroke-width=\"2.6\" stroke-linecap=\"round\"/>"
+            }
+          ]
+        }
+      ],
+      "picks": [],
+      "phases": [],
+      "title_zh": "",
+      "title_en": "",
+      "spans": [],
+      "beliefs": [],
+      "remove": [
+        {
+          "node": "man",
+          "intent": "hat"
+        }
+      ],
+      "carry": [
+        {
+          "from_node": "man",
+          "from_intent": "hat",
+          "from_kind": "absurd",
+          "node": "umbrella",
+          "intent": "size",
+          "kind": "huge"
+        }
+      ],
+      "rebind": [
+        {
+          "text": "一把很大的黑伞",
+          "node": "umbrella",
+          "intent": "",
+          "kind": ""
+        },
+        {
+          "text": "大得离谱",
+          "node": "umbrella",
+          "intent": "size",
+          "kind": "huge"
+        }
+      ],
+      "scope": "tree",
+      "plan_zh": "把 man.hat 这个位置交给一样新东西：伞（size、open 两个意图），帽子的意图去掉。后半句「比犹太人的帽子大得离谱」里还留着「帽子」两个字：现在它说的是伞的大小，你可以顺手改掉。",
+      "plan_en": "Give the man.hat slot to a new thing, the umbrella (intents size and open), and drop the hat's intent. The rest of the sentence still says \"than a Jewish man's hat, absurdly bigger\": it now speaks of the umbrella's size; you may want to reword it."
+    }
+  },
+  {
+    "at": "2026-10-17T00:04:44.690Z",
+    "task": "infer",
+    "need": {
+      "kind": "reword",
+      "node": "wardrobe",
+      "intent": null,
+      "text": "房门外面，后来把房",
+      "old": "衣柜",
+      "dir": 0
+    },
+    "answer": {
+      "note_zh": "他不在衣柜里了，在卧室房门外：这不是换一个取值，是换掉这个梦的结构。树和素材库说不了：没有「房门」这个东西，开头两个阶段（门缝、衣柜里）就是按衣柜写的代码。而且醒来那句还写着「卧室的柜门确实正在打开」：梦里是房门，醒来是柜门。两种读法我都写进计划，推荐第一种。",
+      "note_en": "He is no longer in the wardrobe but outside the bedroom door: not another kind, another structure. The tree and the library cannot say it: there is no bedroom door, and the first two phases (the gap, in the wardrobe) are code written around the wardrobe. The waking still says the wardrobe door really was opening: in the dream the bedroom door, awake the wardrobe's. Both readings are in the plan; I recommend the first.",
+      "kinds": [],
+      "nodes": [],
+      "picks": [],
+      "phases": [],
+      "title_zh": "",
+      "title_en": "",
+      "spans": [],
+      "beliefs": [],
+      "remove": [],
+      "carry": [],
+      "rebind": [],
+      "scope": "code",
+      "plan_zh": "读法一（推荐，改动小）：梦里他在房门外，醒来仍是衣柜门在开。梦与现实错位，正是吓人的地方。\n· 代码：bedroom.tsx 加一个 Door（房门，画在左墙，部位 leaf / gap / frame，状态 open）；timeline 的 gap、inside 两阶段改成 hall（门缝里的他）和 doorway（推门进来）；view() 让 man 多一个 hall 实例，站在门缝后，按门缝裁切；stills 和 LANGUAGE 跟着改，跑 scene:verify。\n· 树：加 bedroomDoor 节点（意图 open：一条缝/半开/大开），他的 stand 不变；wardrobe.door、wardrobe.pace 原样保留，它们说的是醒来；「房门外面，后来把房」重新绑到 bedroomDoor。你的决定都还有意义，一个不丢。\n读法二：把衣柜整个换成房门，醒来那句也改成房门。代码同上，再把 waking 的开门改成房门；wardrobe 的两个意图搬到 bedroomDoor（door→open，pace→pace），树里的衣柜去掉。",
+      "plan_en": "Reading one (recommended, smaller): in the dream he is outside the bedroom door; awake, it is still the wardrobe door opening. The mismatch between dream and waking is what frightens.\n· Code: a Door in bedroom.tsx (the bedroom door, on the left wall; parts leaf / gap / frame; state open); the timeline's gap and inside phases become hall (him in the door's gap) and doorway (coming in); view() gives man a hall instance behind the door, clipped to the gap; stills and LANGUAGE follow; run scene:verify.\n· Tree: a bedroomDoor node (intent open: a crack / half / wide); his stand unchanged; wardrobe.door and wardrobe.pace stay as they are, since they are the waking; the words rebind to bedroomDoor. Every decision of yours still means something; none is lost.\nReading two: the wardrobe replaced by the door everywhere, the waking's sentence too. The same code, and the waking's door becomes the bedroom door; the wardrobe's two intents move to bedroomDoor (door → open, pace → pace), and the wardrobe leaves the tree."
+    }
+  }
+]

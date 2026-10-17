@@ -7,7 +7,7 @@
 
 import { useMemo } from "react";
 import { Atmosphere, Part, semantic, type SemanticComponent } from "scene";
-import { realized, sanitizeSvg, type Tree, type Value } from "intents";
+import { drawingFor, realized, sanitizeSvg, type Tree, type Value } from "intents";
 
 const made = new Map<string, SemanticComponent<Record<never, never>>>();
 
@@ -30,14 +30,14 @@ export function Learned({ tree, values, drawingLabel }: { tree: Tree; values: Re
   return (
     <>
       {tree.nodes
-        .filter((n) => n.learned && !n.draws)
+        .filter((n) => n.learned && !n.draws && !n.fills)
         .map((n) => {
           const place = realized(tree, values, n.id, "place");
           const light = realized(tree, values, n.id, "light");
           const at = (place.at as [number, number] | undefined) ?? [195, 760];
           const scale = (place.scale as number | undefined) ?? 1;
           const Thing = thing(n.id, n.aka);
-          const svg = n.drawings?.[0]?.svg;
+          const svg = drawingFor(n, values)?.svg;
           return (
             <Thing key={n.id} transform={`translate(${at[0]} ${at[1]}) scale(${scale})`}>
               {light.on === true && (
@@ -64,5 +64,31 @@ export function Learned({ tree, values, drawingLabel }: { tree: Tree; values: Re
           );
         })}
     </>
+  );
+}
+
+/**
+ * What fills a library thing's slot ("man.hat"), drawn in it: base at the
+ * slot's anchor, scaled by its own "size", its drawing the one written under
+ * its values now. A placeholder (the slot's outline) while it is being drawn.
+ */
+export function Fill({ tree, values, slot, drawingLabel }: { tree: Tree; values: Record<string, Value>; slot: string; drawingLabel: string }) {
+  const n = tree.nodes.find((x) => x.fills === slot);
+  if (!n) return null;
+  const scale = (realized(tree, values, n.id, "size").scale as number | undefined) ?? 1;
+  const svg = drawingFor(n, values)?.svg;
+  return (
+    <g transform={`scale(${scale})`}>
+      {svg ? (
+        <Drawing svg={svg} />
+      ) : (
+        <>
+          <rect x="-46" y="-60" width="92" height="60" fill="#0b1020" fillOpacity="0.5" stroke="#9aa6c8" strokeDasharray="4 3" />
+          <text x="0" y="-26" textAnchor="middle" fontSize="10" fill="#9aa6c8" fontFamily="monospace">
+            {drawingLabel}
+          </text>
+        </>
+      )}
+    </g>
   );
 }

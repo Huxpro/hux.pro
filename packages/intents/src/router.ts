@@ -24,7 +24,8 @@ import { toXml, type Action, type By, type Drawing, type Intent, type Kind, type
 export type Tier = "weak" | "strong";
 
 export function tierOf(need: Need): Tier {
-  if (need.kind === "reword") return need.intent ? "weak" : "strong";
+  // Rewritten words that name something new (一把伞) reprompt a part: that is the strong model's.
+  if (need.kind === "reword") return need.intent && !need.noun ? "weak" : "strong";
   return need.kind === "learn-at" || need.kind === "learn-value" || need.kind === "extend" || need.kind === "unsay" ? "weak" : "strong";
 }
 
@@ -65,6 +66,10 @@ export interface AnswerNode {
   draws: string | null;
   svg: string | null;
   intents: AnswerIntent[];
+  /** A library slot it is drawn in ("man.hat"), replacing what was there; null: a thing of its own. */
+  fills?: string | null;
+  /** Drawings that depend on one of its intents (one per kind): intent "" for one that holds always. */
+  drawings?: { intent: string; kind: string; svg: string }[];
 }
 export interface Answer {
   note_zh: string;
@@ -83,7 +88,31 @@ export interface Answer {
   spans: { text: string; node: string; intent: string; kind: string }[];
   /** Beliefs revised (the words they rested on were deleted): one row per kind. */
   beliefs: { node: string; intent: string; kind: string; p: number }[];
+  // --- Structural: the answer replaces part of the tree, not only adds to it. ---
+  /** Intents (or whole things: intent "") the new reading makes meaningless. */
+  remove?: { node: string; intent: string }[];
+  /** A person's picks carried across the rewrite: what they chose, in the new part's terms. */
+  carry?: { from_node: string; from_intent: string; from_kind: string; node: string; intent: string; kind: string }[];
+  /** Words bound again, to what they are about now (exact stretches of the prompt). */
+  rebind?: { text: string; node: string; intent: string; kind: string }[];
+  /** "tree": the tree can say it. "code": it cannot; the experience's code has to change, and `plan` says how. */
+  scope?: "tree" | "code";
+  plan_zh?: string;
+  plan_en?: string;
 }
+
+/** What a structural answer does, in a person's terms: shown before it is applied. */
+export interface Proposal {
+  scope: "tree" | "code";
+  plan: Text | null;
+  removed: string[];
+  added: string[];
+  carried: string[];
+  rebound: string[];
+  fills: string[];
+}
+
+export const isStructural = (a: Answer) => !!(a.remove?.length || a.carry?.length || a.nodes.some((n) => n.fills) || a.scope === "code");
 
 export const toRealize = (fs: RealizeField[]): Record<string, unknown> =>
   Object.fromEntries(fs.map((f) => [f.field, f.x !== null && f.y !== null ? [f.x, f.y] : f.num !== null ? f.num : f.flag]));
@@ -111,8 +140,8 @@ const normalize = (p: Record<string, number>) => {
 };
 
 /** A model's answer, as the tree it means, and the person's picks on it. */
-export function applyAnswer(tree: Tree, a: Answer, need: Need, by: By): { tree: Tree; then: Action[]; drawNeeded: string[] } {
-  const from = need.kind === "learn-at" || need.kind === "learn-value" ? "dragged" : need.kind === "reword" ? "worded" : "said";
+export function applyAnswer(tree: Tree, a: Answer, need: Need, by: By): { tree: Tree; then: Action[]; drawNeeded: string[]; proposal: Proposal | null } {
+  const from: NonNullable<Intent["from"]> = need.kind === "learn-at" || need.kind === "learn-value" ? "dragged" : need.kind === "reword" ? "worded" : "said";
   let next: Tree;
   if (need.kind === "dream") {
     next = {
@@ -145,6 +174,32 @@ export function applyAnswer(tree: Tree, a: Answer, need: Need, by: By): { tree: 
       ],
     };
   }
+  // Structural: what the new reading makes meaningless goes, with the words bound to it (unless bound again below).
+  const removed: string[] = [];
+  for (const r of a.remove ?? []) {
+    removed.push(r.intent ? `${r.node}.${r.intent}` : r.node);
+    next = {
+      ...next,
+      nodes: r.intent
+        ? next.nodes.map((n) => (n.id !== r.node ? n : { ...n, intents: Object.fromEntries(Object.entries(n.intents).filter(([k]) => k !== r.intent)) }))
+        : next.nodes.filter((n) => n.id !== r.node),
+      spans: next.spans?.filter((s) => !(s.node === r.node && (!r.intent || s.intent === r.intent))),
+    };
+  }
+  // Words bound again: the stretch (the first not already bound to the same), or a new span for it.
+  const rebound: string[] = [];
+  for (const rb of a.rebind ?? []) {
+    const spans = next.spans ?? [];
+    const at = spans.find((s) => next.prompt.slice(s.from, s.to) === rb.text);
+    const patch = { node: rb.node, intent: rb.intent || undefined, kind: rb.kind || undefined, unread: false, by: by.who };
+    if (at) next = { ...next, spans: spans.map((s) => (s === at ? { ...s, ...patch } : s)) };
+    else {
+      const from = next.prompt.indexOf(rb.text);
+      if (from < 0) continue;
+      next = { ...next, spans: [...spans.filter((s) => s.to <= from || s.from >= from + rb.text.length), { id: `r${from}`, from, to: from + rb.text.length, ...patch }].sort((x, y) => x.from - y.from) };
+    }
+    rebound.push(`「${rb.text}」→ ${rb.node}${rb.intent ? `.${rb.intent}` : ""}${rb.kind ? ` = ${rb.kind}` : ""}`);
+  }
   // Beliefs revised: each intent named gets the kinds' new p (normalized; kinds not named keep theirs).
   for (const [k, rows] of Object.entries(Object.groupBy(a.beliefs ?? [], (b) => `${b.node}|${b.intent}`))) {
     const [node, intent] = k.split("|");
@@ -155,14 +210,33 @@ export function applyAnswer(tree: Tree, a: Answer, need: Need, by: By): { tree: 
       ),
     };
   }
-  const then: Action[] = a.picks.map((p) => ({ type: "decide", node: p.node, intent: p.intent, kind: p.kind, from }));
+  const then: Action[] = [
+    ...a.picks.map((p) => ({ type: "decide" as const, node: p.node, intent: p.intent, kind: p.kind, from })),
+    // A person's pick, carried into the new part: still theirs.
+    ...(a.carry ?? []).map((c) => ({ type: "decide" as const, node: c.node, intent: c.intent, kind: c.kind, from: "carried" as const })),
+  ];
   // Things to draw: what the library cannot (a dream's beats are moments, not things).
   const beats = new Set((next.phases ?? []).map((p) => p.node));
   const drawNeeded = next.nodes.filter((n) => !n.draws && !n.drawings?.length && !beats.has(n.id)).map((n) => n.id);
-  return { tree: next, then, drawNeeded };
+  const proposal: Proposal | null = isStructural(a)
+    ? {
+        scope: a.scope ?? "tree",
+        plan: a.plan_zh || a.plan_en ? { zh: a.plan_zh ?? "", en: a.plan_en ?? "" } : null,
+        removed,
+        added: [
+          ...a.nodes.filter((n) => !tree.nodes.some((x) => x.id === n.id)).map((n) => `${n.id}${n.fills ? ` (in ${n.fills})` : ""}: ${n.intents.map((i) => i.name).join(", ")}`),
+          ...a.kinds.map((k) => `${k.node}.${k.intent} + ${k.kind.id}`),
+        ],
+        carried: (a.carry ?? []).map((c) => `${c.from_node}.${c.from_intent} = ${c.from_kind} → ${c.node}.${c.intent} = ${c.kind}`),
+        rebound,
+        fills: a.nodes.filter((n) => n.fills).map((n) => `${n.fills} ← ${n.id}`),
+      }
+    : null;
+  return { tree: next, then, drawNeeded, proposal };
 }
 
 function toNode(n: AnswerNode, by: By, learned: boolean): Node {
+  const drawings = [...(n.drawings ?? []).map((d) => ({ svg: d.svg, under: d.intent ? { [d.intent]: d.kind } : {}, by })), ...(n.svg ? [{ svg: n.svg, under: {}, by }] : [])];
   return {
     id: n.id,
     label: { zh: n.label_zh, en: n.label_en },
@@ -171,7 +245,9 @@ function toNode(n: AnswerNode, by: By, learned: boolean): Node {
     draws: n.draws ?? undefined,
     learned: learned ? by : undefined,
     intents: Object.fromEntries(n.intents.map((i) => [i.name, toIntent(i, by)])),
-    drawings: n.svg ? [{ svg: n.svg, under: {}, by }] : undefined,
+    drawings: drawings.length ? drawings : undefined,
+    fills: n.fills ?? undefined,
+    view: n.fills ?? undefined,
   };
 }
 
@@ -193,7 +269,7 @@ export function observe(state: State, need: Need): string {
             : need.kind === "dream"
               ? `<need kind="dream">${need.text}</need>`
               : need.kind === "reword"
-                ? `<need kind="reword" node="${need.node}"${need.intent ? ` intent="${need.intent}"` : ""} was="${need.old}">${need.text}</need> <!-- The person rewrote these words in the prompt; no kind reads them. ${need.intent ? "Add the kind they say to this intent; pick it." : "They reprompt this thing: change what it is, as little as it takes."} -->`
+                ? `<need kind="reword" node="${need.node}"${need.intent ? ` intent="${need.intent}"` : ""} was="${need.old}">${need.text}</need> <!-- The person rewrote these words in the prompt; no kind reads them. ${need.intent && !need.noun ? "Add the kind they say to this intent; pick it." : "They reprompt it: decide how much of the tree the new words make meaningless. If a new thing takes the old one's place, answer structurally: remove what no longer means anything, add the new thing (it fills the library slot the old one was drawn in, e.g. man.hat), carry the person's picks that still mean something, rebind the words. If the tree and the library cannot say it at all, set scope \"code\" and give the plan."} -->`
                 : need.kind === "unsay"
                   ? `<need kind="unsay" node="${need.node}" intent="${need.intent}">${need.text}</need> <!-- The person deleted these words from the prompt: they were your evidence for this intent. Give your beliefs again, without them. -->`
                   : `<need kind="unknown" on="${need.node ?? "scene"}">${need.text}</need>`;
@@ -236,6 +312,8 @@ export interface Inference {
   observation: string;
   drawNeeded: string[];
   dream: boolean;
+  /** A structural answer: shown to the person as a proposal, applied only when they accept it. */
+  proposal?: Proposal | null;
 }
 
 async function callModel(host: Host, body: unknown): Promise<{ answer: unknown; model: string } | null> {
@@ -253,7 +331,7 @@ export async function infer(state: State, need: Need, host: Host): Promise<Infer
   const t0 = performance.now();
   const tier = tierOf(need);
   const observation = observe(state, need);
-  const real = await callModel(host, { task: "infer", tier, observation, need, grammar: host.grammar });
+  const real = await callModel(host, { task: "infer", tier, observation, need, grammar: host.grammar, scene: host.scene });
   let answer: Answer | null = null;
   let by: By;
   if (real) {
@@ -288,7 +366,7 @@ export async function infer(state: State, need: Need, host: Host): Promise<Infer
 
 /** A lazy effect: a thing a model added is drawn by a (strong) model, later. */
 export async function draw(state: State, node: Node, host: Host): Promise<Drawing | null> {
-  const real = await callModel(host, { task: "draw", tier: "strong", observation: toXml(state), node: { id: node.id, prompt: node.prompt, label: node.label }, grammar: host.grammar });
+  const real = await callModel(host, { task: "draw", tier: "strong", observation: toXml(state), node: { id: node.id, prompt: node.prompt, label: node.label, fills: node.fills ?? null }, grammar: host.grammar, scene: host.scene });
   if (real) return { svg: String((real.answer as { svg: string }).svg), under: {}, by: { who: "model:strong", model: real.model, event: `draw ${node.id}` } };
   await new Promise((r) => setTimeout(r, 1400));
   const svg = host.recordedDrawing?.(node);

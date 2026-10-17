@@ -114,3 +114,27 @@ export function placeName(at: Pt): Text {
   if (x < 150) return L("窗下", "under the window");
   return L("房间中间", "in the middle of the room");
 }
+
+// -----------------------------------------------------------------------------
+// Answers a strong model wrote in a session (through the dev bridge: the route
+// keeps them in content/scenes/<scene>.claude.json), replayed for the same need
+// when no model is reachable.
+// -----------------------------------------------------------------------------
+
+export interface SessionEntry {
+  at: string;
+  task: "infer" | "draw";
+  need?: unknown;
+  node?: { id: string };
+  answer: unknown;
+}
+
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+/** The session's answer for this need (the latest), if there is one. */
+export const sessionAnswer = (list: SessionEntry[]) => (need: Need) =>
+  (list.filter((e) => e.task === "infer" && same(e.need, need)).at(-1)?.answer as Answer | undefined) ?? null;
+
+/** The session's drawing for this thing (the latest), if there is one. */
+export const sessionDrawing = (list: SessionEntry[]) => (node: Node) =>
+  (list.filter((e) => e.task === "draw" && e.node?.id === node.id).at(-1)?.answer as { svg: string } | undefined)?.svg ?? null;

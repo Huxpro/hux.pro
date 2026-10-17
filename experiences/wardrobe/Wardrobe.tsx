@@ -26,7 +26,7 @@ import { Atmosphere, Stage, useFlag, useFrame, useNow, useTime, useTimeline, typ
 import { Bed, BedroomDefs, Man, Room, Viewer, Wardrobe as WardrobeBox, Window } from "../common/bedroom";
 import { DreamAir, Epilogue, Hint, Lids, SoundButton } from "../common/overlays";
 import { Sound } from "../common/sound";
-import { Learned } from "../common/learned";
+import { Fill, Learned } from "../common/learned";
 import { wakingSound } from "../common/waking";
 import { HOST, TREE } from "./intents";
 import { LANGUAGE } from "./semantics";
@@ -152,6 +152,8 @@ function Scene({ state }: { state: State }) {
   const v = viewOf(state, t, useTimeline(TIMELINE), rd);
   // The inspector's demonstration: something drawn outside every declaration.
   const undeclared = useFlag("undeclared");
+  // Whatever the tree put in his hat's place (a model's replacement), riding with him.
+  const hat = rd.tree.nodes.some((n) => n.fills === "man.hat") ? <Fill tree={rd.tree} values={rd.values} slot="man.hat" drawingLabel={WORDS.drawing} /> : undefined;
   return (
     <>
       <BedroomDefs />
@@ -161,7 +163,9 @@ function Scene({ state }: { state: State }) {
           <Window />
           <WardrobeBox openLeft={v.doors.left} openRight={v.doors.right}>
             {v.manInWardrobe && (
-              <Man instance="wardrobe" hatScale={rd.hatScale} eyes={v.manInWardrobe.eyes * rd.gaze} transform={`translate(285.5 640) rotate(${v.manInWardrobe.tilt.toFixed(2)})`} />
+              <Man instance="wardrobe" hatScale={rd.hatScale} eyes={v.manInWardrobe.eyes * rd.gaze} transform={`translate(285.5 640) rotate(${v.manInWardrobe.tilt.toFixed(2)})`}>
+                {hat}
+              </Man>
             )}
           </WardrobeBox>
           {v.manAtBed && (
@@ -170,7 +174,9 @@ function Scene({ state }: { state: State }) {
               hatScale={rd.hatScale}
               eyes={v.manAtBed.eyes * rd.gaze}
               transform={`translate(${v.manAtBed.at[0].toFixed(1)} ${v.manAtBed.at[1].toFixed(1)}) rotate(${v.manAtBed.lean.toFixed(3)}) scale(${v.manAtBed.scale.toFixed(4)})`}
-            />
+            >
+              {hat}
+            </Man>
           )}
           <Bed />
           <Learned tree={rd.tree} values={rd.values} drawingLabel={WORDS.drawing} />

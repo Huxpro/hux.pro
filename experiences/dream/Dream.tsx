@@ -19,7 +19,7 @@ import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useS
 import { useIntents } from "intents";
 import { Stage, useFrame, useNow, useTime, useTimeline } from "scene";
 import { Bed, BedroomDefs, Man, Room, Viewer, Wardrobe as WardrobeBox, Window } from "../common/bedroom";
-import { Learned } from "../common/learned";
+import { Fill, Learned } from "../common/learned";
 import { DreamAir, Epilogue, Hint, Lids, SoundButton } from "../common/overlays";
 import { Sound } from "../common/sound";
 import { HOST, TREE } from "./intents";
@@ -85,7 +85,9 @@ function Scene({ state }: { state: State }) {
       hatScale={rd.hatScale}
       eyes={m.eyes}
       transform={`translate(${m.at[0].toFixed(1)} ${m.at[1].toFixed(1)}) rotate(${m.lean.toFixed(2)}) scale(${m.scale.toFixed(4)})`}
-    />
+    >
+      {rd.tree.nodes.some((n) => n.fills === "man.hat") ? <Fill tree={rd.tree} values={rd.values} slot="man.hat" drawingLabel={WORDS.drawing} /> : undefined}
+    </Man>
   );
   return (
     <>

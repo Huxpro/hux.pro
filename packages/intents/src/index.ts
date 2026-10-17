@@ -11,10 +11,10 @@
 // =============================================================================
 
 export * from "./tree";
-export { values, realized, space, type Value, type Source } from "./space";
+export { values, realized, space, drawingFor, type Value, type Source } from "./space";
 export { recognize, gestureFor, dragValue, DOCK, SNAP, type Event, type Need, type Reading, type Recognized, type Bind } from "./recognize";
 export { bindWords, textOf, spanStatus, wordsOf, rewrite, readEdit, readWords, type Binding, type SpanStatus, type WordEdit } from "./words";
-export { infer, draw, observe, tierOf, applyAnswer, toRealize, fromRealize, type Answer, type AnswerKind, type AnswerNode, type AnswerIntent, type Host, type Inference, type Tier } from "./router";
+export { infer, draw, observe, tierOf, applyAnswer, isStructural, toRealize, fromRealize, type Proposal, type Answer, type AnswerKind, type AnswerNode, type AnswerIntent, type Host, type Inference, type Tier } from "./router";
 export { encodeVersion, decodeVersion, versionInHash, savedUrl, newId, type Saved } from "./version";
 export { sanitizeSvg } from "./sanitize";
 export { useIntents, overlay, type IntentsApi, type Snapshot, type LogEntry, type Ask, type DragPreview, type Path } from "./runtime";

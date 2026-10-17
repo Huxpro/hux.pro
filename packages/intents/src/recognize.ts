@@ -45,7 +45,7 @@ export type Need =
   | { kind: "unknown"; text: string; node: string | null }
   | { kind: "dream"; text: string }
   /** A span's words rewritten, and no kind reads them (dir: further along, back, or neither). */
-  | { kind: "reword"; node: string; intent: string | null; text: string; old: string; dir: 1 | -1 | 0 }
+  | { kind: "reword"; node: string; intent: string | null; text: string; old: string; dir: 1 | -1 | 0; noun?: string }
   /** A span's words deleted: the belief they were evidence for, again. */
   | { kind: "unsay"; node: string; intent: string; text: string };
 
@@ -270,7 +270,11 @@ function recognizeWords(ev: Extract<Event, { type: "words" | "choose" | "follow"
         actions: [{ type: "decide", node: s.node, intent: s.intent, kind, from: "worded" }, settle({ kind })],
         pre,
       };
-    return { path: "infer", need: { kind: "reword", node: s.node, intent: s.intent, text: edit.text, old: edit.old, dir }, pre, bind };
+    // Words that bring in something the tree does not know (一把伞) are not a kind of this intent: they replace the part.
+    const indefinite = /(一|几)(个|盏|张|把|只|件|扇|位|束|片|条|面|顶)\s*([^\s，。,.]{1,4})|\b(?:a|an)\s+([a-z]+)/.exec(edit.text);
+    const noun = indefinite ? (indefinite[3] ?? indefinite[4] ?? "").trim() : "";
+    const known = noun && tree.nodes.some((n) => n.aka.some((w) => noun.includes(w) || w.includes(noun)));
+    return { path: "infer", need: { kind: "reword", node: s.node, intent: s.intent, text: edit.text, old: edit.old, dir, noun: noun && !known ? noun : undefined }, pre, bind };
   }
   // The words name a thing: said of it, do they say a kind of one of its intents?
   const r = recognize({ type: "say", text: edit.text, node: s.node }, now, vals, focus);

@@ -15,7 +15,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { recognize, type Event, type Reading } from "./recognize";
-import { draw, infer, type Host, type Tier } from "./router";
+import { draw, infer, type Host, type Proposal, type Tier } from "./router";
 import { values as computeValues, type Value } from "./space";
 import { changes, lineDiff, rebase, reduce, toXml, type Action, type By, type Change, type Context, type State, type Text, type Tree, type Version } from "./tree";
 import { decodeVersion, encodeVersion, newId, savedUrl, versionInHash, type Saved } from "./version";
@@ -67,6 +67,9 @@ export interface Snapshot {
   canUndo: boolean;
   /** The node the experience has on screen (a dream's beat), if it says. */
   focus: string | null;
+  /** A structural answer waiting for the person: what it would do, and whether the picture is showing it. */
+  proposal: (Proposal & { id: number; note: Text; by: By; tier: Tier; live: boolean; event: string; xml: string }) | null;
+  previewing: boolean;
 }
 
 export interface DragPreview {
@@ -91,6 +94,10 @@ export interface IntentsApi {
   share(): Promise<string>;
   /** Open a version from a link (its fragment, or the whole address). */
   open(link: string): Promise<boolean>;
+  /** A structural proposal: apply it, drop it, or show it in the picture without applying. */
+  accept(): void;
+  discard(): void;
+  previewProposal(on: boolean): void;
 }
 
 declare global {
@@ -114,20 +121,25 @@ export function useIntents(base: Tree, host: Host, focusOf: string | null | ((tr
   const [question, setQuestion] = useState<Snapshot["question"]>(null);
   const [preview, setPreview] = useState<DragPreview | null>(null);
   const [saved, setSaved] = useState<Saved | null>(null);
+  // A structural answer, held until the person accepts it: the actions it would take, and the state after.
+  const [proposal, setProposal] = useState<(NonNullable<Snapshot["proposal"]> & { actions: Action[]; after: State; drawNeeded: string[] }) | null>(null);
+  const [previewing, setPreviewing] = useState(false);
   const seq = useRef(0);
 
   const focus = typeof focusOf === "function" ? focusOf(state.tree) : focusOf;
-  const live = useRef({ state, log, pending, question, saved, history, focus });
+  const live = useRef({ state, log, pending, question, saved, history, focus, proposal, previewing });
   useEffect(() => {
-    live.current = { state, log, pending, question, saved, history, focus };
+    live.current = { state, log, pending, question, saved, history, focus, proposal, previewing };
   });
   const listeners = useRef(new Set<() => void>());
   const cache = useRef<{ from: typeof live.current; snap: Snapshot } | null>(null);
   useEffect(() => {
     for (const l of listeners.current) l();
-  }, [state, log, pending, question, saved, focus]);
+  }, [state, log, pending, question, saved, focus, proposal, previewing]);
 
-  const { values, asks } = useMemo(() => computeValues(state), [state]);
+  // What the picture shows: the state, or (previewing a proposal) the state it would make.
+  const shown = previewing && proposal ? proposal.after : state;
+  const { values, asks } = useMemo(() => computeValues(shown), [shown]);
 
   const push = (actions: Action[]) => {
     if (!actions.length) return;
@@ -186,6 +198,8 @@ export function useIntents(base: Tree, host: Host, focusOf: string | null | ((tr
 
   const dispatch = async (ev: Event) => {
     const before = live.current.state;
+    // Described against the words as they were (an edit is told by what went and what came).
+    const what = describe(ev);
     const vals = computeValues(before).values;
     // Context first: what is said joins it; a leaning is the viewer's.
     const pre: Action[] = [];
@@ -210,36 +224,48 @@ export function useIntents(base: Tree, host: Host, focusOf: string | null | ((tr
       settled();
       if (ev.type === "answer") setQuestion(null);
       const d = lineDiff(toXml(before), toXml(after));
-      entry({ event: describe(ev), path: r.path, detail: r.path === "resolve" && r.reading ? `${r.reading.node}.${r.reading.intent} = ${r.reading.kind}` : "context", reading: r.path === "resolve" ? r.reading : undefined, ...d });
+      entry({ event: what, path: r.path, detail: r.path === "resolve" && r.reading ? `${r.reading.node}.${r.reading.intent} = ${r.reading.kind}` : "context", reading: r.path === "resolve" ? r.reading : undefined, ...d });
       return;
     }
     if (r.path === "ask") {
       push(pre);
       settled();
       setQuestion({ text: r.text, readings: r.readings });
-      entry({ event: describe(ev), path: "ask", detail: r.readings.map((x) => `${x.node}.${x.intent} = ${x.kind}`).join(" | "), added: [], removed: [] });
+      entry({ event: what, path: "ask", detail: r.readings.map((x) => `${x.node}.${x.intent} = ${x.kind}`).join(" | "), added: [], removed: [] });
       return;
     }
     // ② infer: no preset reads it. Routed to a weak or a strong model; its tree comes back.
     push(pre);
     setPending(true);
     const withPre = pre.reduce(reduce, before);
-    const id = entry({ event: describe(ev), path: "infer", detail: r.need.kind, pending: true, added: [], removed: [] });
+    const id = entry({ event: what, path: "infer", detail: r.need.kind, pending: true, added: [], removed: [] });
     const inf = await infer(withPre, r.need, host);
     const now = live.current.state;
-    const actions: Action[] = inf.tree ? [inf.dream ? { type: "load", tree: inf.tree } : { type: "replace", tree: inf.tree }, ...inf.then] : [];
+    // A structural answer is the whole tree as it should be (rebase would bring back what it removed): loaded, not merged.
+    const actions: Action[] = inf.tree ? [inf.dream || inf.proposal ? { type: "load", tree: inf.tree } : { type: "replace", tree: inf.tree }, ...inf.then] : [];
     if (inf.tree && !inf.dream) {
       const added = inf.tree.nodes.find((n) => !now.tree.nodes.some((o) => o.id === n.id));
       const picked = inf.then.find((a) => a.type === "decide");
       actions.push(...bind(added ? { node: added.id } : picked?.type === "decide" ? { node: picked.node, intent: picked.intent, kind: picked.kind } : null));
     }
     const after = actions.reduce(reduce, now);
-    push(actions);
     settled();
     setPending(false);
-    patch(id, { pending: false, tier: inf.tier, live: inf.live, by: inf.by, ms: inf.ms, note: inf.note, observation: inf.observation, ...lineDiff(toXml(now), toXml(after)) });
-    // A thing with no drawing yet: a lazy effect, written by a strong model; a placeholder till then.
-    for (const nodeId of inf.drawNeeded) {
+    const diff = lineDiff(toXml(now), toXml(after));
+    if (inf.proposal) {
+      // Bigger than a kind more: shown as a proposal. The person previews it, accepts it, or drops it.
+      setProposal({ ...inf.proposal, id, note: inf.note, by: inf.by, tier: inf.tier, live: inf.live, event: what, xml: toXml(after), actions: inf.proposal.scope === "code" ? [] : actions, after, drawNeeded: inf.drawNeeded });
+      patch(id, { pending: false, tier: inf.tier, live: inf.live, by: inf.by, ms: inf.ms, note: inf.note, observation: inf.observation, detail: `${r.need.kind} · ${inf.proposal.scope === "code" ? "needs the code" : "proposal"}`, ...diff });
+      return;
+    }
+    push(actions);
+    patch(id, { pending: false, tier: inf.tier, live: inf.live, by: inf.by, ms: inf.ms, note: inf.note, observation: inf.observation, ...diff });
+    drawAll(inf.drawNeeded, after);
+  };
+
+  // A thing with no drawing yet: a lazy effect, written by a strong model; a placeholder till then.
+  const drawAll = (ids: string[], after: State) => {
+    for (const nodeId of ids) {
       const node = after.tree.nodes.find((n) => n.id === nodeId);
       if (!node) continue;
       const did = entry({ event: `draw ${nodeId}`, path: "infer", detail: "drawing", tier: "strong", pending: true, added: [], removed: [] });
@@ -293,6 +319,23 @@ export function useIntents(base: Tree, host: Host, focusOf: string | null | ((tr
       setHistory((h) => [...h.slice(0, -1), { ...h[h.length - 1], version: v.version }]);
       return `v=${await encodeVersion(v)}`;
     },
+    accept: () => {
+      const p = live.current.proposal;
+      if (!p || p.scope === "code") return;
+      push(p.actions);
+      setProposal(null);
+      setPreviewing(false);
+      entry({ event: `accept ${p.event}`, path: "resolve", detail: "the proposal, applied", ...lineDiff(toXml(live.current.state), p.xml) });
+      drawAll(p.drawNeeded, p.after);
+    },
+    discard: () => {
+      const p = live.current.proposal;
+      if (!p) return;
+      setProposal(null);
+      setPreviewing(false);
+      entry({ event: `discard ${p.event}`, path: "context", detail: "the proposal, dropped (the words stay as edited; undo takes them back)", added: [], removed: [] });
+    },
+    previewProposal: (on) => setPreviewing(on && !!live.current.proposal && live.current.proposal.scope !== "code"),
     open: async (link) => {
       const v = versionInHash(link.includes("v=") ? link.slice(link.indexOf("v=") - 1) : `#v=${link}`);
       const s = v ? await decodeVersion(v) : null;
@@ -304,7 +347,7 @@ export function useIntents(base: Tree, host: Host, focusOf: string | null | ((tr
   };
 
   function snapshotOf(): Snapshot {
-    const { state: s, log: l, pending: p, question: q, saved: sv, history: h, focus: f } = live.current;
+    const { state: s, log: l, pending: p, question: q, saved: sv, history: h, focus: f, proposal: pr, previewing: pv } = live.current;
     const v = computeValues(s);
     return {
       scene: host.scene,
@@ -323,6 +366,8 @@ export function useIntents(base: Tree, host: Host, focusOf: string | null | ((tr
       dirty: JSON.stringify(sv?.tree ?? base) !== JSON.stringify(s.tree),
       canUndo: h.length > 1,
       focus: f,
+      proposal: pr ? publicProposal(pr) : null,
+      previewing: pv,
     };
   }
 
@@ -344,6 +389,9 @@ export function useIntents(base: Tree, host: Host, focusOf: string | null | ((tr
       save: () => apiRef.current.save(),
       share: () => apiRef.current.share(),
       open: (l) => apiRef.current.open(l),
+      accept: () => apiRef.current.accept(),
+      discard: () => apiRef.current.discard(),
+      previewProposal: (on) => apiRef.current.previewProposal(on),
     };
     window.__intents = stable;
     return () => {
@@ -351,7 +399,16 @@ export function useIntents(base: Tree, host: Host, focusOf: string | null | ((tr
     };
   }, []);
 
-  return { state, values, asks: asks.map((c) => c.key), preview, pending, focus };
+  return { state: shown, values, asks: asks.map((c) => c.key), preview, pending, focus };
+}
+
+/** A proposal as the outside sees it: what it would do, not the actions that would do it. */
+function publicProposal<P extends { actions: unknown; after: unknown; drawNeeded: unknown }>(p: P): Omit<P, "actions" | "after" | "drawNeeded"> {
+  const rest: Partial<P> = { ...p };
+  delete rest.actions;
+  delete rest.after;
+  delete rest.drawNeeded;
+  return rest as Omit<P, "actions" | "after" | "drawNeeded">;
 }
 
 /** An edit, in a few characters: what went, what came. */

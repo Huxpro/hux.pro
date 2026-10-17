@@ -83,7 +83,7 @@ export interface Intent {
   view?: readonly string[];
   /** A person's pick, and how it was made. */
   pick?: string;
-  from?: "dragged" | "said" | "answered" | "switched" | "worded";
+  from?: "dragged" | "said" | "answered" | "switched" | "worded" | "carried";
 }
 
 /** A drawing a model wrote for a thing (a lazy effect), and the values it was written under. */
@@ -106,8 +106,14 @@ export interface Node {
   draws?: string;
   /** Its own drawings (a learned thing): newest first; none yet while one is being written. */
   drawings?: Drawing[];
-  /** The semantic path it is in the picture ("man", "lamp"); default: its id. */
+  /** The semantic path it is in the picture ("man", "lamp"); default: what it fills, or its id. */
   view?: string;
+  /**
+   * A library thing's slot it is drawn in ("man.hat"): it replaces what the
+   * library drew there, and rides with it (in every place he stands). The path
+   * stays; what is at it is new.
+   */
+  fills?: string;
 }
 
 /**

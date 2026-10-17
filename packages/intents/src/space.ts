@@ -11,7 +11,7 @@
 
 import * as R from "reintent";
 import type { Cell, Doc, TypeSpec } from "reintent";
-import { key, type Context, type State, type Tree } from "./tree";
+import { key, type Context, type Node, type State, type Tree } from "./tree";
 
 export type Source = "person" | "viewer" | "model" | "code" | "ask";
 
@@ -86,4 +86,15 @@ export function values(state: Pick<State, "tree" | "ctx">) {
 export function realized(tree: Tree, vals: Record<string, Value>, node: string, intent: string): Record<string, unknown> {
   const v = vals[key(node, intent)];
   return (v && tree.nodes.find((n) => n.id === node)?.intents[intent]?.kinds[v.kind]?.realize) ?? {};
+}
+
+/**
+ * The drawing of a thing for its values now: the one written under them (each
+ * intent it was drawn under has that kind), or the newest that holds always.
+ * A drawing is a lazy effect cached under the assignment it was written for.
+ */
+export function drawingFor(node: Node, vals: Record<string, Value>) {
+  const ds = node.drawings ?? [];
+  const holds = (d: (typeof ds)[number]) => Object.entries(d.under).every(([i, k]) => vals[key(node.id, i)]?.kind === k);
+  return ds.find((d) => Object.keys(d.under).length && holds(d)) ?? ds.find((d) => !Object.keys(d.under).length) ?? ds[0] ?? null;
 }

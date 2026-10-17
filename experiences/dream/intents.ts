@@ -13,7 +13,8 @@
 // =============================================================================
 
 import { applyAnswer, type Answer, type AnswerKind, type AnswerNode, type Host, type Intent, type Tree } from "intents";
-import { EMPTY, L, kind, placeName, recordedDrawing, recordedThing, type Need } from "../common/things";
+import { EMPTY, L, kind, placeName, recordedDrawing, recordedThing, sessionAnswer, sessionDrawing, type Need, type SessionEntry } from "../common/things";
+import SESSION from "../../content/scenes/dream.claude.json";
 
 // -----------------------------------------------------------------------------
 // The grammar of a beat: the kinds the library offers, in the scene's units.
@@ -323,6 +324,9 @@ Give each intent a few kinds with beliefs; where the words do not say, believe l
 A new thing (said of the room) has intents "place" { at: [x, y] its base, scale } and, if it gives light, "light" { on: true | false }. Its svg is drawn with its base at the origin, about 80 units wide and up to 120 tall at scale 1.`;
 
 function recorded(need: Need): Answer | null {
+  // What a strong model answered for this very need in a session comes first.
+  const answered = sessionAnswer(SESSION as SessionEntry[])(need);
+  if (answered) return answered;
   if (need.kind === "dream") return compose(need.text);
   return recordedThing(need);
 }
@@ -331,7 +335,7 @@ export const HOST: Host = {
   scene: "dream",
   grammar: GRAMMAR,
   recorded,
-  recordedDrawing,
+  recordedDrawing: (node) => sessionDrawing(SESSION as SessionEntry[])(node) ?? recordedDrawing(node),
   placeName,
   shape,
 };

@@ -69,6 +69,21 @@ const en = {
   observation: "What the model was shown",
   forget: "forget",
   dirty: "unsaved",
+  proposal: "The model proposes a bigger change",
+  proposalNote: "The words made part of the tree meaningless: this replaces it, not only adds to it. Nothing is applied until you say.",
+  needsCode: "Beyond the tree: the code has to change",
+  needsCodeNote: "The tree and the library cannot say this. The model says what the code would have to do, and what of the tree would carry over.",
+  removed: "Goes",
+  added: "Comes",
+  fills: "Takes the place of",
+  carried: "Your decisions, carried over",
+  rebound: "Words bound again",
+  plan: "Plan",
+  previewHold: "Preview in the picture",
+  previewing: "Previewing…",
+  accept: "Apply",
+  discard: "Discard",
+  dismiss: "Understood",
 };
 
 const zh: typeof en = {
@@ -116,6 +131,21 @@ const zh: typeof en = {
   observation: "给模型看的",
   forget: "忘掉",
   dirty: "未保存",
+  proposal: "模型提议一次大改",
+  proposalNote: "这段话让树的一部分失去了意义：这次是替换，不只是添加。你同意之前什么都不会生效。",
+  needsCode: "超出意图树：要改代码",
+  needsCodeNote: "树和素材库表达不了这个。模型说明代码要怎么改，以及树里哪些能带过去。",
+  removed: "去掉",
+  added: "新加",
+  fills: "顶替",
+  carried: "带过去的你的决定",
+  rebound: "重新绑定的文字",
+  plan: "计划",
+  previewHold: "在画面里预览",
+  previewing: "预览中…",
+  accept: "应用",
+  discard: "放弃",
+  dismiss: "知道了",
 };
 
 const STRINGS: LabTable<typeof en> = { en, zh };
@@ -193,6 +223,9 @@ export function IntentsPanel({ api, snap, chain, setHover }: { api: IntentsApi; 
         </div>
         <p className={cn(TYPE.caption, "mt-1")}>{S.loopNote}</p>
       </div>
+
+      {/* A structural answer: the model wants to replace part of the tree. Shown, previewed, applied only on a yes. */}
+      {snap.proposal && <ProposalCard api={api} snap={snap} />}
 
       {/* Binding: the words, bound to the tree; the tree, bound to the picture (binding.tsx draws the lines). */}
       <div className="space-y-3">
@@ -512,5 +545,78 @@ export function IntentsPanel({ api, snap, chain, setHover }: { api: IntentsApi; 
         <pre className="mt-2 overflow-x-auto rounded-lg border border-border/60 bg-muted/30 p-2.5 font-mono text-[10.5px] leading-[1.55] text-foreground">{snap.xml}</pre>
       </details>
     </section>
+  );
+}
+
+function ProposalCard({ api, snap }: { api: IntentsApi; snap: IntentsSnapshot }) {
+  const S = useLabStrings(STRINGS);
+  const { locale } = useLocale();
+  const p = snap.proposal!;
+  const code = p.scope === "code";
+  const entry = snap.log.find((e) => e.id === p.id);
+  const list = (title: string, items: string[]) =>
+    items.length > 0 && (
+      <div className="space-y-0.5">
+        <div className={cn(TYPE.rowMeta, "text-[11px]")}>{title}</div>
+        <ul className="space-y-0.5 font-mono text-[11px] text-foreground">
+          {items.map((x) => (
+            <li key={x}>· {x}</li>
+          ))}
+        </ul>
+      </div>
+    );
+  return (
+    <div className={cn("space-y-3 rounded-xl border p-3", code ? "border-red-500/40 bg-red-500/[0.05]" : "border-violet-500/50 bg-violet-500/[0.07]")}>
+      <div className="flex items-baseline justify-between gap-2">
+        <div className={TYPE.label}>{code ? S.needsCode : S.proposal}</div>
+        <span className="flex gap-1">
+          <Badge tone="grey">{S.tiers[p.tier]}</Badge>
+          <Badge tone={p.live ? "green" : "grey"}>{p.live ? `${S.live}${p.by.model ? ` · ${p.by.model}` : ""}` : S.standIn}</Badge>
+        </span>
+      </div>
+      <p className={TYPE.caption}>{code ? S.needsCodeNote : S.proposalNote}</p>
+      <div className="font-mono text-[11px] text-muted-foreground">{p.event}</div>
+      <p className="text-[13px] leading-relaxed text-foreground">{p.note[locale]}</p>
+      {p.plan && (p.plan[locale] || p.plan.zh) && (
+        <div className="space-y-0.5">
+          <div className={cn(TYPE.rowMeta, "text-[11px]")}>{S.plan}</div>
+          <p className="whitespace-pre-line text-[12px] leading-relaxed text-foreground">{p.plan[locale] || p.plan.zh}</p>
+        </div>
+      )}
+      <div className="grid gap-2 sm:grid-cols-2">
+        {list(S.removed, p.removed)}
+        {list(S.added, p.added)}
+        {list(S.fills, p.fills)}
+        {list(S.carried, p.carried)}
+        {list(S.rebound, p.rebound)}
+      </div>
+      {entry && (entry.added.length > 0 || entry.removed.length > 0) && (
+        <details>
+          <summary className={cn(TYPE.rowMeta, "cursor-pointer text-[11px]")}>{S.tree}</summary>
+          <pre className="mt-1 max-h-56 overflow-auto font-mono text-[10px] leading-[1.5]">
+            {entry.removed.map((l, i) => (
+              <div key={`r${i}`} className="text-red-600 dark:text-red-400">- {l.trim()}</div>
+            ))}
+            {entry.added.map((l, i) => (
+              <div key={`a${i}`} className="text-emerald-700 dark:text-emerald-400">+ {l.trim()}</div>
+            ))}
+          </pre>
+        </details>
+      )}
+      <div className="flex flex-wrap gap-1.5">
+        {!code && (
+          <>
+            <LabChip on={snap.previewing} onClick={() => api.previewProposal(!snap.previewing)}>
+              {snap.previewing ? S.previewing : S.previewHold}
+            </LabChip>
+            <LabButton tone="primary" onClick={() => api.accept()}>
+              <Check />
+              {S.accept}
+            </LabButton>
+          </>
+        )}
+        <LabButton onClick={() => api.discard()}>{code ? S.dismiss : S.discard}</LabButton>
+      </div>
+    </div>
   );
 }

@@ -9,6 +9,7 @@
 // once, first.
 // =============================================================================
 
+import type { ReactNode } from "react";
 import { Atmosphere, Draw, Part, choice, num, semantic, type DrawFn } from "scene";
 
 // -----------------------------------------------------------------------------
@@ -83,7 +84,12 @@ const BODY = [
   "M 32 -179 L 34 -146 L 32.6 -146 L 30.6 -176 L 29.6 -144 L 28.2 -144 L 28 -176 L 26.4 -148 L 25 -148 L 24.4 -179 Z",
 ];
 
-function ManShapes({ hatScale, brim }: { hatScale: number; brim: number }) {
+/**
+ * Him, in shapes. The hat is a slot: a tree can fill it with a thing of its own
+ * (`Node.fills: "man.hat"`, drawn with its base at the top of his head), which
+ * then rides with him wherever he stands; the path man[…].hat stays.
+ */
+function ManShapes({ hatScale, brim, slot }: { hatScale: number; brim: number; slot?: ReactNode }) {
   return (
     <>
       <Part name="body">{BODY.map((d) => <path key={d} d={d} />)}</Part>
@@ -91,10 +97,16 @@ function ManShapes({ hatScale, brim }: { hatScale: number; brim: number }) {
         <ellipse cx="0" cy="-362" rx="12" ry="17" />
         <rect x="-5" y="-350" width="10" height="16" />
       </Part>
-      <Part name="hat" transform={`translate(0 -379) scale(${hatScale}) translate(0 379)`}>
-        <path d={CROWN} />
-        <ellipse cx="0" cy="-379" rx={brim} ry="8.5" />
-      </Part>
+      {slot ? (
+        <Part name="hat" transform="translate(0 -379)">
+          {slot}
+        </Part>
+      ) : (
+        <Part name="hat" transform={`translate(0 -379) scale(${hatScale}) translate(0 379)`}>
+          <path d={CROWN} />
+          <ellipse cx="0" cy="-379" rx={brim} ry="8.5" />
+        </Part>
+      )}
     </>
   );
 }
@@ -120,14 +132,14 @@ export const Man = semantic(
       room: "屋里 · in the room",
     },
   },
-  ({ hatScale, eyes }) => (
+  ({ hatScale, eyes, children }) => (
     <>
-      {/* Moonlight on his left edge: a copy of him, a little to the left. */}
+      {/* Moonlight on his left edge: a copy of him, a little to the left (not of what fills the hat: it has its own light). */}
       <Atmosphere name="rim" fill="#4a5c94" opacity="0.55" transform="translate(-1.5 0)">
-        <ManShapes hatScale={hatScale} brim={72} />
+        <ManShapes hatScale={hatScale} brim={72} slot={children ? <g /> : undefined} />
       </Atmosphere>
       <g fill="#000">
-        <ManShapes hatScale={hatScale} brim={72} />
+        <ManShapes hatScale={hatScale} brim={72} slot={children} />
       </g>
       <Part name="eyes" opacity={eyes} fill="#d3dcf2">
         <circle cx="-4.6" cy="-361.5" r="1.25" />

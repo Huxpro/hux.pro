@@ -82,6 +82,32 @@ spans to the rows and from the rows to the boxes on the frame. Hover a span, a
 row or a thing on the frame, and the chain lights up through all three. In a
 dream, a beat binds to the picture only while it is the one on screen.
 
+## Bigger changes: when the model replaces part of the tree
+
+Some edits are not one more kind. "圆圆的大的帽子" rewritten as "一把很大的黑伞"
+leaves the hat's size intent without a subject. The strong model has to decide
+how much of the tree the new words make meaningless. The answer has a
+structural part:
+
+| field | means |
+|---|---|
+| `remove` | intents (or whole things) that no longer mean anything |
+| `nodes[].fills` | a library slot the new thing is drawn in (`man.hat`: the man's hat is a slot). The path stays and the content is new, and it rides with its owner wherever he stands |
+| `nodes[].drawings` | drawings per kind of an intent the look depends on (the umbrella open or furled). Drawings are cached under the values they were drawn for (`drawingFor`) |
+| `carry` | a person's picks, carried into the new part's terms (hat = absurd → umbrella.size = huge, `from: "carried"`): their decision survives the rewrite |
+| `rebind` | the words, bound to what they are about now |
+| `scope: "code"` + `plan` | the tree and the library cannot say it: nothing changes, and the plan says what the code must do and what of the tree would carry over |
+
+A structural answer is not applied at once. It arrives as a **proposal**:
+- Inspect shows what goes, what comes, which slot is taken, which decisions carry over, and which words rebind;
+- **Preview** shows the proposed tree in the picture without applying it;
+- **Apply** loads it (loads, not rebases, since a rebase would bring back what it removed);
+- **Discard** drops it.
+
+Wider changes are ordinary answers with a wider reach. "每一幕他都离我更近一点" is a relation across the dream's beats. The model revises its own belief about the second beat by the scene's depth, and stops asking. It picks nothing for the person.
+
+**The bridge (dev).** With `INTENTS_BRIDGE=1` and no credentials, a strong request goes to `.intents-bridge/<id>.request.json`: the system prompt, the observation and the schema. It is answered by whoever writes `<id>.answer.json`, which in a Claude Code session is the model working in the repository. Each answer is kept in `content/scenes/<scene>.claude.json`, and the experiences replay it for the same need when no model is reachable.
+
 ## The loop in an experience
 
 ```ts
