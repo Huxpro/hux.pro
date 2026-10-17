@@ -47,8 +47,8 @@ type Widen<T> = T extends number
     ? string
     : T extends boolean
       ? boolean
-      : T extends readonly (infer E)[]
-        ? readonly Widen<E>[]
+      : T extends readonly unknown[]
+        ? { readonly [i in keyof T]: Widen<T[i]> }
         : T extends object
           ? { -readonly [k in keyof T]: Widen<T[k]> }
           : T;

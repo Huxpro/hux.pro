@@ -11,7 +11,7 @@ import type { Snapshot } from "./root";
 const pct = (n: number) => Math.round(n * 100);
 
 export function observe(s: Pick<Snapshot, "program" | "doc" | "ctx" | "values">): string {
-  const out = [`program ${s.program.id}${s.program.version ? ` @${s.program.version}` : ""}`];
+  const out = [`program ${s.program.id}`];
   if (s.ctx.prompts?.length) out.push(`said of the whole: ${s.ctx.prompts.map((p) => `"${p}"`).join(" · ")}`);
   for (const c of cells(s.program)) {
     const v = s.values[c.key];

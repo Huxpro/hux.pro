@@ -2,7 +2,7 @@
 // The Wardrobe's intent types, on Reintent core: what each choice can be, the
 // words that say it, and what it means in the picture (the scene's units, the
 // same numbers experiences/wardrobe/intents.ts realizes). Types live here, in
-// .ts; which thing has which intent is the program's (wardrobe.tsx).
+// .ts; which thing has which intent is its part's (parts.tsx).
 // =============================================================================
 
 import { intent } from "reintent-core";

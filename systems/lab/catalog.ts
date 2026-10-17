@@ -271,8 +271,8 @@ export const LABS: readonly LabEntry[] = [
       zh: "《衣柜》，跑在独立的意图内核上",
     },
     blurb: {
-      en: "packages/reintent-core: intents as a reactive, typed program. The Wardrobe's intents written as TSX, decided by one rule (you, your rule, the author, a relation, a viewer, a sure model, code), reconciled by path when the model rewrites the program. Say something, answer what it asks, switch the program to the model's rewrite and back.",
-      zh: "packages/reintent-core：把意图当作一个响应式、有类型的程序。《衣柜》的意图用 TSX 写成，按同一条规则决定（你 > 你的规则 > 作者 > 关系 > 观看者 > 有把握的模型 > 代码），模型改写程序时按路径对账。说一句话，回答它问的，把程序切到模型的改写版再切回来。",
+      en: "packages/reintent-core: intents as a reactive, typed program. The Wardrobe's things are parts: their intents in, their drawing out, each value decided by one rule (you, your rule, the author, a relation, a viewer, a sure model, code), reconciled by path when the model rewrites a part. Say something, answer what it asks, switch to the model's rewrite and back.",
+      zh: "packages/reintent-core：把意图当作一个响应式、有类型的程序。《衣柜》里的东西都是 part：意图进，画面出，每个值按同一条规则决定（你 > 你的规则 > 作者 > 关系 > 观看者 > 有把握的模型 > 代码），模型改写 part 时按路径对账。说一句话，回答它问的，切到模型的改写版再切回来。",
     },
   },
   {

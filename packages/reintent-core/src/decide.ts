@@ -48,7 +48,7 @@ export interface Value<K extends string = string, D = unknown> {
   from?: string;
 }
 
-/** Every active cell's value. Cells whose `when` says they mean nothing are absent. */
+/** Every cell's value. A cell a part did not declare this run (an `if` around its hook) has none. */
 export function values(program: Program, doc: Doc, ctx: Context = {}): Record<Key, Value> {
   const all = cells(program);
   const byKey = new Map(all.map((c) => [c.key, c]));
@@ -64,7 +64,7 @@ export function values(program: Program, doc: Doc, ctx: Context = {}): Record<Ke
     // A relation that reaches back to itself reads nothing there.
     if (!c || busy.has(key)) return null;
     busy.add(key);
-    const v = c.decl.when && !c.decl.when(read) ? null : decide(c);
+    const v = decide(c);
     busy.delete(key);
     memo.set(key, v);
     return v;

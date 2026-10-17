@@ -20,7 +20,7 @@
 // (bedroom.tsx), the waking (waking.ts), the sound, the overlays.
 // =============================================================================
 
-import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState, type Dispatch } from "react";
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState, type ComponentType, type Dispatch, type ReactNode } from "react";
 import { dragValue, realized, useIntents, type DragPreview, type Tree, type Value } from "intents";
 import { Atmosphere, Stage, useFlag, useFrame, useNow, useTime, useTimeline, type Still } from "scene";
 import { Bed, BedroomDefs, Man, Room, Viewer, Wardrobe as WardrobeBox, Window } from "../common/bedroom";
@@ -109,8 +109,60 @@ export function Wardrobe() {
   return <WardrobeStage rd={rd} />;
 }
 
-/** The Wardrobe, reading its intents from `rd`. */
-export function WardrobeStage({ rd }: { rd: Read }) {
+/**
+ * The man as the timeline poses him: in the wardrobe (no scale) or at the bed
+ * (where the shape put him). His own intents (the hat, the gaze, where he
+ * stands) are the drawing's to apply: a host that holds them draws him itself.
+ */
+export interface ManPose {
+  instance: "wardrobe" | "bedside";
+  eyes: number;
+  at: readonly [number, number];
+  scale: number;
+  lean: number;
+  children?: ReactNode;
+}
+
+/** The wardrobe as the timeline opens it; `waking`: the door is the one that opens when you wake. */
+export interface WardrobePose {
+  openLeft: number;
+  openRight: number;
+  waking: boolean;
+  children?: ReactNode;
+}
+
+/** How the stage draws him and the wardrobe: by default from `rd`, or by a host's own parts. */
+export interface Things {
+  Man: ComponentType<ManPose>;
+  Wardrobe: ComponentType<WardrobePose>;
+}
+
+export const transformOf = (p: { at: readonly [number, number]; scale: number; lean: number }) =>
+  `translate(${p.at[0].toFixed(1)} ${p.at[1].toFixed(1)}) rotate(${p.lean.toFixed(3)})${p.scale === 1 ? "" : ` scale(${p.scale.toFixed(4)})`}`;
+
+/** Draws him from `rd`: this experience's own way. */
+function ReadMan({ instance, eyes, children, ...pose }: ManPose) {
+  const rd = useRead();
+  return (
+    <Man instance={instance} hatScale={rd.hatScale} eyes={eyes * rd.gaze} transform={transformOf(pose)}>
+      {children}
+    </Man>
+  );
+}
+
+function ReadWardrobe({ openLeft, openRight, children }: WardrobePose) {
+  return (
+    <WardrobeBox openLeft={openLeft} openRight={openRight}>
+      {children}
+    </WardrobeBox>
+  );
+}
+
+const READ_THINGS: Things = { Man: ReadMan, Wardrobe: ReadWardrobe };
+const ThingsContext = createContext<Things>(READ_THINGS);
+
+/** The Wardrobe, reading its intents from `rd`, and drawing him and the wardrobe with `things`. */
+export function WardrobeStage({ rd, things = READ_THINGS }: { rd: Read; things?: Things }) {
   const [state, dispatch] = useReducer(reduce, initial);
   const [sound] = useState(() => new Sound());
   const [fit, setFit] = useState<"slice" | "meet">(() => (innerWidth / innerHeight > 0.62 ? "meet" : "slice"));
@@ -146,7 +198,9 @@ export function WardrobeStage({ rd }: { rd: Read }) {
       className="stage"
     >
       <ReadContext.Provider value={rd}>
-        <Scene state={state} />
+        <ThingsContext.Provider value={things}>
+          <Scene state={state} />
+        </ThingsContext.Provider>
         <Director state={state} dispatch={dispatch} sound={sound} />
       </ReadContext.Provider>
     </Stage>
@@ -160,6 +214,7 @@ export function WardrobeStage({ rd }: { rd: Read }) {
 function Scene({ state }: { state: State }) {
   const t = useTime();
   const rd = useRead();
+  const { Man: HisMan, Wardrobe: TheWardrobe } = useContext(ThingsContext);
   const v = viewOf(state, t, useTimeline(TIMELINE), rd);
   // The inspector's demonstration: something drawn outside every declaration.
   const undeclared = useFlag("undeclared");
@@ -172,22 +227,17 @@ function Scene({ state }: { state: State }) {
         <g id="scene">
           <Room />
           <Window />
-          <WardrobeBox openLeft={v.doors.left} openRight={v.doors.right}>
+          <TheWardrobe openLeft={v.doors.left} openRight={v.doors.right} waking={state.stage === 3}>
             {v.manInWardrobe && (
-              <Man instance="wardrobe" hatScale={rd.hatScale} eyes={v.manInWardrobe.eyes * rd.gaze} transform={`translate(285.5 640) rotate(${v.manInWardrobe.tilt.toFixed(2)})`}>
+              <HisMan instance="wardrobe" eyes={v.manInWardrobe.eyes} at={[285.5, 640]} scale={1} lean={v.manInWardrobe.tilt}>
                 {hat}
-              </Man>
+              </HisMan>
             )}
-          </WardrobeBox>
+          </TheWardrobe>
           {v.manAtBed && (
-            <Man
-              instance="bedside"
-              hatScale={rd.hatScale}
-              eyes={v.manAtBed.eyes * rd.gaze}
-              transform={`translate(${v.manAtBed.at[0].toFixed(1)} ${v.manAtBed.at[1].toFixed(1)}) rotate(${v.manAtBed.lean.toFixed(3)}) scale(${v.manAtBed.scale.toFixed(4)})`}
-            >
+            <HisMan instance="bedside" eyes={v.manAtBed.eyes} at={v.manAtBed.at} scale={v.manAtBed.scale} lean={v.manAtBed.lean}>
               {hat}
-            </Man>
+            </HisMan>
           )}
           <Bed />
           {rd.tree && rd.values && <Learned tree={rd.tree} values={rd.values} drawingLabel={WORDS.drawing} />}

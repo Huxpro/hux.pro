@@ -10,7 +10,10 @@ const en = {
   failed: "The scene did not open. Build it first: pnpm experiences:build",
 
   program: "Program",
-  programNote: "The program is what the model wrote: TSX, evaluated to data. Switch to its rewrite and back: every decision whose path and kind remain is kept; the rest wait, and return with their kind.",
+  programNote:
+    "The program is the parts the model wrote: each declares its intents and returns its drawing. Switch to its rewrite and back: every decision whose path and kind remain is kept; the rest wait, and return with their kind.",
+  added: "new",
+  removed: "gone",
   kept: "kept",
   suspended: "waiting",
   restored: "back",
@@ -63,7 +66,9 @@ const zh: typeof en = {
   failed: "场景没有打开。请先构建：pnpm experiences:build",
 
   program: "程序",
-  programNote: "程序是模型写的：TSX，求值后就是数据。切到它的改写版再切回来：路径和 kind 都还在的决定会保留；其余的先等着，kind 回来时它们也回来。",
+  programNote: "程序就是模型写的 part：每个 part 声明自己的意图，返回自己的画面。切到它的改写版再切回来：路径和 kind 都还在的决定会保留；其余的先等着，kind 回来时它们也回来。",
+  added: "新增",
+  removed: "移除",
   kept: "保留",
   suspended: "等待",
   restored: "回来",

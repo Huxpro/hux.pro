@@ -1,39 +1,53 @@
 // =============================================================================
-// The root: a program, a doc and a context, and the loop over them.
+// The root: the program the parts declared, a doc and a context, and the loop
+// over them.
 //
-//   const root = createRoot(PROGRAM);
-//   root.get().values["man.hat"]        what a host reads
+//   const root = createRoot({ id: "wardrobe" });
+//   render(root, [Man, Wardrobe])          the parts run: they declare, and read
+//   root.get().values["man.hat"]
 //   root.dispatch({ type: "narrow", key: "man.hat", pick: "absurd", from: "said" })
-//   root.watch((s) => s.values["man.hat"]?.kind, render)
 //
-// Four things change what a host sees, and each is an action:
+// Four things change what the parts see, and they re-run on each:
 //
 //   narrow / learn     a person, or a model's answer to a person's event
 //   believe            a model, under the context it was asked in
 //   context            something said of the whole, a viewer's leaning, focus
-//   program            the program itself, rewritten: reconciled by key
+//   the program        a part declares otherwise (a model rewrote it, or an
+//                      `if` went the other way): on `flush`, the doc is
+//                      reconciled by path against it
 //
-// Every state is kept, so undo is a step back, and `preview` computes a state
-// from actions without committing it (a proposal, a one-flip alternative).
+// A part runs inside a `frame`: each `useIntent` registers its declaration
+// and reads its value. A cell another part has not declared yet reads as
+// nothing; the flush after the run publishes the program, and whoever read it
+// runs again (the second pass).
+//
+// Every state of the doc is kept, so undo is a step back (the program is code:
+// undo does not unwrite it), and `preview` computes a state without making it.
 // =============================================================================
 
-import { believe, contextKey, EMPTY_DOC, learn, narrow, reconcile, type Context, type Doc, type Pick, type Reconciled } from "./doc";
+import { believe, contextKey, EMPTY_DOC, learn, narrow, reconcile, type Context, type Doc, type Pick } from "./doc";
 import { questions, staleCells, values, type Value } from "./decide";
 import type { Dist, Kind } from "./intent";
-import type { Key, Program } from "./program";
+import { check, signature, type IntentDecl, type Key, type Program } from "./program";
 
 export type Action =
   | { type: "narrow"; key: Key; pick: Pick | null; scope?: "here" | "all"; by?: string; from?: string }
   | { type: "believe"; key: Key; p: Dist; by?: string }
   | { type: "learn"; key: Key; name: string; kind: Kind<unknown> }
   | { type: "context"; ctx: Partial<Context> }
-  | { type: "program"; program: Program }
   | { type: "batch"; actions: Action[] };
 
 export interface State {
-  program: Program;
   doc: Doc;
   ctx: Context;
+}
+
+export interface ProgramChange {
+  added: Key[];
+  removed: Key[];
+  kept: Key[];
+  suspended: Key[];
+  restored: Key[];
 }
 
 export interface LogEntry {
@@ -42,10 +56,12 @@ export interface LogEntry {
   actions: Action[];
   /** What changed, cell by cell: `man.hat: big → absurd (person)`. */
   changes: string[];
-  reconciled?: Omit<Reconciled, "doc">;
+  /** The program changed: cells added and removed, and what the doc's decisions did. */
+  program?: ProgramChange;
 }
 
 export interface Snapshot extends State {
+  program: Program;
   values: Record<Key, Value>;
   asks: Value[];
   stale: Value[];
@@ -53,7 +69,23 @@ export interface Snapshot extends State {
   canUndo: boolean;
 }
 
-export function apply(s: State, a: Action, report?: (r: Reconciled) => void): State {
+/** A part at run: where its hooks register and read. */
+export interface Frame {
+  intent<K extends string, D>(decl: IntentDecl<K, D>): Value<K, D>;
+  /** Another cell's value now (undefined: not declared yet). */
+  value(key: Key): Value | undefined;
+  values(): Record<Key, Value>;
+  /** The run is over: intents it did not declare this time are gone. */
+  end(): void;
+}
+
+export interface ThingInfo {
+  id: string;
+  label?: string;
+  aka?: readonly string[];
+}
+
+export function apply(s: State, a: Action): State {
   switch (a.type) {
     case "narrow":
       return { ...s, doc: narrow(s.doc, a.key, a.pick, a) };
@@ -63,13 +95,8 @@ export function apply(s: State, a: Action, report?: (r: Reconciled) => void): St
       return { ...s, doc: learn(s.doc, a.key, a.name, a.kind) };
     case "context":
       return { ...s, ctx: { ...s.ctx, ...a.ctx } };
-    case "program": {
-      const r = reconcile(s.doc, a.program);
-      report?.(r);
-      return { ...s, program: a.program, doc: r.doc };
-    }
     case "batch":
-      return a.actions.reduce((t, b) => apply(t, b, report), s);
+      return a.actions.reduce(apply, s);
   }
 }
 
@@ -82,9 +109,7 @@ const describe = (a: Action): string =>
         ? `${a.key} learned ${a.name}`
         : a.type === "context"
           ? `context`
-          : a.type === "program"
-            ? `program → ${a.program.version ?? a.program.id}`
-            : a.actions.map(describe).join(" · ");
+          : a.actions.map(describe).join(" · ");
 
 function diff(before: Record<Key, Value>, after: Record<Key, Value>): string[] {
   const out: string[] = [];
@@ -108,49 +133,84 @@ export interface Root {
   watch<T>(select: (s: Snapshot) => T, fn: (value: T) => void): () => void;
   undo(): void;
   reset(): void;
+  // The parts' side.
+  frame(thing: ThingInfo): Frame;
+  /** After a run: a program that changed is reconciled, logged and published. */
+  flush(note?: string): void;
+  /** A part mounted (a host's binding): counted, so a thing drawn twice is one thing. */
+  keep(id: string): void;
+  /** A part unmounted: when the last of it is gone, its cells go once the commit is over, unless it ran or mounted again. */
+  drop(id: string): void;
 }
 
-export function createRoot(program: Program, init: { doc?: Doc; ctx?: Context } = {}): Root {
-  const first: State = { program, doc: init.doc ?? EMPTY_DOC, ctx: init.ctx ?? {} };
+interface Entry {
+  info: ThingInfo;
+  intents: Map<string, IntentDecl<string, unknown>>;
+  /** Each intent's declaration as text, to tell a rewrite from a re-run. */
+  sigs: Map<string, string>;
+}
+
+const declSig = (d: IntentDecl<string, unknown>) => signature({ id: "", things: [{ id: "", aka: [], intents: [d] }] });
+
+export function createRoot(init: { id?: string; doc?: Doc; ctx?: Context } = {}): Root {
+  const id = init.id ?? "program";
+  const first: State = { doc: init.doc ?? EMPTY_DOC, ctx: init.ctx ?? {} };
   let history: State[] = [first];
   let log: LogEntry[] = [];
-  let snap: Snapshot;
+  const things = new Map<string, Entry>();
+  const dropped = new Set<string>();
+  const mounts = new Map<string, number>();
+  let rev = 0;
+  let published = { sig: signature({ id, things: [] }), program: { id, things: [] } as Program };
   const subs = new Set<() => void>();
 
-  const snapshotOf = (s: State, canUndo: boolean, l: readonly LogEntry[]): Snapshot => {
-    const vals = values(s.program, s.doc, s.ctx);
-    return { ...s, values: vals, asks: questions(vals), stale: staleCells(vals), log: l, canUndo };
+  const state = () => history[history.length - 1];
+  let programMemo = { rev: -1, program: published.program };
+  const program = (): Program => {
+    if (programMemo.rev !== rev)
+      programMemo = {
+        rev,
+        program: { id, things: [...things.values()].map((e) => ({ id: e.info.id, label: e.info.label, aka: e.info.aka ?? [], intents: [...e.intents.values()] })) },
+      };
+    return programMemo.program;
   };
+  let liveMemo: { rev: number; state: State; values: Record<Key, Value> } | null = null;
+  const live = () => {
+    const s = state();
+    if (!liveMemo || liveMemo.rev !== rev || liveMemo.state !== s) liveMemo = { rev, state: s, values: values(program(), s.doc, s.ctx) };
+    return liveMemo.values;
+  };
+
+  const snapshotOf = (s: State, p: Program, canUndo: boolean): Snapshot => {
+    const vals = values(p, s.doc, s.ctx);
+    return { ...s, program: p, values: vals, asks: questions(vals), stale: staleCells(vals), log, canUndo };
+  };
+  let snap = snapshotOf(first, published.program, false);
   const publish = () => {
-    snap = snapshotOf(history[history.length - 1], history.length > 1, log);
+    snap = snapshotOf(state(), program(), history.length > 1);
     subs.forEach((fn) => fn());
   };
-  snap = snapshotOf(first, false, log);
 
-  return {
+  const root: Root = {
     get: () => snap,
     subscribe(fn) {
       subs.add(fn);
       return () => subs.delete(fn);
     },
     dispatch(action, note) {
-      let reconciled: Reconciled | undefined;
-      const next = apply(history[history.length - 1], action, (r) => (reconciled = r));
       const before = snap.values;
-      history = [...history, next];
-      const after = values(next.program, next.doc, next.ctx);
-      const entry: LogEntry = { note: note ?? describe(action), actions: action.type === "batch" ? action.actions : [action], changes: diff(before, after) };
-      if (reconciled) entry.reconciled = { kept: reconciled.kept, suspended: reconciled.suspended, restored: reconciled.restored };
-      log = [entry, ...log];
+      history = [...history, apply(state(), action)];
+      const after = live();
+      log = [{ note: note ?? describe(action), actions: action.type === "batch" ? action.actions : [action], changes: diff(before, after) }, ...log];
       publish();
       return snap;
     },
     preview(actions) {
-      return snapshotOf(actions.reduce((s, a) => apply(s, a), history[history.length - 1]), true, log);
+      return snapshotOf(actions.reduce(apply, state()), program(), true);
     },
     watch(select, fn) {
       let seen = JSON.stringify(select(snap));
-      return this.subscribe(() => {
+      return root.subscribe(() => {
         const v = select(snap);
         const json = JSON.stringify(v);
         if (json !== seen) {
@@ -170,5 +230,87 @@ export function createRoot(program: Program, init: { doc?: Doc; ctx?: Context } 
       log = [];
       publish();
     },
+
+    frame(info) {
+      dropped.delete(info.id);
+      let e = things.get(info.id);
+      if (!e) {
+        e = { info, intents: new Map(), sigs: new Map() };
+        things.set(info.id, e);
+        rev++;
+      }
+      const entry = e;
+      const seen = new Set<string>();
+      return {
+        intent<K extends string, D>(decl: IntentDecl<K, D>) {
+          const d = decl as unknown as IntentDecl<string, unknown>;
+          const key = `${info.id}.${d.name}`;
+          if (seen.has(d.name)) throw new Error(`reintent: ${key} declared twice in one run`);
+          const problems = check(key, d);
+          if (problems.length) throw new Error(`reintent: ${problems.join("; ")}`);
+          seen.add(d.name);
+          const sig = declSig(d);
+          // A re-run brings a fresh closure every time: kept quietly. A rewrite is a new program.
+          if (entry.sigs.get(d.name) !== sig) {
+            entry.sigs.set(d.name, sig);
+            rev++;
+          }
+          entry.intents.set(d.name, d);
+          return live()[key] as Value<K, D>;
+        },
+        value: (key) => live()[key],
+        values: live,
+        end() {
+          for (const name of [...entry.intents.keys()])
+            if (!seen.has(name)) {
+              entry.intents.delete(name);
+              entry.sigs.delete(name);
+              rev++;
+            }
+        },
+      };
+    },
+
+    flush(note) {
+      const p = program();
+      const sig = signature(p);
+      if (sig === published.sig) return;
+      const before = snap.values;
+      const r = reconcile(state().doc, p);
+      if (r.doc !== state().doc && (r.suspended.length || r.restored.length)) history = [...history, { ...state(), doc: r.doc }];
+      const keysOf = (q: Program) => new Set(q.things.flatMap((t) => t.intents.map((i) => `${t.id}.${i.name}`)));
+      const was = keysOf(published.program);
+      const now = keysOf(p);
+      const change: ProgramChange = {
+        added: [...now].filter((k) => !was.has(k)),
+        removed: [...was].filter((k) => !now.has(k)),
+        kept: r.kept,
+        suspended: r.suspended,
+        restored: r.restored,
+      };
+      published = { sig, program: p };
+      log = [{ note: note ?? `program: ${now.size} cells`, actions: [], changes: diff(before, live()), program: change }, ...log];
+      publish();
+    },
+    // Mounts are counted: a thing drawn twice (him in the wardrobe, him at the bed) is one thing,
+    // gone only when the last of it is.
+    // A drop is swept after the commit it happened in, not at the next flush: in one commit a
+    // child's flush can run before its parent's remount (a version switched under both).
+    drop(tid) {
+      const n = (mounts.get(tid) ?? 1) - 1;
+      mounts.set(tid, n);
+      if (n > 0) return;
+      dropped.add(tid);
+      queueMicrotask(() => {
+        if (!dropped.delete(tid)) return;
+        if (things.delete(tid)) rev++;
+        root.flush();
+      });
+    },
+    keep(tid) {
+      mounts.set(tid, (mounts.get(tid) ?? 0) + 1);
+      dropped.delete(tid);
+    },
   };
+  return root;
 }

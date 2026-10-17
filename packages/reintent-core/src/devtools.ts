@@ -6,16 +6,16 @@
 // dispatch: an inspector is where a person decides.
 // =============================================================================
 
-import type { Program } from "./program";
 import type { Root } from "./root";
 import type { Reading, Recognized } from "./words";
 
+/** A version of the program: its parts' source, as a model wrote it (the root holds what they declared). */
 export interface ProgramVersion {
   id: string;
   /** What this version is, in a line. */
   note: string;
-  program: Program;
-  /** Its source, as written (TSX): what a model reads and rewrites. */
+  /** Where its parts are, and their source as written: what a model reads and rewrites. */
+  file: string;
   source: string;
 }
 
@@ -27,7 +27,7 @@ export interface ReintentDevtools {
   /** The program's versions, the running one among them. */
   versions: readonly ProgramVersion[];
   current(): string;
-  /** Run another version of the program under the same doc (reconciled). */
+  /** Run another version of the parts under the same doc: the program changes, and is reconciled. */
   use(id: string): void;
   /** A sentence, read and acted on: resolved, asked, handed to a model, or said of the whole. */
   say(text: string): Said;

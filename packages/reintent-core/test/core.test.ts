@@ -1,7 +1,23 @@
 // The core's rules, one at a time. Run: pnpm reintent:test
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { EMPTY_DOC, Intent, Scene, Thing, createRoot, effect, intent, narrow, reconcile, values, type Program } from "../src/index.ts";
+import {
+  EMPTY_DOC,
+  createRoot,
+  effect,
+  intent,
+  narrow,
+  part,
+  render,
+  runPart,
+  useCell,
+  useDerived,
+  useIntent,
+  useLazy,
+  values,
+  type IntentOptions,
+  type Root,
+} from "../src/index.ts";
 import { recognize } from "../src/words.ts";
 import { observe } from "../src/observe.ts";
 
@@ -20,161 +36,198 @@ const Pace = intent(
   { ordered: true, more: ["慢一点", "更慢"], less: ["快一点", "更快"] },
 );
 
-const program = (extra: Partial<Parameters<typeof Intent>[0]> = {}): Program =>
-  Scene({
-    id: "t",
-    children: [
-      Thing({
-        id: "man",
-        aka: ["他"],
-        children: [
-          Intent({ name: "hat", of: Size, aka: ["帽子"], p: { usual: 0.04, big: 0.52, absurd: 0.44 }, resolve: "ask", ...extra }),
-          Intent({ name: "stand", of: Place, aka: ["站"], p: { bed: 0.46, foot: 0.42, window: 0.12 } }),
-        ],
-      }),
-      Thing({
-        id: "wardrobe",
-        aka: ["衣柜", "门"],
-        children: [
-          Intent({ name: "door", of: Open, aka: ["柜门", "门"], p: { ajar: 0.12, half: 0.58, wide: 0.3 } }),
-          Intent({ name: "pace", of: Pace, aka: ["速度"], p: { sudden: 0.08, slow: 0.7, crawl: 0.22 } }),
-        ],
-      }),
-    ],
+/** Him: two intents in, what he looks like out. */
+const man = (extra: IntentOptions<"usual" | "big" | "absurd"> = {}) =>
+  part("man", { aka: ["他"] }, () => {
+    const hat = useIntent("hat", Size, { aka: ["帽子"], p: { usual: 0.04, big: 0.52, absurd: 0.44 }, resolve: "ask", ...extra });
+    const stand = useIntent("stand", Place, { aka: ["站"], p: { bed: 0.46, foot: 0.42, window: 0.12 } });
+    return { hatScale: hat.data.hatScale, x: stand.data.x };
   });
+const Wardrobe = part("wardrobe", { aka: ["衣柜", "门"] }, () => {
+  const door = useIntent("door", Open, { aka: ["柜门", "门"], p: { ajar: 0.12, half: 0.58, wide: 0.3 } });
+  useIntent("pace", Pace, { aka: ["速度"], p: { sudden: 0.08, slow: 0.7, crawl: 0.22 } });
+  return { open: door.data.open };
+});
+
+const setup = (extra?: IntentOptions<"usual" | "big" | "absurd">) => {
+  const root = createRoot({ id: "t" });
+  render(root, [man(extra), Wardrobe]);
+  return root;
+};
+const v = (root: Root, key: string) => root.get().values[key];
+
+test("a part: intents in, the world out", () => {
+  const root = createRoot();
+  const M = man();
+  const [out] = render(root, [M]);
+  assert.deepEqual(out, { hatScale: 1.45, x: 236 });
+  root.dispatch({ type: "narrow", key: "man.hat", pick: "absurd" });
+  assert.deepEqual(runPart(root, M, {}), { hatScale: 1.95, x: 236 });
+});
 
 test("unsure on an intent that asks: the likeliest kind for now, and a question", () => {
-  const v = values(program(), EMPTY_DOC)["man.hat"];
-  assert.equal(v.kind, "big");
-  assert.equal(v.source, "ask");
-  assert.equal(v.ask, true);
-  assert.deepEqual(v.data, { hatScale: 1.45 });
+  const x = v(setup(), "man.hat");
+  assert.deepEqual([x.kind, x.source, x.ask, x.data], ["big", "ask", true, { hatScale: 1.45 }]);
 });
 
 test("unsure on an intent that switches: code picks, nobody is asked", () => {
-  const v = values(program(), EMPTY_DOC)["man.stand"];
-  assert.equal(v.kind, "bed");
-  assert.equal(v.source, "code");
-  assert.equal(v.ask, false);
+  const x = v(setup(), "man.stand");
+  assert.deepEqual([x.kind, x.source, x.ask], ["bed", "code", false]);
 });
 
 test("a sure model decides", () => {
-  assert.equal(values(program(), EMPTY_DOC)["wardrobe.pace"].source, "model");
+  assert.equal(v(setup(), "wardrobe.pace").source, "model");
 });
 
-test("precedence: person > rule > author > derived > model", () => {
-  const p = program({ pick: "usual" });
-  assert.equal(values(p, EMPTY_DOC)["man.hat"].source, "author");
-  const ruled = narrow(EMPTY_DOC, "man.hat", "big", { scope: "all" });
-  assert.equal(values(p, ruled)["man.hat"].source, "rule");
-  const decided = narrow(ruled, "man.hat", "absurd");
-  assert.deepEqual([values(p, decided)["man.hat"].kind, values(p, decided)["man.hat"].source], ["absurd", "person"]);
+test("precedence: person > rule > author > model", () => {
+  const root = setup({ pick: "usual" });
+  assert.equal(v(root, "man.hat").source, "author");
+  root.dispatch({ type: "narrow", key: "man.hat", pick: "big", scope: "all" });
+  assert.equal(v(root, "man.hat").source, "rule");
+  root.dispatch({ type: "narrow", key: "man.hat", pick: "absurd" });
+  assert.deepEqual([v(root, "man.hat").kind, v(root, "man.hat").source], ["absurd", "person"]);
 });
 
 test("ruling a kind out leaves the rest to the model and code", () => {
-  const doc = narrow(EMPTY_DOC, "man.hat", { not: ["big"] });
-  const v = values(program(), doc)["man.hat"];
-  assert.equal(v.kind, "absurd");
-  assert.equal(v.source, "model");
-  assert.deepEqual(v.not, ["big"]);
+  const root = setup();
+  root.dispatch({ type: "narrow", key: "man.hat", pick: { not: ["big"] } });
+  const x = v(root, "man.hat");
+  assert.deepEqual([x.kind, x.source, x.not], ["absurd", "model", ["big"]]);
 });
 
-test("derive and follows: a relation is code, and reads the other cell's decided kind", () => {
-  const p = Scene({
-    id: "rel",
-    children: [
-      Thing({ id: "man", children: [Intent({ name: "where", of: Place })] }),
-      Thing({ id: "cat", children: [Intent({ name: "where", of: Place, follows: "man.where" })] }),
-      Thing({
-        id: "door",
-        children: [Intent({ name: "open", of: Open, derive: (read) => (read("man.where") === "window" ? "wide" : undefined) })],
-      }),
-    ],
+test("a hook is known by its label: under an `if`, its cell comes and goes, and a decision waits for it", () => {
+  const M = part("man", {}, () => {
+    const stand = useIntent("stand", Place);
+    // At the window he faces the moon: where he looks is no question there.
+    const gaze = stand.kind === "window" ? null : useIntent("gaze", intent({ me: {}, away: {} }));
+    return gaze?.kind ?? "moon";
   });
-  const doc = narrow(EMPTY_DOC, "man.where", "window");
-  const v = values(p, doc);
-  assert.deepEqual([v["cat.where"].kind, v["cat.where"].source], ["window", "derived"]);
-  assert.deepEqual([v["door.open"].kind, v["door.open"].source], ["wide", "derived"]);
-  assert.equal(values(p, EMPTY_DOC)["door.open"].source, "code");
+  const root = createRoot();
+  render(root, [M]);
+  root.dispatch({ type: "narrow", key: "man.gaze", pick: "away" });
+  assert.deepEqual(render(root, [M]), ["away"]);
+  root.dispatch({ type: "narrow", key: "man.stand", pick: "window" });
+  assert.deepEqual(render(root, [M]), ["moon"]);
+  assert.equal(v(root, "man.gaze"), undefined);
+  assert.deepEqual(root.get().log[0].program?.removed, ["man.gaze"]);
+  assert.deepEqual(root.get().log[0].program?.suspended, ["man.gaze"]);
+  root.dispatch({ type: "narrow", key: "man.stand", pick: "bed" });
+  assert.deepEqual(render(root, [M]), ["away"]);
+  assert.deepEqual(root.get().log[0].program?.restored, ["man.gaze"]);
 });
 
-test("when: a cell that means nothing is absent, and never asked", () => {
-  const p = program({ when: (read) => read("man.stand") !== "window" });
-  assert.ok(values(p, EMPTY_DOC)["man.hat"]);
-  assert.equal(values(p, narrow(EMPTY_DOC, "man.stand", "window"))["man.hat"], undefined);
+test("reading sideways: a part that reads a cell before it is declared runs again, and settles", () => {
+  const Cat = part("cat", {}, () => {
+    const where = useDerived("where", Place, (read) => read("man.stand"));
+    const his = useCell("man.stand", Place);
+    return [where.kind, where.source, his?.kind ?? "(nothing yet)"];
+  });
+  const root = createRoot();
+  root.dispatch({ type: "narrow", key: "man.stand", pick: "window" });
+  // The cat first: on the first pass there is no man to read.
+  assert.deepEqual(runPart(root, Cat, {}), ["bed", "code", "(nothing yet)"]);
+  const [cat] = render(root, [Cat, man()]);
+  assert.deepEqual(cat, ["window", "derived", "window"]);
+});
+
+test("a part rewritten: decisions kept by path, waiting when their kind is gone, back when it returns", () => {
+  const V2 = part("man", { aka: ["他"] }, () => {
+    useIntent("hat", intent({ usual: {}, towering: {} }), { aka: ["帽子"] });
+    return null;
+  });
+  const root = setup();
+  root.dispatch({ type: "narrow", key: "man.hat", pick: "absurd" });
+  root.dispatch({ type: "narrow", key: "wardrobe.door", pick: "wide" });
+  render(root, [V2, Wardrobe]);
+  const c = root.get().log[0].program!;
+  assert.deepEqual([c.kept, c.suspended, c.removed], [["wardrobe.door"], ["man.hat"], ["man.stand"]]);
+  assert.equal(v(root, "man.hat").source, "code");
+  render(root, [man(), Wardrobe]);
+  assert.deepEqual(root.get().log[0].program!.restored, ["man.hat"]);
+  assert.equal(v(root, "man.hat").kind, "absurd");
+});
+
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
+test("a thing drawn twice is one thing: gone only when the last of it unmounts", async () => {
+  const root = setup();
+  root.keep("man");
+  root.keep("man");
+  root.drop("man");
+  await tick();
+  assert.ok(v(root, "man.hat"));
+  root.drop("man");
+  await tick();
+  assert.equal(v(root, "man.hat"), undefined);
+  assert.deepEqual(root.get().log[0].program?.removed, ["man.hat", "man.stand"]);
+});
+
+test("unmounted and mounted again in one commit (a version switched): nothing goes", async () => {
+  const root = setup();
+  root.keep("wardrobe");
+  root.drop("wardrobe");
+  root.flush();
+  root.keep("wardrobe");
+  await tick();
+  assert.ok(v(root, "wardrobe.door"));
+  assert.equal(root.get().log.filter((e) => e.program?.removed.length).length, 0);
+});
+
+test("a hook outside a part, or a kind a type does not have, is an error", () => {
+  assert.throws(() => useIntent("hat", Size), /outside a part/);
+  const Bad = part("x", {}, () => useIntent("hat", Size, { pick: "nope" as "big" }));
+  assert.throws(() => render(createRoot(), [Bad]), /not a kind/);
 });
 
 test("a viewer's leaning tilts what nobody decided, and never overrides a person", () => {
-  const lean = { lean: { hat: "absurd" } };
-  assert.deepEqual([values(program(), EMPTY_DOC, lean)["man.hat"].kind, values(program(), EMPTY_DOC, lean)["man.hat"].source], ["absurd", "viewer"]);
-  assert.equal(values(program(), narrow(EMPTY_DOC, "man.hat", "usual"), lean)["man.hat"].kind, "usual");
+  const root = setup();
+  root.dispatch({ type: "context", ctx: { lean: { hat: "absurd" } } });
+  assert.deepEqual([v(root, "man.hat").kind, v(root, "man.hat").source], ["absurd", "viewer"]);
+  root.dispatch({ type: "narrow", key: "man.hat", pick: "usual" });
+  assert.equal(v(root, "man.hat").kind, "usual");
 });
 
 test("a belief is held under its context: said of the whole, it goes stale", () => {
-  const root = createRoot(program());
+  const root = setup();
   root.dispatch({ type: "believe", key: "man.hat", p: { usual: 0.1, big: 0.1, absurd: 0.8 } });
-  assert.equal(root.get().values["man.hat"].stale, false);
+  assert.equal(v(root, "man.hat").stale, false);
   root.dispatch({ type: "context", ctx: { prompts: ["更压抑一点"] } });
-  const v = root.get().values["man.hat"];
-  assert.equal(v.kind, "absurd");
-  assert.equal(v.stale, true);
+  assert.deepEqual([v(root, "man.hat").kind, v(root, "man.hat").stale], ["absurd", true]);
   assert.ok(root.get().stale.some((x) => x.key === "man.hat"));
   // A person's decision does not rest on the belief: nothing to re-infer there.
   root.dispatch({ type: "narrow", key: "man.hat", pick: "usual" });
-  assert.equal(root.get().values["man.hat"].stale, false);
+  assert.equal(v(root, "man.hat").stale, false);
 });
 
-test("reconcile: a decision is kept by path, parked when its kind goes, back when it returns", () => {
-  const v1 = program();
-  const v2 = Scene({
-    id: "t",
-    version: "v2",
-    children: [
-      Thing({ id: "man", children: [Intent({ name: "hat", of: intent({ usual: {}, towering: {} }) })] }),
-      Thing({ id: "wardrobe", children: [Intent({ name: "door", of: Open })] }),
+test("learn: the vocabulary grows, with data of the same shape; undo", () => {
+  const root = setup();
+  root.dispatch({
+    type: "batch",
+    actions: [
+      { type: "learn", key: "man.hat", name: "towering", kind: { label: "顶天", words: ["顶天"], data: { hatScale: 2.6 }, learned: "model:weak" } },
+      { type: "narrow", key: "man.hat", pick: "towering", from: "said" },
     ],
   });
-  let doc = narrow(narrow(EMPTY_DOC, "man.hat", "absurd"), "wardrobe.door", "wide");
-  const r1 = reconcile(doc, v2);
-  assert.deepEqual(r1.kept, ["wardrobe.door"]);
-  assert.deepEqual(r1.suspended, ["man.hat"]);
-  doc = r1.doc;
-  assert.equal(values(v2, doc)["man.hat"].source, "code");
-  const r2 = reconcile(doc, v1);
-  assert.deepEqual(r2.restored, ["man.hat"]);
-  assert.equal(values(v1, r2.doc)["man.hat"].kind, "absurd");
-});
-
-test("learn: the vocabulary grows, with data of the same shape", () => {
-  const root = createRoot(program());
-  root.dispatch({ type: "batch", actions: [
-    { type: "learn", key: "man.hat", name: "towering", kind: { label: "顶天", words: ["顶天"], data: { hatScale: 2.6 }, learned: "model:weak" } },
-    { type: "narrow", key: "man.hat", pick: "towering", from: "said" },
-  ] });
-  const v = root.get().values["man.hat"];
-  assert.deepEqual([v.kind, v.data], ["towering", { hatScale: 2.6 }]);
-  assert.ok(v.kinds.includes("towering"));
+  assert.deepEqual([v(root, "man.hat").kind, v(root, "man.hat").data], ["towering", { hatScale: 2.6 }]);
   root.undo();
-  assert.equal(root.get().values["man.hat"].kind, "big");
+  assert.equal(v(root, "man.hat").kind, "big");
 });
 
 test("the root: watch runs only when what it reads changes; preview commits nothing", () => {
-  const root = createRoot(program());
+  const root = setup();
   const seen: string[] = [];
   root.watch((s) => s.values["man.hat"].kind, (k) => seen.push(k));
   root.dispatch({ type: "narrow", key: "wardrobe.door", pick: "wide" });
   root.dispatch({ type: "narrow", key: "man.hat", pick: "absurd" });
   assert.deepEqual(seen, ["absurd"]);
-  const p = root.preview([{ type: "narrow", key: "man.hat", pick: "usual" }]);
-  assert.equal(p.values["man.hat"].kind, "usual");
-  assert.equal(root.get().values["man.hat"].kind, "absurd");
+  assert.equal(root.preview([{ type: "narrow", key: "man.hat", pick: "usual" }]).values["man.hat"].kind, "usual");
+  assert.equal(v(root, "man.hat").kind, "absurd");
   assert.ok(root.get().log[0].changes.some((c) => c.startsWith("man.hat: big → absurd")));
 });
 
-test("effect: eager until a lazy world is written, cached under the kinds it was written for", async () => {
-  const p = program();
+test("effect, through useLazy: eager until a lazy world is written, cached under the kinds it was written for", async () => {
   let calls = 0;
-  const fx = effect<string>({
+  const look = effect<string>({
     deps: ["man.hat"],
     eager: (u) => `placeholder ${u["man.hat"]}`,
     lazy: async (u) => {
@@ -182,52 +235,54 @@ test("effect: eager until a lazy world is written, cached under the kinds it was
       return `drawn ${u["man.hat"]}`;
     },
   });
-  const a = values(p, EMPTY_DOC);
-  assert.deepEqual(fx.get(a), { world: "placeholder big", source: "eager", pending: true });
+  const Hat = part("man", {}, () => {
+    useIntent("hat", Size, { p: { big: 0.6, absurd: 0.3, usual: 0.1 } });
+    return useLazy(look);
+  });
+  const root = createRoot();
+  assert.deepEqual(render(root, [Hat])[0], { world: "placeholder big", source: "eager", pending: true });
   await new Promise((r) => setTimeout(r, 0));
-  assert.deepEqual(fx.get(a), { world: "drawn big", source: "written", pending: false });
-  const b = values(p, narrow(EMPTY_DOC, "man.hat", "absurd"));
-  assert.equal(fx.get(b).source, "eager");
+  assert.deepEqual(runPart(root, Hat, {}), { world: "drawn big", source: "written", pending: false });
+  root.dispatch({ type: "narrow", key: "man.hat", pick: "absurd" });
+  assert.equal(runPart(root, Hat, {}).source, "eager");
   await new Promise((r) => setTimeout(r, 0));
-  assert.equal(fx.get(a).world, "drawn big");
+  root.undo();
+  assert.equal(runPart(root, Hat, {}).world, "drawn big");
   assert.equal(calls, 2);
 });
 
-test("check: a program that cannot be read does not evaluate", () => {
-  assert.throws(() => Scene({ id: "x", children: [Thing({ id: "a", children: [Intent({ name: "i", of: Size, pick: "nope" as "big" })] })] }), /not a kind/);
-  assert.throws(() => Scene({ id: "x", children: [Thing({ id: "a", children: [Intent({ name: "i", of: Size, follows: "b.i" })] })] }), /not a cell/);
+test("values() on its own: the program as data, the doc as data", () => {
+  const p = setup().get().program;
+  assert.equal(values(p, narrow(EMPTY_DOC, "man.hat", "usual"))["man.hat"].source, "person");
 });
 
 // -----------------------------------------------------------------------------
 // The words library
 // -----------------------------------------------------------------------------
 
-const said = (text: string, doc = EMPTY_DOC) => {
-  const p = program();
-  return recognize(text, { program: p, doc, ctx: {}, values: values(p, doc) });
+const said = (text: string, pick?: string) => {
+  const root = setup();
+  if (pick) root.dispatch({ type: "narrow", key: "man.hat", pick });
+  return recognize(text, root.get());
 };
 
 test("words: a kind's words resolve", () => {
   const r = said("站到窗边");
-  assert.equal(r.outcome, "resolve");
   assert.deepEqual(r.outcome === "resolve" && r.reading, { key: "man.stand", kind: "window", not: false, via: "kind" });
 });
 
 test("words: a step's own words name its intent (门慢一点 is the pace, not the door)", () => {
   const r = said("门慢一点");
-  assert.equal(r.outcome === "resolve" && r.reading.key, "wardrobe.pace");
-  assert.equal(r.outcome === "resolve" && r.reading.kind, "crawl");
+  assert.deepEqual(r.outcome === "resolve" && [r.reading.key, r.reading.kind], ["wardrobe.pace", "crawl"]);
 });
 
 test("words: a generic step with nothing named is a question", () => {
   const r = said("大一点");
-  assert.equal(r.outcome, "ask");
   assert.deepEqual(r.outcome === "ask" && r.readings.map((x) => x.key).sort(), ["man.hat", "wardrobe.door"]);
 });
 
 test("words: naming the intent keeps the reading to it; past its end goes to a model", () => {
-  const r = said("帽子大一点", narrow(EMPTY_DOC, "man.hat", "absurd"));
-  assert.equal(r.outcome, "infer");
+  const r = said("帽子大一点", "absurd");
   assert.deepEqual(r.outcome === "infer" && r.need, { kind: "extend", key: "man.hat", dir: 1, text: "帽子大一点" });
 });
 
@@ -237,12 +292,9 @@ test("words: a negation outside the kind's words rules it out", () => {
 });
 
 test("words: about nothing in particular, it is context", () => {
-  const r = said("更压抑一点");
-  assert.equal(r.outcome, "context");
+  assert.equal(said("更压抑一点").outcome, "context");
 });
 
 test("observe: the state as a model is shown it", () => {
-  const p = program();
-  const text = observe({ program: p, doc: EMPTY_DOC, ctx: {}, values: values(p, EMPTY_DOC) });
-  assert.match(text, /man\.hat \(hat\) = big \[ask, asking\] · usual 4% · big 52% · absurd 44%/);
+  assert.match(observe(setup().get()), /man\.hat \(hat\) = big \[ask, asking\] · usual 4% · big 52% · absurd 44%/);
 });

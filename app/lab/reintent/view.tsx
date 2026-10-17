@@ -120,7 +120,8 @@ function Panel({ S, dt, snap, half }: { S: ReintentStrings; dt: ReintentDevtools
   const cellOf = (key: string) => all.find((c) => c.key === key)!;
   const current = dt.current();
   const version = dt.versions.find((v) => v.id === current);
-  const reconciled = snap.log.find((e) => e.reconciled)?.reconciled;
+  // The last time the program changed (a version switched, an `if` in a part went the other way).
+  const changed = snap.log.find((e) => e.program)?.program;
 
   return (
     <>
@@ -133,16 +134,26 @@ function Panel({ S, dt, snap, half }: { S: ReintentStrings; dt: ReintentDevtools
           ))}
           {version && <span className={cn(TYPE.captionQuiet, "min-w-0 flex-1")}>{version.note}</span>}
         </div>
-        {reconciled && (
+        {changed && (
           <div className={cn(TYPE.rowMeta, "flex flex-wrap gap-x-4 gap-y-1 text-[11px]")}>
+            {changed.added.length > 0 && (
+              <span>
+                {S.added}: {changed.added.join(", ")}
+              </span>
+            )}
+            {changed.removed.length > 0 && (
+              <span>
+                {S.removed}: {changed.removed.join(", ")}
+              </span>
+            )}
             <span>
-              {S.kept}: {reconciled.kept.join(", ") || "—"}
+              {S.kept}: {changed.kept.join(", ") || "—"}
             </span>
-            <span className={reconciled.suspended.length ? "text-amber-600 dark:text-amber-300" : undefined}>
-              {S.suspended}: {reconciled.suspended.join(", ") || "—"}
+            <span className={changed.suspended.length ? "text-amber-600 dark:text-amber-300" : undefined}>
+              {S.suspended}: {changed.suspended.join(", ") || "—"}
             </span>
             <span>
-              {S.restored}: {reconciled.restored.join(", ") || "—"}
+              {S.restored}: {changed.restored.join(", ") || "—"}
             </span>
           </div>
         )}
@@ -199,7 +210,7 @@ function Panel({ S, dt, snap, half }: { S: ReintentStrings; dt: ReintentDevtools
       </Section>
 
       <Details title={S.observe}>{dt.observe()}</Details>
-      <Details title={`${S.source} · experiences/reintent/${current === "v1" ? "wardrobe.tsx" : "wardrobe.v2.tsx"}`}>{version?.source ?? ""}</Details>
+      <Details title={`${S.source} · ${version?.file ?? ""}`}>{version?.source ?? ""}</Details>
       <Details title={S.doc} note={S.docNote}>
         {JSON.stringify(snap.doc, null, 2)}
       </Details>

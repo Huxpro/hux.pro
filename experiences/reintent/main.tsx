@@ -2,40 +2,59 @@
 // The Wardrobe, on Reintent core.
 //
 // The same experience as experiences/wardrobe (its stage, its timeline, its
-// sound), with its intents held by Reintent core instead of packages/intents:
+// sound), with its things drawn by parts on Reintent core:
 //
-//   kinds.ts           the intent types (.ts): kinds, words, what each means
-//   wardrobe.tsx       the program (TSX) as the model wrote it
-//   wardrobe.v2.tsx    the program as the model rewrote it
-//   model.ts           a stand-in model, in rules
-//   main.tsx           the root, the picture reading it, and the devtools
-//                      the Lab's /lab/reintent drives it through
+//   kinds.ts         the intent types: kinds, words, what each means
+//   parts.tsx        him and the wardrobe as the model wrote them: intents in, drawing out
+//   parts.v2.tsx     the same, as the model rewrote them
+//   model.ts         a stand-in model, in rules
+//   main.tsx         the root, the director's sideways read (the pace), and the devtools
+//                    the Lab's /lab/reintent drives it through
 // =============================================================================
 
+import { useMemo, useSyncExternalStore } from "react";
 import { createRoot as createReactRoot } from "react-dom/client";
-import { createRoot, type Root } from "reintent-core";
-import { useIntent } from "reintent-core/react";
+import { createRoot } from "reintent-core";
+import { ReintentRoot, reactPart, useCell } from "reintent-core/react";
 import { readingAction, recognize } from "reintent-core/words";
 import { observe } from "reintent-core/observe";
 import { expose, type ProgramVersion, type Said } from "reintent-core/devtools";
-import { WardrobeStage, type Read } from "../wardrobe/Wardrobe";
+import { WardrobeStage, type Read, type Things } from "../wardrobe/Wardrobe";
 import { SHAPE } from "../wardrobe/timeline";
 import { LANG } from "../common/words";
-import { Gaze, Open, Pace, Place, Size } from "./kinds";
+import { Pace } from "./kinds";
 import { extend, rebelieve, STAND_IN } from "./model";
-import V1 from "./wardrobe";
-import V2 from "./wardrobe.v2";
-import V1_SOURCE from "./wardrobe.tsx?raw";
-import V2_SOURCE from "./wardrobe.v2.tsx?raw";
+import * as V1 from "./parts";
+import * as V2 from "./parts.v2";
+import V1_SOURCE from "./parts.tsx?raw";
+import V2_SOURCE from "./parts.v2.tsx?raw";
 import "../common/styles.css";
 
 const VERSIONS: ProgramVersion[] = [
-  { id: "v1", note: "as the model first wrote it", program: V1, source: V1_SOURCE },
-  { id: "v2", note: "as the model rewrote it: a towering hat, a gaze it is unsure of, a pace that follows the door", program: V2, source: V2_SOURCE },
+  { id: "v1", note: "as the model first wrote it", file: "experiences/reintent/parts.tsx", source: V1_SOURCE },
+  {
+    id: "v2",
+    note: "as the model rewrote it: a towering hat, a gaze asked only away from the window, a pace that follows the door",
+    file: "experiences/reintent/parts.v2.tsx",
+    source: V2_SOURCE,
+  },
 ];
 
-const root = createRoot(V1);
+/** Each version's parts, as the stage's things. */
+const THINGS: Record<string, Things> = {
+  v1: { Man: reactPart(V1.Man), Wardrobe: reactPart(V1.Wardrobe) },
+  v2: { Man: reactPart(V2.Man), Wardrobe: reactPart(V2.Wardrobe) },
+};
+
+const root = createRoot({ id: "wardrobe" });
+
+// Which version runs: a small store the frame and the devtools share.
 let current = "v1";
+const versionSubs = new Set<() => void>();
+const onVersion = (fn: () => void) => {
+  versionSubs.add(fn);
+  return () => versionSubs.delete(fn);
+};
 
 function say(text: string): Said {
   const s = root.get();
@@ -70,32 +89,29 @@ expose({
   versions: VERSIONS,
   current: () => current,
   use(id) {
-    const v = VERSIONS.find((x) => x.id === id);
-    if (!v || id === current) return;
+    if (id === current || !THINGS[id]) return;
     current = id;
-    root.dispatch({ type: "program", program: v.program }, `program → ${id} (${v.note})`);
+    versionSubs.forEach((fn) => fn());
   },
   say,
   answer: (reading) => root.dispatch({ ...readingAction(reading, "answered") }, `answered: ${reading.key} = ${reading.kind}`),
   observe: () => observe(root.get()),
 });
 
-/** What the picture reads, cell by cell, each typed by its intent. */
-function useRead(r: Root): Read {
-  const stand = useIntent(r, "man.stand", Place)?.data;
-  return {
-    shape: {
-      stand: stand ? { at: stand.at as [number, number], scale: stand.scale, lean: stand.lean } : SHAPE.stand,
-      doorEnd: useIntent(r, "wardrobe.door", Open)?.data.open ?? SHAPE.doorEnd,
-    },
-    hatScale: useIntent(r, "man.hat", Size)?.data.hatScale ?? 1,
-    gaze: useIntent(r, "man.gaze", Gaze)?.data.eyes ?? 1,
-    over: useIntent(r, "wardrobe.pace", Pace)?.data.over,
-  };
+/** The director's share of the intents: the pace is time, read sideways from the wardrobe. */
+function Stage({ things }: { things: Things }) {
+  const over = useCell("wardrobe.pace", Pace)?.data.over;
+  const rd = useMemo<Read>(() => ({ shape: SHAPE, hatScale: 1, gaze: 1, over }), [over]);
+  return <WardrobeStage rd={rd} things={things} />;
 }
 
 function App() {
-  return <WardrobeStage rd={useRead(root)} />;
+  const version = useSyncExternalStore(onVersion, () => current);
+  return (
+    <ReintentRoot root={root}>
+      <Stage things={THINGS[version]} />
+    </ReintentRoot>
+  );
 }
 
 document.documentElement.lang = LANG;
