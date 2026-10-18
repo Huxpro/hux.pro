@@ -24,7 +24,11 @@
       "vitre": ["./packages/vitre/src/index.ts"],
       "scene": ["./packages/scene/src/index.ts"],
       "reintent": ["./packages/reintent/src/reintent"],
-      "intents": ["./packages/intents/src/index.ts"]
+      "intents": ["./packages/intents/src/index.ts"],
+      "reintent-core": ["./packages/reintent-core/src/core/index.ts"],
+      "reintent-core/jsx-runtime": ["./packages/reintent-core/src/core/jsx-runtime.ts"],
+      "reintent-core/jsx-dev-runtime": ["./packages/reintent-core/src/core/jsx-dev-runtime.ts"],
+      "reintent-core/lib/*": ["./packages/reintent-core/src/lib/*"]
     }
   },
   "include": [

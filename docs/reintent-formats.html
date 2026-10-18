@@ -1,0 +1,427 @@
+<title>Reintent 格式谱系</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: one reading column; a lineage rail for the versions, wide tables in their own scrollers. */
+:root {
+  --bg: #f2f4f7;
+  --surface: #ffffff;
+  --ink: #17202c;
+  --muted: #5b6676;
+  --line: #d8dee7;
+  --accent: #2c55c9;
+  --accent-soft: #e3eafb;
+  --code-bg: #edf0f5;
+  --yes: #1d7549;
+  --yes-bg: #e0f1e7;
+  --part: #9a6200;
+  --part-bg: #fbefd9;
+  --no: #b0343a;
+  --no-bg: #f9e2e3;
+  --font-display: "Bricolage Grotesque", "Noto Sans SC", system-ui, sans-serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141b; --surface: #161d27; --ink: #e3e8ef; --muted: #95a1b3; --line: #273142;
+    --accent: #84a2f2; --accent-soft: #1d2a45; --code-bg: #1b2330;
+    --yes: #63c592; --yes-bg: #15301f; --part: #e3a947; --part-bg: #33270f; --no: #f08085; --no-bg: #3a1a1c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141b; --surface: #161d27; --ink: #e3e8ef; --muted: #95a1b3; --line: #273142;
+  --accent: #84a2f2; --accent-soft: #1d2a45; --code-bg: #1b2330;
+  --yes: #63c592; --yes-bg: #15301f; --part: #e3a947; --part-bg: #33270f; --no: #f08085; --no-bg: #3a1a1c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body);
+  font-size: 15px; line-height: 1.7;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+}
+main { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 64px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.25; }
+h1 { font-size: clamp(2rem, 5vw, 2.9rem); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 1.55rem; font-weight: 700; }
+h3 { font-size: 1.12rem; font-weight: 500; }
+p { margin: 0; max-width: 66ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.lede { font-size: 1.06rem; color: var(--muted); }
+section { display: flex; flex-direction: column; gap: 20px; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+code, pre { font-family: var(--font-mono); font-size: 0.82rem; }
+p code, li code, td code { background: var(--code-bg); padding: 0.05em 0.35em; border-radius: 4px; }
+pre { background: var(--code-bg); border-radius: 8px; padding: 14px 16px; margin: 0; overflow-x: auto; line-height: 1.6; }
+pre .c { color: var(--muted); }
+pre .k { color: var(--accent); font-weight: 600; }
+a { color: var(--accent); }
+ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+
+/* Header facts */
+.facts { display: flex; flex-wrap: wrap; gap: 8px 20px; font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); }
+
+/* The lineage */
+.rail { display: flex; flex-direction: column; gap: 0; border-left: 2px solid var(--line); margin-left: 10px; }
+.ver { position: relative; padding: 0 0 40px 28px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ver:last-child { padding-bottom: 0; }
+.ver::before {
+  content: ""; position: absolute; left: -8px; top: 6px; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--bg); border: 2px solid var(--accent);
+}
+.ver.detour::before { border-color: var(--part); }
+.ver.now::before { background: var(--accent); }
+.ver-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.tag { font-family: var(--font-mono); font-size: 0.74rem; font-weight: 600; color: var(--accent); }
+.hash { font-family: var(--font-mono); font-size: 0.74rem; color: var(--muted); }
+.pill { font-family: var(--font-mono); font-size: 0.7rem; padding: 1px 8px; border-radius: 999px; }
+.pill.move { background: var(--yes-bg); color: var(--yes); }
+.pill.detour { background: var(--part-bg); color: var(--part); }
+.pill.origin { background: var(--accent-soft); color: var(--accent); }
+.gl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+.gl > div { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.gl h4 { margin: 0; font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
+.gl .got h4 { color: var(--yes); }
+.gl .lost h4 { color: var(--no); }
+.gl ul { font-size: 0.9rem; }
+
+/* Tables */
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+th { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; white-space: nowrap; background: var(--surface); }
+td.req { min-width: 210px; }
+td.m { text-align: center; white-space: nowrap; }
+.mk { display: inline-block; min-width: 26px; font-family: var(--font-mono); font-weight: 600; border-radius: 5px; padding: 0 6px; }
+.mk.y { background: var(--yes-bg); color: var(--yes); }
+.mk.p { background: var(--part-bg); color: var(--part); }
+.mk.n { background: var(--no-bg); color: var(--no); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 0.82rem; color: var(--muted); }
+table.axes td { min-width: 120px; }
+table.axes td:first-child { min-width: 140px; font-weight: 500; }
+td .hl { color: var(--part); font-weight: 500; }
+
+/* Callouts */
+.verdict { border-left: 3px solid var(--accent); padding: 4px 0 4px 16px; display: flex; flex-direction: column; gap: 10px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.box h3 { font-size: 1.02rem; }
+.box ol { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; }
+.box.core { border-color: var(--accent); }
+.q { display: flex; flex-direction: column; gap: 6px; padding: 14px 0; border-top: 1px solid var(--line); }
+.q:first-of-type { border-top: 0; padding-top: 0; }
+.q h3 { font-size: 1rem; }
+.q p { font-size: 0.92rem; color: var(--muted); }
+.q .lean { color: var(--ink); }
+.qnum { font-family: var(--font-mono); color: var(--accent); margin-right: 6px; }
+
+@media (max-width: 640px) {
+  .gl, .two { grid-template-columns: 1fr; }
+  body { padding-block: 24px 56px; }
+  main { gap: 48px; }
+}
+</style>
+
+<main>
+  <header class="stack">
+    <span class="eyebrow">Reintent · 设计回顾</span>
+    <h1>Reintent 格式谱系</h1>
+    <p class="lede">同一个意图（他帽子有多大），从草稿到现在被写成了七种样子。这里逐个列出每一次换格式得到了什么、丢了什么，找出来回摆动的原因，再从谁写什么、多久改一次出发，重新划一遍 Core 与 userland 的边界。</p>
+    <div class="facts">
+      <span>分支 huxcc/wonderful-newton-czs1vk</span>
+      <span>PR Huxpro/hux.pro#505</span>
+      <span>参照 Huxpro/airtalk#845</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="stack">
+      <span class="eyebrow">一 · 谱系</span>
+      <h2>每一版，同一个帽子</h2>
+      <p>顺序就是实际的先后。绿色是往前走，黄色是后来被撤回的绕路。</p>
+    </div>
+
+    <div class="rail">
+      <article class="ver">
+        <div class="ver-head"><span class="tag">F0</span><h3>草稿 Re-intent-ify</h3><span class="pill origin">起点</span></div>
+        <p>意图是 sum type；模型 <code>infer</code>，人 <code>resolve</code>；概率与「拿不准就问」；eager / lazy 两种求值；给了 Signal 和 React 两种写法，没有选。</p>
+<pre><span class="c">// The React way</span>
+<span class="k">function</span> Layout() {
+  <span class="k">const</span> intent = useIntent&lt;Layout&gt;(<span class="c">"unresolved"</span>)
+  <span class="k">switch</span> (intent.kind) { <span class="k">case</span> "pin": … <span class="k">case</span> "flow": … }
+}
+<span class="c">// The Signal way</span>
+<span class="k">const</span> layout = intent&lt;Layout&gt;("unresolved"); layout.infer(ctx); react(() =&gt; …); layout.resolve("row")</pre>
+        <div class="gl">
+          <div class="got"><h4>立下的</h4><ul><li>意图是输入，计算对意图做出反应</li><li>概率 + 人在环里：选项少、模型挑、拿不准就问</li><li>传统计算是更低一层的实现细节</li></ul></div>
+          <div class="lost"><h4>悬而未决</h4><ul><li>Signal 还是 React</li><li>树还是图</li><li>意图从哪来、身份是什么</li></ul></div>
+        </div>
+      </article>
+
+      <article class="ver">
+        <div class="ver-head"><span class="tag">F1</span><h3>数据树</h3><span class="hash">packages/intents · #504 前后</span><span class="pill move">起点实现</span></div>
+        <p>场景的意图树是一份 JSON：节点、每个节点上的意图、每个 kind 在画面里是什么（<code>realize</code>）、模型的判断、视图路径、原文片段。</p>
+<pre>nodes: [{ id: <span class="c">"man"</span>, aka: [<span class="c">"他"</span>], intents: {
+  hat: { kinds: { usual: { realize: { hatScale: 1 } }, big: …, absurd: … },
+         p: { usual: .04, big: .52, absurd: .44 }, resolve: <span class="c">"ask"</span>, view: [<span class="c">"man.hat"</span>] } } }]
+spans: bindWords(PROMPT, [[<span class="c">"大很多"</span>, <span class="c">"man"</span>, <span class="c">"hat"</span>, <span class="c">"big"</span>], …])</pre>
+        <div class="gl">
+          <div class="got"><h4>得到</h4><ul><li>模型能整份读写（纯数据）</li><li>原文片段 ↔ 树的绑定（spans）</li><li>手势 ↔ 意图的绑定（gesture）</li><li>视图只读数据</li></ul></div>
+          <div class="lost"><h4>缺</h4><ul><li>不能表达意图之间的关系（条件、守卫、默认跟随）</li><li>没有类型</li><li>kind、画面数据、判断混在一处</li></ul></div>
+        </div>
+      </article>
+
+      <article class="ver">
+        <div class="ver-head"><span class="tag">F2</span><h3>JSX 声明</h3><span class="hash">3f36161</span><span class="pill move">加了类型</span></div>
+        <p>同一棵数据树改用 TSX 写，<code>toProgram</code> 求值成数据；kind 搬到 <code>.ts</code> 的 <code>intent()</code>，有了类型。</p>
+<pre>&lt;Scene id=<span class="c">"wardrobe"</span>&gt;
+  &lt;Thing id=<span class="c">"man"</span> aka={[<span class="c">"他"</span>]}&gt;
+    &lt;Intent name=<span class="c">"hat"</span> of={Size} p={{ usual: .04, big: .52, absurd: .44 }} resolve=<span class="c">"ask"</span> view={[<span class="c">"man.hat"</span>]} /&gt;
+  &lt;/Thing&gt;
+&lt;/Scene&gt;</pre>
+        <div class="gl">
+          <div class="got"><h4>得到</h4><ul><li>类型检查（kind 来自 <code>Size</code>）</li><li>JSX 嵌套就是树</li><li>derive、作者预选、观看者倾向（decide.ts）</li><li>root、effect、devtools</li></ul></div>
+          <div class="lost"><h4>丢了</h4><ul><li>原文片段绑定（只剩 prompt 字符串）</li><li>手势绑定</li><li>本质问题：意图是 JSX 的<b>输出</b>，你指出它应该是输入</li></ul></div>
+        </div>
+      </article>
+
+      <article class="ver detour">
+        <div class="ver-head"><span class="tag">F3</span><h3>Parts：意图进，画面出</h3><span class="hash">db44210</span><span class="pill move">意图变成读</span><span class="pill detour">视图混进来</span></div>
+        <p>意图改成在函数里读（<code>useIntent</code>），这是对的一步。但每个 part 同时把画面画出来，意图层和视图层合成了一层。</p>
+<pre><span class="k">export const</span> Man = part(<span class="c">"man"</span>, { aka: [<span class="c">"他"</span>] }, (pose) =&gt; {
+  <span class="k">const</span> hat = useIntent(<span class="c">"hat"</span>, Size, { p: { … }, resolve: <span class="c">"ask"</span> });
+  <span class="k">return</span> &lt;Figure hatScale={hat.data.hatScale} … /&gt;;   <span class="c">// the drawing, here</span>
+});</pre>
+        <div class="gl">
+          <div class="got"><h4>得到</h4><ul><li>意图是输入</li><li>关系就是代码：守卫是分支，默认值可以算</li><li>读在 <code>if</code> 下也可以（按名字认）</li></ul></div>
+          <div class="lost"><h4>丢了</h4><ul><li>纯语义层：模型想改意图就得写画法</li><li>显式的树（只剩 part 列表）</li><li>宿主中立</li><li>判断 <code>p</code> 写死在代码里</li></ul></div>
+        </div>
+      </article>
+
+      <article class="ver detour">
+        <div class="ver-head"><span class="tag">F4</span><h3>React 状态库（方案 C）</h3><span class="hash">de48c9c</span><span class="pill detour">绕路</span></div>
+        <p>真正的 React hook，render 时读、commit 时声明（<code>root.hold</code>），每格单独订阅。意图树变成了 React 的挂载树。</p>
+<pre>&lt;ReintentRoot root={root}&gt;
+  &lt;Thing id=<span class="c">"man"</span>&gt;&lt;ManFigure /&gt;&lt;/Thing&gt;   <span class="c">// useIntent: a React hook inside</span>
+&lt;/ReintentRoot&gt;
+<span class="c">// render reads · commit declares · per-cell useSyncExternalStore</span></pre>
+        <div class="gl">
+          <div class="got"><h4>得到</h4><ul><li>能直接接进真实的 React 应用</li><li>细粒度更新</li></ul></div>
+          <div class="lost"><h4>丢了</h4><ul><li>模型看得见的程序（树只存在于挂载之后）</li><li>便宜的反事实：要看另一种可能就得再挂载一次</li><li>两种 hook、hook 规则、300 行的 root</li><li>又往 signal 订阅那边走了</li></ul></div>
+        </div>
+      </article>
+
+      <article class="ver">
+        <div class="ver-head"><span class="tag">F5</span><h3>值语义，三层</h3><span class="hash">d2d84e7 · 移植 airtalk#845</span><span class="pill move">往前</span></div>
+        <p>树回来了，但这次是<b>主体</b>的树（梦、他、衣柜），不是意图的树；意图是树上节点里的读。判断从程序里搬到 source，按路径存。</p>
+<pre><span class="c">// program/v1.tsx: what the model writes, literals only</span>
+&lt;Dream key=<span class="c">"wardrobe"</span>&gt;&lt;Man key=<span class="c">"man"</span> /&gt;&lt;Wardrobe key=<span class="c">"wardrobe"</span> /&gt;&lt;/Dream&gt;
+<span class="c">// intents/v1.ts: semantics, no view</span>
+<span class="k">function</span> Man() { <span class="k">const</span> hat = Size.read(<span class="c">"hat"</span>, { default: <span class="c">"big"</span>, ask: <span class="k">true</span> }); <span class="k">return</span> host(<span class="c">"man"</span>, { hat: ref(hat) }) }
+<span class="c">// beliefs.ts: the source, by path</span>
+<span class="c">"Dream:wardrobe/Man:man#hat"</span>: { usual: .04, big: .52, absurd: .44 }</pre>
+        <div class="gl">
+          <div class="got"><h4>得到</h4><ul><li>纯语义层，模型能读写的字面量实例树</li><li>渲染是纯函数：<code>whatIf</code>、备选、该不该问都只是再调一次</li><li>身份是路径（key + scope），改写后不丢</li><li>kind 没了，决定就等着，不改数据</li><li>和 airtalk 同一个核心</li></ul></div>
+          <div class="lost"><h4>丢了</h4><ul><li>derive、作者预选、观看者倾向（改成算出来的默认值）</li><li>判断与程序同处一地；现在是手写路径字符串，没有类型</li><li>模型写一份文件变成写三份</li><li>视图那边要手写 <code>meaningOf</code> 把节点翻回画面</li></ul></div>
+        </div>
+      </article>
+
+      <article class="ver now">
+        <div class="ver-head"><span class="tag">F6</span><h3>选择与世界</h3><span class="hash">09710ad</span><span class="pill move">往前</span></div>
+        <p>判断可以以前面读到的值为条件（<code>Given</code>）；<code>&lt;Choose&gt;</code> 在子树之间选；<code>worlds</code> 先整组选一个世界再渲染。</p>
+<pre>&lt;Choose key=<span class="c">"ending"</span> name=<span class="c">"ending"</span> default=<span class="c">"waits"</span>
+  alternatives={{ waits: [&lt;Man key=<span class="c">"man"</span> /&gt;, &lt;Wardrobe key=<span class="c">"wardrobe"</span> /&gt;], gone: &lt;Wardrobe key=<span class="c">"wardrobe"</span> /&gt; }} /&gt;
+<span class="c">"…#door"</span>: { $given: [{ when: { <span class="c">"…#ending"</span>: <span class="c">"gone"</span> }, p: { ajar: .8, … } }] }</pre>
+        <div class="gl">
+          <div class="got"><h4>得到</h4><ul><li>相关的选择不再拼出不一致的组合</li><li>结构本身可以拿不准</li><li>按世界问人，问得更少</li></ul></div>
+          <div class="lost"><h4>代价</h4><ul><li>判断格式更复杂，条件只能指向更早读到的意图</li><li><code>worlds</code> 要手动指定 <code>only</code></li><li>条件判断还没有真模型验证</li></ul></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <div class="stack">
+      <span class="eyebrow">二 · 需求对照</span>
+      <h2>每一版满足了什么</h2>
+      <p>八条需求，都来自我们真用到的例子（衣柜、梦、airtalk 的幻灯片）。F0 只是草稿，不列。</p>
+    </div>
+    <div class="legend"><span><span class="mk y">✓</span> 满足</span><span><span class="mk p">△</span> 部分</span><span><span class="mk n">✗</span> 不满足</span></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>需求</th><th>F1 数据</th><th>F2 JSX</th><th>F3 parts</th><th>F4 React</th><th>F5 值</th><th>F6 选择</th></tr></thead>
+        <tbody>
+          <tr><td class="req"><b>R1</b> 模型能以文本读写整个程序</td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk p" title="要写画法">△</span></td><td class="m"><span class="mk n" title="树只在挂载后存在">✗</span></td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk y">✓</span></td></tr>
+          <tr><td class="req"><b>R2</b> 身份来自结构，改写后不丢</td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk p" title="靠 Provider 和挂载">△</span></td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk y">✓</span></td></tr>
+          <tr><td class="req"><b>R3</b> 改写后决定保留，kind 没了就等着</td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk y">✓</span></td></tr>
+          <tr><td class="req"><b>R4</b> 反事实便宜（假如、备选、该不该问）</td><td class="m"><span class="mk p" title="只能换值">△</span></td><td class="m"><span class="mk p">△</span></td><td class="m"><span class="mk p" title="要连画面一起渲染">△</span></td><td class="m"><span class="mk n" title="要再挂载一次">✗</span></td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk y">✓</span></td></tr>
+          <tr><td class="req"><b>R5</b> 意图之间的关系（守卫、默认跟随、条件）</td><td class="m"><span class="mk n">✗</span></td><td class="m"><span class="mk p" title="derive 函数在树外">△</span></td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk y">✓</span></td></tr>
+          <tr><td class="req"><b>R6</b> 不确定性显式（未定、问、相关）</td><td class="m"><span class="mk p">△</span></td><td class="m"><span class="mk p">△</span></td><td class="m"><span class="mk p">△</span></td><td class="m"><span class="mk p">△</span></td><td class="m"><span class="mk p" title="没有相关性">△</span></td><td class="m"><span class="mk y">✓</span></td></tr>
+          <tr><td class="req"><b>R7</b> 宿主中立，视图只读数据</td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk n">✗</span></td><td class="m"><span class="mk n">✗</span></td><td class="m"><span class="mk y">✓</span></td><td class="m"><span class="mk y">✓</span></td></tr>
+          <tr><td class="req"><b>R8</b> 自然语言绑定（词 → 意图，原文 → 树）</td><td class="m"><span class="mk y" title="有 spans">✓</span></td><td class="m"><span class="mk p" title="有词，没有 spans">△</span></td><td class="m"><span class="mk p">△</span></td><td class="m"><span class="mk p">△</span></td><td class="m"><span class="mk p">△</span></td><td class="m"><span class="mk p">△</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>按这张表，F3 → F4 两条往下掉（R1、R4），是这一路上唯一的净退步；F4 → F5 把它们全部收回。R8 从 F1 之后一直没恢复。</p>
+  </section>
+
+  <section>
+    <div class="stack">
+      <span class="eyebrow">三 · 为什么来回摆</span>
+      <h2>七条轴，三条在摆</h2>
+      <p>把「格式」拆开看，每一版其实是在七条轴上各选了一个位置。四条轴是单调往前走的；来回摆的只有三条（黄色）。</p>
+    </div>
+    <div class="scroll">
+      <table class="axes">
+        <thead><tr><th>轴</th><th>F1</th><th>F2</th><th>F3</th><th>F4</th><th>F5 / F6</th></tr></thead>
+        <tbody>
+          <tr><td>意图是什么</td><td>数据（输出）</td><td>JSX 元素（输出）</td><td>函数里的读</td><td>React hook</td><td>函数里的读，返回值</td></tr>
+          <tr><td>树是什么的树</td><td class="hl">主体 + 意图</td><td class="hl">主体 + 意图</td><td class="hl">没有显式的树</td><td class="hl">React 挂载树</td><td class="hl">主体的树</td></tr>
+          <tr><td>判断 p 在哪</td><td class="hl">树里</td><td class="hl">树里</td><td class="hl">代码里</td><td class="hl">代码里</td><td class="hl">source，按路径</td></tr>
+          <tr><td>视图在哪</td><td class="hl">外面，按路径字符串</td><td class="hl">外面，按路径字符串</td><td class="hl">part 里</td><td class="hl">React 组件里</td><td class="hl">外面，读 host 节点</td></tr>
+          <tr><td>怎么更新</td><td>改数据</td><td>root + effect</td><td>root</td><td>每格订阅</td><td>重新渲染（值）</td></tr>
+          <tr><td>身份</td><td>节点 id</td><td>thing id + 名字</td><td>part id + 名字</td><td>Provider 拼路径</td><td>key + scope 的路径</td></tr>
+          <tr><td>关系</td><td>无</td><td>derive</td><td>代码 + derive</td><td>代码 + derive</td><td>代码算默认值；F6 加 Given</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="verdict">
+      <p><b>真正往前的只有两步。</b>F2 → F3：意图从输出变成读。F4 → F5：值而不是订阅，加上三层分离。</p>
+      <p><b>两步是绕路，都已被撤回。</b>F3 把视图混进意图层，F4 把程序交给 React 的运行时。两次都是为了让一个例子（衣柜的画面）少写点胶水，牺牲了 R1、R4、R7。</p>
+      <p><b>根因：</b>我们一直把五种东西当成一个「格式」来设计：kind 的词汇、语义代码、实例树、判断、视图。它们的作者不同，改动频率也差几个数量级。每次为一处的痛点挪了边界，就把另一处带着一起挪。三条在摆的轴（树、判断、视图）正好是这几样东西的边界。</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="stack">
+      <span class="eyebrow">四 · 第一性</span>
+      <h2>按「谁写、多久改一次」切</h2>
+      <p>一样东西放在哪，由写它的人和它的改动频率决定，不由哪个例子写起来顺手决定。</p>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>东西</th><th>谁写</th><th>多久改一次</th><th>形式</th><th>在哪一层</th></tr></thead>
+        <tbody>
+          <tr><td>词汇：kind、词、每个 kind 的数据</td><td>工程师；模型学到新 kind</td><td>很少，只增不改</td><td>.ts 数据</td><td>userland（vocab）</td></tr>
+          <tr><td>意图组件：读什么、怎么分支、说出什么</td><td>工程师；模型偶尔改写</td><td>每个程序版本</td><td>代码</td><td>userland（领域组件库）</td></tr>
+          <tr><td>实例树：这一个梦、这一份 deck 由哪些主体组成</td><td>模型</td><td>每个实例</td><td>字面量 JSX</td><td>程序</td></tr>
+          <tr><td>判断：模型对每个意图的分布</td><td>模型</td><td>每次推断，很频繁</td><td>按路径的数据</td><td>source</td></tr>
+          <tr><td>决定：人说了什么</td><td>人</td><td>每次交互</td><td>按路径的数据</td><td>source</td></tr>
+          <tr><td>视图：画面、版式求解</td><td>宿主工程师</td><td>每个宿主</td><td>任意代码</td><td>host</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Core 就是把它们连起来的那一个函数：<code>render(实例树, source) → (host 树, trace)</code>，组件按名字读 source。一个特性放进 Core，当且仅当它<b>改变这个函数对同一份输入算出的结果</b>，而且<b>不能只用公开 API 写出来</b>。两条都满足才进 Core，否则进 userland。</p>
+    <p>草稿里的 sum type 带字段（<code>{ kind: "row", alignment: AlignmentIntent }</code>）也落在这条线上：一个带字段的分支，等于「一个选择，加上只在这个分支下才读的意图」。v2 里只在不站在窗边时才读目光，就是这个。JSX 嵌套就是那个 bind，Core 不需要 ADT 类型。</p>
+  </section>
+
+  <section>
+    <div class="stack">
+      <span class="eyebrow">五 · 边界提案</span>
+      <h2>最小 Core，和 userland 的组件</h2>
+      <p>拿上面的判据逐个过一遍现有的 API。</p>
+    </div>
+    <div class="two">
+      <div class="box core">
+        <h3>Core（7 个概念）</h3>
+        <ol>
+          <li><code>jsx</code> / <code>h</code>、<code>Fragment</code>、<code>host(kind, props)</code>：元素。对应 createElement</li>
+          <li><code>key</code> + <code>scope(C)</code>：身份就是路径</li>
+          <li><code>createContext</code>（带数值轴）、<code>useCtx</code></li>
+          <li><code>useChoice(name, { default, kinds, open, ask })</code> → 值、Unresolved 或 Unknown。唯一的选择原语，对应只读的 useState</li>
+          <li><code>render(el, source, { provide, overrides })</code> → <code>{ tree, trace }</code>。<code>whatIf</code> 只是 overrides 的别名</li>
+          <li><code>Source</code> 约定（get、deck、unknown、subscribe）和一个参考实现</li>
+          <li>定值规则，以数据格式给出：写者优先级与 TAU、<code>$not</code>、Piecewise、<code>Given</code>、kind 约束与 waiting、学到的 kind</li>
+        </ol>
+      </div>
+      <div class="box">
+        <h3>Userland</h3>
+        <ol>
+          <li><b>领域组件</b>：Man、Wardrobe；airtalk 的 Row、Stack 等</li>
+          <li><b>结构组件</b>：<code>Choose</code>（30 行，只用 useChoice + host，证明它不属于 Core）</li>
+          <li><b>求值策略</b>：<code>worlds</code> / <code>split</code>、<code>alternatives</code>、<code>questions</code>、<code>orphans</code></li>
+          <li><b>语言</b>：<code>vocab</code>、<code>words</code>、<code>observe</code></li>
+          <li><b>宿主循环</b>：<code>session</code>（历史、撤销、版本、Model 接口）、<code>changes</code></li>
+          <li><b>降级候选</b>：<code>watch</code>（subscribe + render 就能写）、<code>createCache</code> / <code>under</code> / <code>stale</code>（只读 trace）</li>
+        </ol>
+      </div>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>React</th><th>Reintent Core</th><th>不同在哪</th></tr></thead>
+        <tbody>
+          <tr><td><code>createElement</code> / JSX</td><td><code>jsx</code>、<code>host</code></td><td>host 节点对 Core 没有意义，只对宿主有</td></tr>
+          <tr><td><code>key</code></td><td><code>key</code> + <code>scope</code> → 路径</td><td>路径要存下来，要跨改写存活；所以组件名用 displayName</td></tr>
+          <tr><td><code>useState</code></td><td><code>useChoice</code></td><td>渲染里只读，写发生在外面（source）；有不确定的值</td></tr>
+          <tr><td>reconciler</td><td>定值规则</td><td>比的不是旧树和新树，是几个写者谁说了算</td></tr>
+          <tr><td>Context</td><td>Context + 轴</td><td>轴让一个决定可以按屏幕比例之类分段</td></tr>
+          <tr><td>renderer（react-dom）</td><td>host（React 视图、版式求解）</td><td>同</td></tr>
+          <tr><td>concurrent / transitions</td><td><code>overrides</code>（whatIf）</td><td>多个世界同时渲染，互不干扰</td></tr>
+          <tr><td>Suspense</td><td>Unknown / Unresolved</td><td>不等待，带着代码的默认值继续渲染</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="stack">
+      <span class="eyebrow">六 · 还没收回的</span>
+      <h2>一路上丢掉、至今没补的</h2>
+    </div>
+    <ul>
+      <li><b>原文片段 ↔ 树</b>（F1 的 <code>spans</code>）：哪一段原话说的是哪个意图。自然语言绑定只剩词表。</li>
+      <li><b>手势 ↔ 意图</b>（F1 的 <code>gesture</code>）：拖动到哪个 kind。</li>
+      <li><b>视图路径</b>（F1、F2 的 <code>view</code>）：Inspect 用它高亮。现在只能由宿主自己映射。</li>
+      <li><b>观看者倾向、作者预选</b>（F2 到 F4）：现在只有人、整份的规则、模型、代码四个写者。</li>
+      <li><b>判断与程序同处一地、有类型</b>（F1 到 F4）：现在 beliefs.ts 里是手写的路径字符串，写错了不会报错。</li>
+      <li><b>模型只写一份文件</b>（F2）：现在是实例树、意图组件、判断三份。</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="stack">
+      <span class="eyebrow">七 · 一起定</span>
+      <h2>要决定的六件事</h2>
+      <p>每一件都标了我的倾向。定下来之后，换格式要守一条规矩：<b>至少让一条需求从 ✗ 变 ✓，并且没有一条从 ✓ 掉下来。</b>做不到就是绕路，不改。</p>
+    </div>
+    <div>
+      <div class="q">
+        <h3><span class="qnum">Q1</span>模型写什么？</h3>
+        <p>只写实例树和判断，意图组件由工程师提供的库给；还是也写（改写）意图组件？这决定 userland 组件库的边界和 R1 的成本。</p>
+        <p class="lean">倾向：默认只写实例树 + 判断；改写组件是少数情况，走程序版本。</p>
+      </div>
+      <div class="q">
+        <h3><span class="qnum">Q2</span>判断能不能写回树上？</h3>
+        <p>例如 <code>&lt;Man key="man" p={{ hat: {…} }} /&gt;</code>，由 lib 在加载时搬进 source。能收回局部性和路径检查，Core 不用动。</p>
+        <p class="lean">倾向：可以，作为 userland 的写法；source 仍是唯一的状态。</p>
+      </div>
+      <div class="q">
+        <h3><span class="qnum">Q3</span><code>Choose</code> 留在 userland？</h3>
+        <p>它只用公开 API 就写出来了。进 Core 唯一的理由是让静态分析认得它。</p>
+        <p class="lean">倾向：留在 userland。</p>
+      </div>
+      <div class="q">
+        <h3><span class="qnum">Q4</span><code>watch</code>、<code>whatIf</code>、缓存降级？</h3>
+        <p>三个都能在 Core 之外写出来。降级后 Core 只剩 render 一个求值入口。</p>
+        <p class="lean">倾向：降级；<code>whatIf</code> 保留为 overrides 的别名。</p>
+      </div>
+      <div class="q">
+        <h3><span class="qnum">Q5</span>原文片段绑定放哪？</h3>
+        <p>作为实例树上的字面量 prop（随树改写），还是作为 source 里的数据（随推断更新）？</p>
+        <p class="lean">倾向：实例树上，它和树一起被模型写出来。</p>
+      </div>
+      <div class="q">
+        <h3><span class="qnum">Q6</span><code>Given</code> 依赖读的顺序，能接受吗？</h3>
+        <p>现在条件只能指向更早读到的意图，兄弟的先后有了意义。另一种做法是按路径声明依赖、两遍渲染，不受顺序影响，但更贵。</p>
+        <p class="lean">倾向：接受顺序；它就是 bind 的顺序，和 JSX 嵌套一致。</p>
+      </div>
+    </div>
+  </section>
+</main>
