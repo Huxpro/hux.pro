@@ -335,7 +335,7 @@ spans: bindWords(PROMPT, [[<span class="c">"大很多"</span>, <span class="c">"
           <li><code>jsx</code> / <code>h</code>、<code>Fragment</code>、<code>host(kind, props)</code>：元素。对应 createElement</li>
           <li><code>key</code> + <code>scope(C)</code>：身份就是路径</li>
           <li><code>createContext</code>（带数值轴）、<code>useCtx</code></li>
-          <li><code>useIntent(name, { default, kinds, open, ask })</code> → 值、Unresolved 或 Unknown。唯一的选择原语，对应只读的 useState</li>
+          <li><code>useChoice(name, { default, kinds, open, ask })</code> → 值、Unresolved 或 Unknown。唯一的选择原语，对应只读的 useState</li>
           <li><code>render(el, source, { provide, overrides })</code> → <code>{ tree, trace }</code>。<code>whatIf</code> 只是 overrides 的别名</li>
           <li><code>Source</code> 约定（get、deck、unknown、subscribe）和一个参考实现</li>
           <li>定值规则，以数据格式给出：写者优先级与 TAU、<code>$not</code>、Piecewise、<code>Given</code>、kind 约束与 waiting、学到的 kind</li>
@@ -345,7 +345,7 @@ spans: bindWords(PROMPT, [[<span class="c">"大很多"</span>, <span class="c">"
         <h3>Userland</h3>
         <ol>
           <li><b>领域组件</b>：Man、Wardrobe；airtalk 的 Row、Stack 等</li>
-          <li><b>结构组件</b>：<code>Choose</code>（30 行，只用 useIntent + host，证明它不属于 Core）</li>
+          <li><b>结构组件</b>：<code>Choose</code>（30 行，只用 useChoice + host，证明它不属于 Core）</li>
           <li><b>求值策略</b>：<code>worlds</code> / <code>split</code>、<code>alternatives</code>、<code>questions</code>、<code>orphans</code></li>
           <li><b>语言</b>：<code>vocab</code>、<code>words</code>、<code>observe</code></li>
           <li><b>宿主循环</b>：<code>session</code>（历史、撤销、版本、Model 接口）、<code>changes</code></li>
@@ -359,7 +359,7 @@ spans: bindWords(PROMPT, [[<span class="c">"大很多"</span>, <span class="c">"
         <tbody>
           <tr><td><code>createElement</code> / JSX</td><td><code>jsx</code>、<code>host</code></td><td>host 节点对 Core 没有意义，只对宿主有</td></tr>
           <tr><td><code>key</code></td><td><code>key</code> + <code>scope</code> → 路径</td><td>路径要存下来，要跨改写存活；所以组件名用 displayName</td></tr>
-          <tr><td><code>useState</code></td><td><code>useIntent</code></td><td>渲染里只读，写发生在外面（source）；有不确定的值</td></tr>
+          <tr><td><code>useState</code></td><td><code>useChoice</code></td><td>渲染里只读，写发生在外面（source）；有不确定的值</td></tr>
           <tr><td>reconciler</td><td>定值规则</td><td>比的不是旧树和新树，是几个写者谁说了算</td></tr>
           <tr><td>Context</td><td>Context + 轴</td><td>轴让一个决定可以按屏幕比例之类分段</td></tr>
           <tr><td>renderer（react-dom）</td><td>host（React 视图、版式求解）</td><td>同</td></tr>

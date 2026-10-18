@@ -16,7 +16,7 @@
  *
  * Renders a host node `choice` { name, path, chosen, of } with the chosen subtree as its children.
  */
-import { host, useIntent, usePath, type Child } from '../core/index';
+import { host, useChoice, usePath, type Child } from '../core/index';
 import { shown, type About } from './vocab';
 
 export type ChooseProps = {
@@ -40,7 +40,7 @@ export function Choose(p: ChooseProps) {
     more: [],
     less: [],
   };
-  const v = useIntent<string>(p.name, { default: p.default, ask: p.ask, kinds: of, about });
+  const v = useChoice<string>(p.name, { default: p.default, ask: p.ask, kinds: of, about });
   const chosen = shown(v, p.default);
   return host('choice', { name: p.name, path: usePath(p.name), chosen, of, children: p.alternatives[chosen] });
 }

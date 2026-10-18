@@ -11,7 +11,7 @@ import {
   stale,
   under,
   UNKNOWN,
-  useIntent,
+  useChoice,
   watch,
   whatIf,
   type HostNode,
@@ -83,7 +83,7 @@ test('ruling kinds out leaves the rest to the model and code', () => {
 
 test('moot here: only a person overrides code', () => {
   const Thing = () => {
-    const v = useIntent<'a' | 'b'>('x', { default: 'a', open: false });
+    const v = useChoice<'a' | 'b'>('x', { default: 'a', open: false });
     return h(() => null, null, String(isUnresolved(v) ? 'u' : v));
   };
   const src = createSource({ entries: { 'Thing:t#x': { model: { a: 0, b: 1 } } } });
@@ -94,7 +94,7 @@ test('moot here: only a person overrides code', () => {
 
 test('unknown is not unresolved: a scope held elsewhere reads as unknown', () => {
   const Doc = scope(function Doc(p: { children?: any }) {
-    const v = useIntent('x', { default: 1 });
+    const v = useChoice('x', { default: 1 });
     return h(() => null, null, v === UNKNOWN ? 'unknown' : String(v), p.children);
   });
   const src = createSource();

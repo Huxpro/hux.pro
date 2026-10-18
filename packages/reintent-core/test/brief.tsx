@@ -2,12 +2,12 @@
 // A third host: a brief the model could read three ways (a story, a product demo, a game), and a
 // title and a layout whose choices go together. Each form reads its own intents: what is read
 // depends on what was chosen (JSX nesting is the bind).
-import { host, scope, useIntent, type Child } from '../src/core/index';
+import { host, scope, useChoice, type Child } from '../src/core/index';
 import { Choose } from '../src/lib/choose';
 import { shown } from '../src/lib/vocab';
 
 const read = (name: string, kinds: string[], otherwise: string) =>
-  shown(useIntent<string>(name, { default: otherwise, kinds }), otherwise);
+  shown(useChoice<string>(name, { default: otherwise, kinds }), otherwise);
 
 export const Experience = scope(function Experience(p: { children?: Child }) {
   return host('experience', { children: p.children });

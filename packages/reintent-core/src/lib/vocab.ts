@@ -17,7 +17,7 @@
  *   // in the host, from a render's trace:
  *   meaning(reads, hat)   // { hatScale: 1.95 }, a learned kind's data included
  */
-import { isUnresolved, UNKNOWN, useIntent, usePath, type Read, type Unknown, type Unresolved } from '../core/index';
+import { isUnresolved, UNKNOWN, useChoice, usePath, type Read, type Unknown, type Unresolved } from '../core/index';
 
 export type KindSpec = { label?: string; words?: readonly string[] } & Record<string, unknown>;
 
@@ -92,7 +92,7 @@ export function vocab<S extends Record<string, KindSpec>>(
     less,
     read(name, o) {
       const about: About = { label: o.label, aka: o.aka ?? [], thing: o.thing, kinds: table, ordered, more, less };
-      const value = useIntent<K>(name, { default: o.default, ask: o.ask, open: o.open, kinds, about });
+      const value = useChoice<K>(name, { default: o.default, ask: o.ask, open: o.open, kinds, about });
       return { value, kind: shown(value, o.default), path: usePath(name) };
     },
   };

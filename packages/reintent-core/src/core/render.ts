@@ -9,7 +9,7 @@
  *   watch(source, run)                          run again when, and only when, what it read changed
  *
  * Inside a component:
- *   useIntent(name, { default, open, ask, kinds })  → T | Unresolved<T> | Unknown
+ *   useChoice(name, { default, open, ask, kinds })  → T | Unresolved<T> | Unknown
  *   useCtx(Context)                                 → the context value in scope
  *   useKey()                                        → this component's key
  *
@@ -165,7 +165,7 @@ export function useKey(): string {
   return current().f.key;
 }
 
-export type IntentOptions<T> = {
+export type ChoiceOptions<T> = {
   /** Code's value here: what is used when it is moot, and the fallback when unresolved. */
   default?: T;
   /** Whether there is anything to decide in this context (default true). */
@@ -182,7 +182,7 @@ export type IntentOptions<T> = {
   about?: unknown;
 };
 
-export function useIntent<T>(name: string, opts: IntentOptions<T> = {}): T | Unresolved<T> | Unknown {
+export function useChoice<T>(name: string, opts: ChoiceOptions<T> = {}): T | Unresolved<T> | Unknown {
   const { r, f } = current();
   const path = `${f.id}#${name}`;
   const ctx = Object.fromEntries([...f.ctx].map(([c, v]) => [c.name, c.key(v)]));

@@ -8,7 +8,7 @@ import {
   isUnresolved,
   UNKNOWN,
   useCtx,
-  useIntent,
+  useChoice,
   useKey,
   type Child,
 } from '../src/core/index';
@@ -20,13 +20,13 @@ const value = <T,>(v: unknown, otherwise: T): T =>
   v === UNKNOWN ? otherwise : isUnresolved<T>(v) ? (v.fallback ?? otherwise) : (v as T);
 
 export function Reply(p: { children?: Child }) {
-  const tone = useIntent<'formal' | 'warm'>('tone', {
+  const tone = useChoice<'formal' | 'warm'>('tone', {
     default: 'warm',
     ask: true,
     kinds: ['formal', 'warm'],
   });
   const t = value<'formal' | 'warm'>(tone, 'warm');
-  const sendAt = useIntent<'now' | 'tomorrow'>('send', { default: 'tomorrow', kinds: ['now', 'tomorrow'] });
+  const sendAt = useChoice<'now' | 'tomorrow'>('send', { default: 'tomorrow', kinds: ['now', 'tomorrow'] });
   return host('reply', {
     id: useKey(),
     tone: t,
@@ -37,6 +37,6 @@ export function Reply(p: { children?: Child }) {
 }
 function Length() {
   useCtx(ThreadCtx);
-  const len = useIntent<'short' | 'long'>('length', { default: 'short', kinds: ['short', 'long'] });
+  const len = useChoice<'short' | 'long'>('length', { default: 'short', kinds: ['short', 'long'] });
   return host('length', { value: value<'short' | 'long'>(len, 'short') });
 }

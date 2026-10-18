@@ -19,7 +19,7 @@ The execution model is React's, without React's runtime:
 - **A component is a function of its props.** It keeps no state of its own.
   Every intent's value comes from the source, read by path. Reads are known by
   name, not by call order, so any control flow is allowed (a guard is a branch).
-- **`useIntent` returns a value** (`T | Unresolved<T> | Unknown`), not a getter
+- **`useChoice` returns a value** (`T | Unresolved<T> | Unknown`), not a getter
   or a signal. Read twice in one render, it is the same value. To see a new
   value, render again.
 - **Change propagates by rendering again.** `watch` re-runs a render when a
@@ -50,7 +50,7 @@ probabilistic program:
 
 | probabilistic program | here |
 |---|---|
-| a choice site, at an address | `useIntent(name)`, at its path |
+| a choice site, at an address | `useChoice(name)`, at its path |
 | the trace | the render's reads |
 | the choice map | the source (and `whatIf`'s overrides) |
 | an intervention (`do`) | `whatIf`: as if a person had decided |

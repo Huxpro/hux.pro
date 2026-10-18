@@ -3,11 +3,11 @@
 // (a value of a kind the program no longer has waits), kinds a model learned, `about` passed through.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createSource, h, host, isUnresolved, render, scope, usePath, useIntent, watch, whatIf, type Child, type HostNode, type Source } from "../src/core/index";
+import { createSource, h, host, isUnresolved, render, scope, usePath, useChoice, watch, whatIf, type Child, type HostNode, type Source } from "../src/core/index";
 
 function Lamp() {
-  const on = useIntent<"on" | "off">("light", { default: "off", kinds: ["on", "off"], about: { label: "灯" } });
-  const again = useIntent<"on" | "off">("light", { default: "off", kinds: ["on", "off"] });
+  const on = useChoice<"on" | "off">("light", { default: "off", kinds: ["on", "off"], about: { label: "灯" } });
+  const again = useChoice<"on" | "off">("light", { default: "off", kinds: ["on", "off"] });
   return host("lamp", { on, same: on === again, path: usePath("light") });
 }
 const Room = scope(function Room(p: { children?: Child }) {
@@ -53,7 +53,7 @@ test("change propagates by rendering again, and only on writes to what was read"
 });
 
 test("kinds bound a person's value: one the program does not have waits, and applies again when it has it", () => {
-  const Hat = (p: { kinds: string[] }) => host("hat", { size: useIntent<string>("size", { default: "big", kinds: p.kinds }) });
+  const Hat = (p: { kinds: string[] }) => host("hat", { size: useChoice<string>("size", { default: "big", kinds: p.kinds }) });
   const src = createSource({ entries: { "Hat:h#size": { human: "absurd", model: { big: 0.9, towering: 0.1 } } } });
   const v1 = render(h(Hat, { key: "h", kinds: ["usual", "big", "absurd"] }), src);
   assert.deepEqual([v1.trace.reads[0].value, v1.trace.reads[0].by, v1.trace.reads[0].waiting], ["absurd", "human", undefined]);
@@ -67,7 +67,7 @@ test("kinds bound a person's value: one the program does not have waits, and app
 });
 
 test("learned kinds: a model adds a kind to an intent, and a person can take it", () => {
-  const Hat = () => host("hat", { size: useIntent<string>("size", { default: "big", kinds: ["usual", "big"] }) });
+  const Hat = () => host("hat", { size: useChoice<string>("size", { default: "big", kinds: ["usual", "big"] }) });
   const src = createSource();
   src.learn("Hat:h#size", "towering", { label: "顶天", data: { hatScale: 2.4 } });
   src.write("Hat:h#size", "human", "towering");

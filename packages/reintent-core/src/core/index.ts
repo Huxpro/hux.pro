@@ -6,7 +6,7 @@
  *   - A component is a function of its props. It keeps no state of its own: every intent's value
  *     comes from the source, read by path. Its hooks are reads known by name, not by call order,
  *     so any control flow is allowed (a guard is a branch).
- *   - useIntent returns a value (T | Unresolved<T> | Unknown), not a getter or a signal: read twice
+ *   - useChoice returns a value (T | Unresolved<T> | Unknown), not a getter or a signal: read twice
  *     in one render, it is the same value. To see a new value, render again.
  *   - Change propagates by rendering again. `watch` re-runs a render when a write touches something
  *     it read, and skips the rest; no dependency graph outlives a render but its trace.
@@ -66,7 +66,7 @@ export {
   render,
   whatIf,
   watch,
-  useIntent,
+  useChoice,
   useCtx,
   useKey,
   usePath,
@@ -74,7 +74,7 @@ export {
   type Trace,
   type Result,
   type RenderOptions,
-  type IntentOptions,
+  type ChoiceOptions,
 } from './render';
 export { createCache, under, stale, type Stamped } from './cache';
 

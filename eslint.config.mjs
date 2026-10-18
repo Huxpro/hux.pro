@@ -35,7 +35,7 @@ const GLASS_TOKENS_ONLY = {
 };
 
 /**
- * Reintent's intent layer is not React. Its `useIntent` / `usePath` / `useCtx`
+ * Reintent's intent layer is not React. Its `useChoice` / `usePath` / `useCtx`
  * are reads of values known by path (docs/system-reintent-core.md: values, not
  * signals), so a read may sit under an `if`: React's call-order rule does not
  * apply to them. The React view (experiences/reintent/main.tsx) keeps it.
