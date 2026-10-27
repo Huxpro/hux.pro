@@ -86,7 +86,11 @@ mismatch: [React Conventions](./react-engineering.md).
 
 ## Rules
 
-**Production server code is `app/api/chat` and `app/api/voice`.** Chat holds
+**Production server code is `app/api/chat` and `app/api/voice`.**
+During the Pages migration these stay on Vercel; `lib/cloudflare/worker.ts`
+streams the two same-origin endpoints to the Vercel production domain and
+handles Pages routing. See [Deployment](./deployment.md).
+ Chat holds
 the model key for Ask; voice transcribes speech through the AI Gateway (its
 `GET` says whether that is available). Everything else is prerendered: there
 are no server actions, and the dynamic routes list their params
