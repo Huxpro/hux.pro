@@ -69,3 +69,8 @@ public/lynx-examples/
 
 # Ask's search index (scripts/ask-index.ts; predev and build write it)
 public/ask/
+
+# Cloudflare Pages build and local secrets
+/.pages-build/
+/.wrangler/
+.dev.vars*

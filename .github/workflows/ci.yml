@@ -45,3 +45,17 @@ jobs:
       # official icon committed (content/badge-icons.json, public/badge-icons).
       - name: Check badge icons
         run: pnpm badges:check
+
+  cloudflare-pages:
+    name: Cloudflare Pages build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm pages:test
+      - run: pnpm pages:build

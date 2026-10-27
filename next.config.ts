@@ -79,4 +79,12 @@ const nextConfig: NextConfig = {
   },
 };
 
+// Next's routing rules run in the Pages Function for the static export.
+if (process.env.HUX_PAGES_EXPORT === "1") {
+  nextConfig.output = "export";
+  nextConfig.images = { unoptimized: true };
+  delete nextConfig.redirects;
+  delete nextConfig.rewrites;
+  delete nextConfig.outputFileTracingIncludes;
+}
 export default nextConfig;
