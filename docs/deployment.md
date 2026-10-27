@@ -21,6 +21,8 @@ pnpm pages:dev
 export omits API routes and middleware, freezes the two development editors
 at build time, and explicitly prerenders metadata routes. `out/` contains
 the pages, RSC payloads, public assets, and an advanced-mode `_worker.js`.
+`_routes.json` limits Function execution to dynamic routing and AI endpoints;
+the homepage and ordinary static resources go directly to the Pages CDN.
 
 The Function preserves locale-cookie redirects, Jekyll links, lab aliases,
 Vitre's device-specific entry, and the Works query's social card. Local image
