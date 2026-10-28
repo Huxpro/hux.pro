@@ -1137,7 +1137,7 @@ export function getCommitTypeIcon(type: CommitType): string {
  * tenure cluster by sorting on `endDate` (ongoing roles → "9999-12"),
  * non-roles sort by their own `date`.
  */
-function commitSortKey(c: Commit): string {
+export function commitSortKey(c: Commit): string {
   const explicit = c.sortBy;
   if (explicit === "date") return c.date;
   if (explicit === "endDate") {
