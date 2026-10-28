@@ -6,7 +6,7 @@ origin: "AI-translated from the original"
 
 首页的小组件网格里有一个**应用文件夹**：一块 iPad 风格的 springboard，摆着各个应用的图标（React、Lynx、Flappy Bird、Vue Lynx）。每个图标都是目标网站*自己*声明的主屏幕图标，在构建时提交进仓库。悬停、聚焦和编辑模式下，角上会挂出一个小小的**运行时徽标**（web，或按 flavour 着色的 Lynx）。
 
-点一下图标，应用会在一个**带 chrome 的窗口**里打开（见 [Window System](./system-windows)）：web 应用用 iframe，Lynx 应用用 Lynx Player。⌘/Ctrl/Shift/Alt 加点击和中键点击依然会在新标签页打开应用的 `url`：图标本身就是一个真正的链接。
+点一下图标，应用会在一个**带 chrome 的窗口**里打开（见 [Window System](./system-windows.md)）：web 应用用 iframe，Lynx 应用用 Lynx Player。⌘/Ctrl/Shift/Alt 加点击和中键点击依然会在新标签页打开应用的 `url`：图标本身就是一个真正的链接。
 
 当精选目录一页放不下（默认 8 个图标）时，文件夹会**分页吸附滚动**，可以横向（`axis: "x"`，默认，和 iOS 文件夹一样）或纵向（`axis: "y"`）。
 
@@ -32,7 +32,7 @@ origin: "AI-translated from the original"
 
 ### 编写
 
-应用写在 [`content/apps.json`](../content/apps.json) 里。类型是 `lib/app-icon-core.ts` 中的 `AppLink`。
+应用写在 `content/apps.json` 里。类型是 `lib/app-icon-core.ts` 中的 `AppLink`。
 
 ```json
 {
@@ -46,7 +46,7 @@ origin: "AI-translated from the original"
 - `title`：图标下方的英文标签。
 - `titleZh` *（可选）*：中文标签；没有时回退到 `title`。目前唯一的双语条目是 Cat Wand / 逗猫棒。
 - `url`：规范的目标地址（web 应用的 iframe 地址，两种运行时"在外部打开"的目标，也是图标 snapshot 用来解析图标图片的地址）。
-- `runtime` *（可选）*：`"web"`（默认）或 `"lynx"`；决定窗口的内容体。Lynx 应用还可以用 `flavor`（`"react"` / `"vue"`，徽标的颜色）和 `bundleUrl` 扩展（见 [Window System](./system-windows)）。
+- `runtime` *（可选）*：`"web"`（默认）或 `"lynx"`；决定窗口的内容体。Lynx 应用还可以用 `flavor`（`"react"` / `"vue"`，徽标的颜色）和 `bundleUrl` 扩展（见 [Window System](./system-windows.md)）。
 - `size` *（可选）*：打开时的窗口预设，`"portrait"`、`"landscape"` 或 `"max"`。Lynx 默认 portrait，web 默认 landscape（`systems/windows/lib/geometry.ts` 里的 `defaultPreset`）。
 - `icon` *（可选）*：当网站声明的图标不对或抓不到时，手动覆盖。站内的 `/…` 路径原样使用（文件必须在 `public/` 下）；`https://…` 地址则直接下载，不走自动发现。思路和 og-snapshot 的手动 `preview` 一样，都是兜底手段。Vue Lynx、Cat Wand 和 BusyWeek 都指向一个已提交的 `/app-icons/<id>.png`。Vue Lynx 需要它，是因为 `vue.lynxjs.org/icon-512.png` 是预先裁好的 iOS squircle（四角透明），和图标自己的圆角裁切叠在一起会出现双重边框；提交的文件是把这张图压平到不透明白底上的版本。
 - `featured` *（可选）*：是否显示在主屏幕文件夹上。默认 `true`。设为 `false` 的应用仍然留在 ⌘K 应用条里，但不上 springboard（BusyWeek 和 Cat Wand / 逗猫棒就是这样，只出现在命令面板里）。
@@ -80,7 +80,7 @@ pnpm apps:check      # filesystem-only validation (no network)
 
 - 内部拖动会进入 masonry 共享的抖动编辑模式（通过 `useMasonryEdit()`）。编辑模式下，外层项的包装元素会吞掉点击，正是这一点让拖放后的那次点击不会打开被拖图标的应用。
 - 共享的 **Reset** 控件也会恢复图标顺序：文件夹以 id `"app-shelf"` 把自己注册为 masonry 的一个 *section*。
-- 底板：静止时文件夹是 `border-transparent`，带 `ink-bare-mid ink-bare-rest`（它的标签是一块裸露区域，落在壁纸中段时可能翻转墨色；见 [Legibility](./system-legibility)）。悬停时加上 `bg-glass` 和一条淡淡的边框；编辑模式，以及整个文件夹被拖起时的浮起副本，用的是 `bg-glass-strong shadow-raised backdrop-blur-sm`。
+- 底板：静止时文件夹是 `border-transparent`，带 `ink-bare-mid ink-bare-rest`（它的标签是一块裸露区域，落在壁纸中段时可能翻转墨色；见 [Legibility](./system-legibility.md)）。悬停时加上 `bg-glass` 和一条淡淡的边框；编辑模式，以及整个文件夹被拖起时的浮起副本，用的是 `bg-glass-strong shadow-raised backdrop-blur-sm`。
 
 ### 分页
 
@@ -122,7 +122,7 @@ pnpm apps:check      # filesystem-only validation (no network)
 
 <img src="/img/docs/app-shelf/palette-strip.png" style={{ width: "50%" }} alt="手机上的命令面板：搜索框下方是一行横向的应用图标，React、Lynx、Flappy Bird、Vue Lynx、Cat Wand 和被截掉一半的 BusyWeek，每个都显示着运行时徽标。" />
 
-同一份目录在命令面板里（`CommandAppsStrip`，`systems/command/apps-launcher.tsx`）：所有应用，包括 `featured: false` 的那些（带绿色 Lynx 徽标的 Cat Wand，以及在边缘被截断的 BusyWeek），以 `md`（48px）显示，徽标始终可见，排成一行横向滚动。它记录在 [Command System](./system-command) 里。
+同一份目录在命令面板里（`CommandAppsStrip`，`systems/command/apps-launcher.tsx`）：所有应用，包括 `featured: false` 的那些（带绿色 Lynx 徽标的 Cat Wand，以及在边缘被截断的 BusyWeek），以 `md`（48px）显示，徽标始终可见，排成一行横向滚动。它记录在 [Command System](./system-command.md) 里。
 
 ## 参考
 

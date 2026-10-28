@@ -237,7 +237,7 @@ the components then get `undefined`. All MDX here is first-party.
 | A same-page link on a Chinese page uses the translated heading's id (`lib/heading-id.ts`) | The id is made from the heading's text | The link goes nowhere |
 | No bare `<` before a letter or `/`, no bare `{`, in prose; put them in backticks or a code fence | MDX reads `<x` as a tag and `{` as a JS expression | `Expected a closing tag`, `Could not parse expression with acorn`: the page fails to build. `a < b` with spaces is fine |
 | `<https://…>` autolinks and `<!-- -->` comments are not MDX | Same parser | Compile error. Write `[text](url)` and `{/* note */}` |
-| A pair of `$` in a paragraph is math | `remark-math` | "costs $5 and $10" renders `5 and ` as code |
+| A pair of `$` in a paragraph is math | `remark-math` | `costs $5 and $10` renders `5 and ` as code |
 | JSX attributes are JavaScript: `style={{ display: "flex" }}`, `width={2}`, `className` | It is JSX, not HTML | `style="display: flex"` compiles but React throws on a string style |
 | Images live in `public/` and are referenced by absolute path: posts under `/img/in-post/<post>/` (headers `/img/post-bg-*.jpg`), docs under `/img/docs/<slug>/` | Nothing in `content/` or `docs/` is served, and a relative path resolves against `/docs/<slug>/<lang>` | 404 images; no bleed (the size is read from `public/`) |
 | A post whose body has an image runs `pnpm og:sizes` | Its first image is its cover, and `og:complete` checks every cover's size | CI fails: "cover size not recorded" |
