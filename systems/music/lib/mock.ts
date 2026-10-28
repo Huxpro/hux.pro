@@ -1,12 +1,12 @@
 // =============================================================================
-// Music Mock Mode — offline stand-in for the YouTube IFrame player.
+// Music Mock Mode: offline stand-in for the YouTube IFrame player.
 //
 // Enabled by setting `localStorage.hux_music_mock = "1"`. Intended for
 // development and headless-browser verification where youtube.com is
 // unreachable (sandboxed CI, offline dev): the provider skips the IFrame API
 // entirely and drives the same UI state machine from this fixture, so every
 // surface (widget, live activity, playlist sheet) can be exercised without
-// network access. Never enabled by default — real visitors always get the
+// network access. Never enabled by default: real visitors always get the
 // real player.
 // =============================================================================
 
@@ -24,7 +24,7 @@ export function isMusicMockEnabled(): boolean {
 }
 
 /**
- * Persist the mock flag. This raw setter only writes localStorage — for a
+ * Persist the mock flag. This raw setter only writes localStorage. For a
  * live backend swap in a running page, go through the provider's
  * `setMockEnabled` (which persists via this and re-runs its init effect).
  * Preload flows (Playwright `addInitScript`) set the raw key directly

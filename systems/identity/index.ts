@@ -1,8 +1,8 @@
 // =============================================================================
-// Identity System — the identity card.
+// Identity System: the identity card.
 //
-// Every commit on /works is signed by an identity — `<jsx@fb.com>`,
-// `<@bytedance>` — and each identity holds one or more roles. Hovering a
+// Every commit on /works is signed by an identity (`<jsx@fb.com>`,
+// `<@bytedance>`), and each identity holds one or more roles. Hovering a
 // handle, a `Role:` field or a role row peeks that identity's card, the way
 // a folded row peeks its media: a photo from that time, the handle, the
 // company, the role and its tenure, the other roles under the same handle

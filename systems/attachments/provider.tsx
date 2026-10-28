@@ -5,11 +5,11 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useTransitionRouter } from "next-view-transitions";
-import { showCustomToast } from "@/components/ui/system-sonner";
-import { SystemToast } from "@/components/ui/system-toast";
+import { showNotice } from "@/systems/dock";
 import { getDomainLabel } from "@/lib/og-core";
 import { t, useLocale } from "@/services";
 import { ArrowUpRight } from "lucide-react";
@@ -26,14 +26,14 @@ import {
 import type { AttachmentHome, AttachmentSet } from "./lib/types";
 
 // =============================================================================
-// AttachmentProvider — one door for everything a commit attaches.
+// AttachmentProvider: one door for everything a commit attaches.
 //
-// Every affordance on a commit row — a cover on the contact strip, the player
-// in the expanded body, the icon in the folded rail — calls `open(set, index)`
-// and stops thinking. The provider applies the policy (lib/policy.ts): on a
+// Every affordance on a commit row (a cover on the contact strip, the player
+// in the expanded body, the icon in the folded rail) calls `open(set, index)`
+// and nothing more. The provider applies the policy (lib/policy.ts): on a
 // phone the attachment surface comes up at that item; on a desktop the item
-// goes straight to its native home — the theater, the lightbox, an in-app
-// browser window, the router — and the surface only appears for the kinds
+// goes straight to its native home (the theater, the lightbox, an in-app
+// browser window, the router), and the surface only appears for the kinds
 // that have none.
 //
 // The surface itself (components/attachment-surface.tsx) is mounted once in
@@ -59,14 +59,21 @@ export interface LightboxSession {
 }
 
 export interface AttachmentsContextValue {
-  /** Open the attachment at `index` — per the policy, wherever it belongs. */
+  /** Open the attachment at `index`, wherever the policy says it belongs. */
   open: (set: AttachmentSet, index?: number) => void;
   /** Perform the attachment's native action: play it, open its page… */
   act: (set: AttachmentSet, index: number) => void;
   /** Where `open` would send the attachment right now. */
   homeOf: (set: AttachmentSet, index: number) => AttachmentHome;
-  /** Where `act` would send it — its native home, from any surface. */
+  /** Where `act` would send it: its native home, from any surface. */
   nativeHomeOf: (set: AttachmentSet, index: number) => AttachmentHome;
+  /**
+   * Hear every attachment leaving for a home that is not the surface: the
+   * stage, a window, the router, a tab. For a layer the surface can float
+   * over (the About) that should step aside once the thing opens somewhere
+   * underneath it. Returns the unsubscribe.
+   */
+  onSend: (listener: (home: AttachmentHome) => void) => () => void;
   close: () => void;
   /** The surface's current session; it stays through the close animation. */
   session: AttachmentSession | null;
@@ -75,7 +82,7 @@ export interface AttachmentsContextValue {
   lightbox: LightboxSession | null;
   lightboxOpen: boolean;
   closeLightbox: () => void;
-  /** A phone-sized viewport — the one fact of the policy's context a row
+  /** A phone-sized viewport: the one fact of the policy's context a row
    *  lays itself out by (the feed plays a video where it is there). */
   compact: boolean;
 }
@@ -110,8 +117,8 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
 
   // Only the facts the policy branches on, and only the callbacks `send`
   // calls: the theater's context value is rebuilt on every playback tick,
-  // and depending on the object would re-publish this context — and
-  // re-render every row on /works — twice a second while a video plays.
+  // and depending on the object would re-publish this context (and
+  // re-render every row on /works) twice a second while a video plays.
   const hasWindows = !!windows;
   const openMedia = theater?.openMedia;
   const openUrl = windows?.openUrl;
@@ -124,6 +131,13 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const close = useCallback(() => setIsOpen(false), []);
+  const sendListeners = useRef(new Set<(home: AttachmentHome) => void>());
+  const onSend = useCallback((listener: (home: AttachmentHome) => void) => {
+    sendListeners.current.add(listener);
+    return () => {
+      sendListeners.current.delete(listener);
+    };
+  }, []);
   const closeLightbox = useCallback(() => setLightboxOpen(false), []);
 
   /** Send an attachment to a non-surface home. */
@@ -131,6 +145,11 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
     (home: AttachmentHome, set: AttachmentSet, index: number) => {
       const media = set.items[index];
       if (!media) return;
+      // Heard once the thing has actually gone somewhere, after each case's
+      // own guards, so a host is never told of an open that did not happen.
+      const sent = () => {
+        for (const listener of sendListeners.current) listener(home);
+      };
       switch (home) {
         case "theater": {
           if (!openMedia) return;
@@ -143,6 +162,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
             subtitle: set.subtitle,
             href: set.href,
           });
+          sent();
           setIsOpen(false);
           return;
         }
@@ -150,6 +170,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
           if (media.kind !== "image") return;
           setLightbox((prev) => ({ set, index, key: (prev?.key ?? 0) + 1 }));
           setLightboxOpen(true);
+          sent();
           // The lightbox is a modal of its own; the sheet under it would
           // hold focus and scroll-lock against it, so it steps aside the way
           // it does for the stage.
@@ -159,6 +180,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
         case "window": {
           if (!openUrl) return;
           openUrl(linkTarget(media, locale), { title: set.title });
+          sent();
           // On a phone the window is a sheet, and it stacks on the attachment
           // sheet: putting the page away lands back on the commit's
           // attachments, the way a mobile app's in-app browser returns to
@@ -169,6 +191,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
         }
         case "route": {
           router.push(linkTarget(media, locale));
+          sent();
           setIsOpen(false);
           return;
         }
@@ -178,22 +201,22 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
           // The surface stays: coming back from the tab finds the page as it
           // was left, which is the point of an in-app sheet.
           window.open(url, "_blank", "noopener,noreferrer");
+          sent();
           // A page that could have had a window but refused to be framed
           // says why it left: the reader asked the site to open something
           // and the browser took it, which reads as a glitch unless named.
           // On a phone the sheet's own button already says so (its mark is
-          // the arrow out, and the page notes it) — no toast under a tab
+          // the arrow out, and the page notes it). No notice under a tab
           // that has just covered the screen.
           if (!compact && leavesSite(media)) {
             const host = getDomainLabel(url);
-            showCustomToast(
-              <SystemToast
-                icon={ArrowUpRight}
-                title={t(locale, "linkOpensInTab")}
-                note={t(locale, "linkFrameDenied").replace("{host}", host)}
-              />,
-              { id: `frame-denied:${host}`, duration: 4000 },
-            );
+            showNotice({
+              id: `frame-denied:${host}`,
+              icon: ArrowUpRight,
+              title: t(locale, "linkOpensInTab"),
+              note: t(locale, "linkFrameDenied").replace("{host}", host),
+              duration: 4000,
+            });
           }
           return;
         }
@@ -248,6 +271,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
       act,
       homeOf,
       nativeHomeOf,
+      onSend,
       close,
       session,
       isOpen,
@@ -261,6 +285,7 @@ export function AttachmentProvider({ children }: { children: React.ReactNode }) 
       act,
       homeOf,
       nativeHomeOf,
+      onSend,
       close,
       session,
       isOpen,

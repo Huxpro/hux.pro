@@ -4,19 +4,19 @@ import { STATUS_TAP_ATTRIBUTE, STATUS_TAP_PARK_PX } from "./constants";
 import { getScrollContainer, onPageScroll } from "./scroll";
 
 // =============================================================================
-// Status-bar tap — the page back to the top, in container scroll.
+// Status-bar tap: the page back to the top, in container scroll.
 //
 // iOS Safari's tap-the-status-bar-to-scroll-to-the-top talks to the main
 // WKScrollView only. WebKit sets `scrollsToTop = NO` on every overflow
-// UIScrollView it creates — bug 134456, filed 2014, still what
-// ScrollingTreeScrollingNodeDelegateIOS.mm does — so Vitre's scroll
+// UIScrollView it creates (bug 134456, filed 2014, still what
+// ScrollingTreeScrollingNodeDelegateIOS.mm does), so Vitre's scroll
 // container can never be handed the gesture itself.
 //
 // The window can. <body> is fixed at inset 0, so the document has nothing to
 // move: a couple of pixels of window scroll are invisible. While the page is
 // away from the top, park the window there. A status-bar tap is then Safari
-// scrolling it back to 0, with no finger on the glass — a signature nothing
-// else on the page produces. Read it, and take the container to the top.
+// scrolling it back to 0, with no finger on the glass. Nothing else on the
+// page produces that signature. Read it, and take the container to the top.
 //
 // Everything hard about this is timing, and each piece of it is commented
 // where it happens: `sync` (one decision per frame), `park` (the park is a
@@ -32,9 +32,10 @@ const PARKED_PX = 0.75;
 const PARK_CONFIRM_MS = 250;
 /**
  * A container found this much FURTHER down the page than it was left was moved
- * by something else — momentum, most likely. Only that direction counts: a
+ * by something else, most likely momentum. Only that direction counts: a
  * reading that lags behind our own writes is a platform answering late, not
- * the page moving, and re-basing on it would fight nothing at all.
+ * the page moving, and re-basing on it would correct for a move that never
+ * happened.
  */
 const DRIFT_PX = 2;
 /**
@@ -48,7 +49,7 @@ const MAX_RETURN_MS = 1200;
 
 const TOUCH_EVENTS = ["touchstart", "touchend", "touchcancel"] as const;
 
-// The curve the chrome morph uses — cubic-bezier(0.32, 0.72, 0, 1), iOS's fast
+// The curve the chrome morph uses: cubic-bezier(0.32, 0.72, 0, 1), iOS's fast
 // start and long settle. Solved here rather than handed to CSS because what
 // moves is `scrollTop`, which no transition can animate. Both control points
 // are constants, so the polynomials are too: x(t), dx/dt and y(t) for
@@ -73,8 +74,8 @@ function durationFor(distance: number): number {
 
 /**
  * Whether this is a platform with the gesture at all. Everywhere else the park
- * buys nothing and a wheel scroll to 0 with no finger would read as a tap —
- * and container scroll is reachable off iOS through the devtool, so it cannot
+ * buys nothing and a wheel scroll to 0 with no finger would read as a tap.
+ * Container scroll is reachable off iOS through the devtool, so iOS cannot
  * be assumed. The same test as the site's `isIOSBrowser`, which a package with
  * no dependency on the site cannot import.
  */
@@ -119,8 +120,8 @@ export function enableStatusTapToTop(): () => void {
   const busy = () => now() < touchedUntil || now() < resizedUntil;
 
   /**
-   * Someone else is holding <html>'s overflow — a scroll lock behind a sheet,
-   * most likely. Being armed is what stops the page reading as locked, so
+   * Someone else is holding <html>'s overflow, most likely a scroll lock
+   * behind a sheet. Being armed is what stops the page reading as locked, so
    * armed and locked are mutually exclusive, and their inline style beats the
    * stylesheet anyway. Stand down until it clears.
    */
@@ -128,7 +129,7 @@ export function enableStatusTapToTop(): () => void {
 
   /**
    * Give the window back. `toTop` takes it there too, while the range still
-   * exists to move in — a park that never landed has nothing to undo.
+   * exists to move in. A park that never landed has nothing to undo.
    */
   const disarm = (toTop = true) => {
     armed = false;
@@ -142,7 +143,7 @@ export function enableStatusTapToTop(): () => void {
   const park = () => {
     if (armed) {
       if (windowTop() >= PARKED_PX) return;
-      armed = false; // the park slipped — a resize, a lock that came and went
+      armed = false; // the park slipped: a resize, a lock that came and went
     }
     if (parkPending) {
       // Asked for, not answered yet. Nothing is armed until it is, so nothing
@@ -162,8 +163,8 @@ export function enableStatusTapToTop(): () => void {
 
     // Synchronous where the main frame is scrolled in this process. On iOS it
     // is not: the move is a request across a process boundary and `scrollY` is
-    // still 0 on this line, so keep the attribute — taking it back now cancels
-    // the park itself — and take the answer when it arrives.
+    // still 0 on this line, so keep the attribute (taking it back now cancels
+    // the park itself) and take the answer when it arrives.
     if (windowTop() >= PARKED_PX) {
       armed = true;
       return;
@@ -173,7 +174,7 @@ export function enableStatusTapToTop(): () => void {
       if (!live) return;
       if (windowTop() >= PARKED_PX) armed = true;
       // Nothing to retry against, and no timer to do it on: every reason a
-      // park fails — a lock, a sheet, a rotation — ends in a scroll, a
+      // park fails (a lock, a sheet, a rotation) ends in a scroll, a
       // mutation or a resize, and each of those comes back through `sync`.
       else disarm(false);
     }, PARK_CONFIRM_MS);
@@ -252,13 +253,13 @@ export function enableStatusTapToTop(): () => void {
     // A fling still being applied fights every `scrollTop` written under it.
     // One frame of `overflow: hidden` drops the container out of its scrolling
     // state, which ends it; the position is untouched, and the stylesheet's
-    // `overflow-y: auto` comes back next frame. It has to span a frame — set
+    // `overflow-y: auto` comes back next frame. It has to span a frame: set
     // and restored inside one task, the compositor never sees it.
     held = el;
     heldOverflow = el.style.overflowY;
     el.style.overflowY = "hidden";
 
-    // Whatever the frames do — throttled, backgrounded, dropped — the page is
+    // Whatever the frames do (throttled, backgrounded, dropped), the page is
     // not left half way.
     watchdog = window.setTimeout(() => {
       watchdog = 0;
@@ -276,7 +277,7 @@ export function enableStatusTapToTop(): () => void {
   /**
    * One decision per frame, with that frame's scrolls all in. A frame can
    * carry two of them, the container's and the window's, and the rendering
-   * loop fires both BEFORE its animation frame callbacks — so deciding here
+   * loop fires both BEFORE its animation frame callbacks, so deciding here
    * sees both, in whatever order they arrived. Deciding inside the handlers
    * instead lets the container's re-park the window before the window's has
    * run, and the tap is swallowed.

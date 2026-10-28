@@ -2,13 +2,19 @@
 
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
-import { AdaptiveSurface, SurfaceMorph } from "@/systems/surface";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { isGyroReachable } from "../lib/gyroscope";
-import { useLocation, useWallpaper } from "../provider";
+import { useWallpaper } from "../provider";
+import { OFFER_DWELL, PermissionSheet, usePermissionOffer } from "./permission-sheet";
+import type { PermissionKind } from "../lib/permissions";
+import { skyAsksPlace } from "../lib/sky-pull";
+import { usePermissions } from "./use-permissions";
+
+/** What the window needs from the browser: where the phone points, and where it is. */
+const SKY_PERMISSIONS: readonly PermissionKind[] = ["motion", "location"];
 
 // ---------------------------------------------------------------------------
-// SkyWindowSheet — the offer that comes before the sky window's prompts.
+// SkyWindowSheet: the offer that comes before the sky window's prompts.
 //
 // Summoned by pulling the home down while WebKit's motion gate still stands,
 // or while the place is only a guess (lib/sky-pull.ts), and mounted in the
@@ -28,13 +34,15 @@ import { useLocation, useWallpaper } from "../provider";
 // which is a phone; there is no desktop shape to design because there is no
 // desktop case.
 //
-// The picture is the argument. Saying "the sky holds still while you turn" is
-// the part nobody reads — so a phone pans across a faint sky, and inside the
-// phone the same sky is drawn in full, holding still while the phone moves
-// over it. The sun comes into the window and goes out of it again, and that
-// is the feature at a size that fits above a paragraph. See the block in
+// The picture makes the case. Nobody reads the sentence "the sky holds still
+// while you turn", so a phone pans across a faint sky, and inside the phone
+// the same sky is drawn in full, holding still while the phone moves over it.
+// The sun comes into the window and goes out of it again. That is the feature
+// at a size that fits above a paragraph. See the block in
 // globals.css for why it is drawn from the world's frame, where the tilt
 // primer's picture is drawn from the phone's.
+//
+// The sheet's shape is shared with the other offers (permission-sheet.tsx).
 //
 // It stays up through the browser's dialog and says how it went, because it is
 // the only thing on screen that can. A refusal especially: the sky simply stays
@@ -48,20 +56,20 @@ import { useLocation, useWallpaper } from "../provider";
 /**
  * How the picture is standing.
  *
- *   panning — the phone sweeps across the sky and the sky inside it holds
- *             still. The promise, and the argument.
- *   still   — the phone parked between the sun and the moon, showing neither:
- *             a window that does not turn is a window onto one patch of sky,
- *             which is exactly what a refused browser gives you.
+ *   panning: the phone sweeps across the sky and the sky inside it holds
+ *            still. What the window offers.
+ *   still:   the phone parked between the sun and the moon, showing neither.
+ *            A window that does not turn is a window onto one patch of sky,
+ *            which is what a refused browser gives you.
  *
  * Under `prefers-reduced-motion` the panning animations are paused at 0%, which
- * is the phone framing the sun — the still frame says it in one picture.
+ * is the phone framing the sun. That still frame shows the idea in one picture.
  */
 type Pose = "panning" | "still";
 
 /**
  * The sky the phone looks into, in the world's frame: a horizon, a sun low on
- * the left and a crescent higher on the right. Drawn twice — faint for the
+ * the left and a crescent higher on the right. Drawn twice: faint for the
  * world outside the phone, full inside it.
  */
 function Panorama() {
@@ -148,203 +156,108 @@ function WindowIllustration({ pose }: { pose: Pose }) {
  */
 type Place = "shared" | "guessed" | null;
 
-/**
- * The phases of one press. `asking` is the browser's own dialog, which covers
- * the page — nobody really sees that state, it just has to not offer the button
- * twice.
- */
-type Phase = "offer" | "asking" | "granted" | "denied";
-
-/**
- * How long the outcome stays up before the sheet closes itself, ms. Long enough
- * to read once and no longer; a refusal gets more because it carries the way
- * back, and because it is the one nobody was expecting.
- */
-const DWELL: Record<"granted" | "denied", number> = {
-  granted: 1400,
-  denied: 3000,
-};
 /** A grant that also has to say how the place went reads a line longer. */
 const DWELL_WITH_PLACE = 2200;
-
-const BUTTON =
-  "w-full rounded-2xl px-4 py-3 text-[15px] font-medium transition-colors " +
-  "active:scale-[0.99] motion-reduce:active:scale-100";
 
 export function SkyWindowSheet() {
   const { locale } = useLocale();
   const {
     isSkyOfferOpen: isOpen,
-    closeSkyOffer: close,
-    takeSkyWindow,
-    gyro,
-    skyWantsLocation,
+    closeSkyOffer,
+    skyLocationOffered,
     setSkyWindow,
   } = useWallpaper();
-  const { requestAccurateLocation } = useLocation();
-  const [phase, setPhase] = useState<Phase>("offer");
+  const { status, request } = usePermissions(SKY_PERMISSIONS);
   const [place, setPlace] = useState<Place>(null);
-  // Whether this opening asks for the place too — decided as it opens and held
+  // Whether this opening asks for the place too. Decided as it opens and held
   // for the life of the sheet, so a fix landing halfway through does not
   // rewrite the offer under the visitor's thumb.
   const [askPlace, setAskPlace] = useState(false);
   // Motion already flows (Chrome, Android, a past grant): the sheet is only
   // here for the place, so it says that, and lets the window open without it.
   const [motionOpen, setMotionOpen] = useState(false);
+  // Every way out: an opening that offered the place has spent that offer for
+  // the session; one that only asked for motion has not.
+  const close = useCallback(() => closeSkyOffer(askPlace), [closeSkyOffer, askPlace]);
 
-  // The outcome shows, and then the sheet lets itself out.
-  useEffect(() => {
-    if (phase !== "granted" && phase !== "denied") return;
-    const dwell = phase === "granted" && place ? DWELL_WITH_PLACE : DWELL[phase];
-    const timer = window.setTimeout(close, dwell);
-    return () => window.clearTimeout(timer);
-  }, [phase, place, close]);
-
-  // Back to the offer for the next time there is one — or straight to the
-  // refusal, when that is what stands: the component outlives the sheet, and a
-  // sheet that reopened on its last answer would be a puzzle.
-  //
-  // On the way IN rather than on the way out, and during the render that opens
-  // it rather than after: swapping the content back while the sheet is still
-  // animating away would show the offer flashing behind the outcome.
-  const [wasOpen, setWasOpen] = useState(isOpen);
-  if (wasOpen !== isOpen) {
-    setWasOpen(isOpen);
-    if (isOpen) {
-      setPhase(gyro.denied ? "denied" : "offer");
+  const { phase, view, ask } = usePermissionOffer<"granted" | "denied">({
+    open: isOpen,
+    close,
+    dwell: (outcome) =>
+      outcome === "granted" && place ? DWELL_WITH_PLACE : OFFER_DWELL[outcome],
+    // A pull after an earlier refusal opens straight onto that refusal,
+    // because it is the only thing still true.
+    opening: () => {
       setPlace(null);
-      setAskPlace(skyWantsLocation);
-      setMotionOpen(gyro.reachable);
-    }
-  }
+      // The same answer the pull used to decide a sheet was needed.
+      setAskPlace(skyAsksPlace(status.location, skyLocationOffered));
+      setMotionOpen(status.motion === "ready");
+      return status.motion === "refused" ? "denied" : "offer";
+    },
+  });
 
-  const take = async () => {
-    setPhase("asking");
-    // Motion FIRST: WebKit's gate only opens from inside the tap's own task,
-    // and the location prompt needs no such thing — so the place is asked for
-    // once motion has had its answer, which also keeps the two dialogs from
-    // arriving on top of each other.
-    const access = await takeSkyWindow();
-    // "prompt" is the gate refusing to even consider it — no dialog was shown
-    // and nothing was answered, so the offer is simply still standing.
-    if (access === "prompt") {
-      setPhase("offer");
-      return;
-    }
-    // The place is worth having whatever motion said: without the window the
-    // stage's sun and moon are still placed by it.
-    if (askPlace) {
-      const outcome = await requestAccurateLocation();
-      setPlace(outcome === "granted" ? "shared" : "guessed");
-    }
-    setPhase(isGyroReachable(access) ? "granted" : "denied");
-  };
+  // Both dialogs from the one press, in the order usePermissions keeps:
+  // motion inside the tap's own task, then the place. Motion is asked for even
+  // when it already flows: that is a no-op answer, and it turns the tilt's
+  // wish on with the window, as a yes to the sky should.
+  const take = () =>
+    ask(async () => {
+      const { motion = "unsupported", location } = await request(
+        askPlace ? ["motion", "location"] : ["motion"]
+      );
+      // The place is worth having whatever motion says: without the window
+      // the stage's sun and moon are still placed by it.
+      if (location) setPlace(location === "granted" ? "shared" : "guessed");
+      // "prompt" is the gate refusing to even consider it. No dialog was
+      // shown and nothing was answered, so the offer is still standing.
+      if (motion === "prompt") return "offer";
+      if (!isGyroReachable(motion)) return "denied";
+      setSkyWindow(true);
+      return "granted";
+    });
 
   // Motion was never the question: open the window on the network's guess.
   const skipPlace = () => {
     setSkyWindow(true);
     close();
   };
-
-  const settled = phase === "granted" || phase === "denied";
+  const onlyPlace = motionOpen && askPlace;
 
   return (
-    <AdaptiveSurface
+    <PermissionSheet
       id="surface-sky-window"
       open={isOpen}
-      // Any other way out is the same as "not now": nothing is granted, and
-      // the offer is spent either way.
-      onOpenChange={(open) => {
-        if (!open) close();
-      }}
-      presentation={{ base: "sheet" }}
+      close={close}
       title={t(locale, "tiltPrimerTitle")}
-      closeLabel={t(locale, "tiltPrimerDismiss")}
-      // No detents: a picture, a paragraph and two buttons is a form sheet, not
-      // a list, so it stands as tall as it is and no taller.
-      fitContent
-    >
-      <div className="space-y-4 pb-2">
-        {/* A refusal gets the picture of what a refusal leaves you with. */}
-        <WindowIllustration pose={phase === "denied" ? "still" : "panning"} />
-        {/* The offer, then how it went, in the same sheet: the words
-            cross-fade and the sheet eases to its new height rather than
-            cutting to it (SurfaceMorph). The picture stays; its pose is its
-            own. */}
-        <SurfaceMorph
-          step={settled ? phase : "offer"}
-          render={(view) =>
-            view === "granted" || view === "denied" ? (
-              <p
-                role="status"
-                className={cn(
-                  "px-0.5 py-2 text-center text-[15px] leading-relaxed",
-                  view === "granted" ? "text-foreground" : "text-secondary-foreground"
-                )}
-              >
-                {view === "denied"
-                  ? t(locale, "tiltPrimerDenied")
-                  : place === "shared"
-                    ? t(locale, "skySheetGrantedPlace")
-                    : place === "guessed"
-                      ? t(locale, "skySheetGrantedGuess")
-                      : t(locale, "skySheetGranted")}
-              </p>
-            ) : (
-              <div className="space-y-4">
-                <p className="px-0.5 text-[15px] leading-relaxed text-secondary-foreground">
-                  {t(locale, motionOpen && askPlace ? "skySheetBodyPlace" : "skySheetBody")}
-                  {askPlace && !motionOpen && <> {t(locale, "skySheetAlsoPlace")}</>}
-                </p>
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    // Straight from the press: `takeSkyWindow()` reaches
-                    // `requestPermission()` in the same task, which is the only
-                    // thing that makes WebKit's dialog appear at all.
-                    onClick={take}
-                    disabled={phase === "asking"}
-                    className={cn(
-                      BUTTON,
-                      "bg-foreground text-background hover:bg-foreground/90",
-                      "disabled:opacity-50"
-                    )}
-                  >
-                    {t(locale, "skySheetConfirm")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={motionOpen && askPlace ? skipPlace : close}
-                    disabled={phase === "asking"}
-                    className={cn(
-                      BUTTON,
-                      "bg-foreground/[0.06] hover:bg-foreground/10",
-                      "disabled:opacity-50"
-                    )}
-                  >
-                    {t(
-                      locale,
-                      motionOpen && askPlace ? "skySheetSkipPlace" : "tiltPrimerDismiss"
-                    )}
-                  </button>
-                </div>
-                <p className="px-0.5 text-center text-[11px] leading-snug text-tertiary-foreground">
-                  {t(
-                    locale,
-                    !askPlace
-                      ? "tiltPrimerAsk"
-                      : motionOpen
-                        ? "skySheetAskPlace"
-                        : "skySheetAskBoth"
-                  )}
-                  <br />
-                  {t(locale, "skySheetAgain")}
-                </p>
-              </div>
-            )
-          }
-        />
-      </div>
-    </AdaptiveSurface>
+      // A refusal gets the picture of what a refusal leaves you with.
+      picture={<WindowIllustration pose={phase === "denied" ? "still" : "panning"} />}
+      view={view}
+      busy={phase === "asking"}
+      status={(outcome) =>
+        outcome === "denied"
+          ? t(locale, "tiltPrimerDenied")
+          : place === "shared"
+            ? t(locale, "skySheetGrantedPlace")
+            : place === "guessed"
+              ? t(locale, "skySheetGrantedGuess")
+              : t(locale, "skySheetGranted")
+      }
+      body={
+        <>
+          {t(locale, onlyPlace ? "skySheetBodyPlace" : "skySheetBody")}
+          {askPlace && !motionOpen && <> {t(locale, "skySheetAlsoPlace")}</>}
+        </>
+      }
+      // `request()` reaches `requestPermission()` in the tap's own task.
+      confirm={{ label: t(locale, "skySheetConfirm"), onClick: take }}
+      dismiss={{
+        label: t(locale, onlyPlace ? "skySheetSkipPlace" : "tiltPrimerDismiss"),
+        onClick: onlyPlace ? skipPlace : close,
+      }}
+      note={[
+        t(locale, !askPlace ? "tiltPrimerAsk" : motionOpen ? "skySheetAskPlace" : "skySheetAskBoth"),
+        t(locale, "skySheetAgain"),
+      ]}
+    />
   );
 }

@@ -4,7 +4,7 @@ import { runtimeLabel, type AppFlavor, type AppLink, type AppRuntime } from "@/l
 import { cn } from "@/lib/utils";
 
 // =============================================================================
-// AppBadge — the little runtime marker clipped to an app icon's corner
+// AppBadge: the small runtime marker clipped to an app icon's corner
 //
 // Every app tile wears a badge that says how it runs, the way iOS overlays a
 // small glyph on Clips / AR / web-clip icons:
@@ -70,7 +70,7 @@ function specFor(runtime: AppRuntime, flavor?: AppFlavor): BadgeSpec {
   if (runtime === "lynx") {
     const vue = flavor === "vue";
     return {
-      // React blue vs Vue green — the whole point of the flavour tint.
+      // React blue vs Vue green. This is what the flavour tint is for.
       bg: vue ? "bg-[#42b883]" : "bg-[#149eca]",
       glyph: <LynxMark className="h-[70%] w-[70%] text-white" />,
       label: runtimeLabel({ runtime, flavor }),

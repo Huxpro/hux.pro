@@ -9,12 +9,12 @@ import { useMusic } from "../provider";
 import { EQBars, NowPlaying } from "./now-playing";
 
 // ---------------------------------------------------------------------------
-// Music Activity — the global "now playing" Live Activity.
+// Music Activity: the global "now playing" Live Activity.
 //
 // Plugs the music player into the shared Dock: a collapsed pill (album art +
 // EQ) that unfolds into the same <NowPlaying /> card used by the homepage
 // widget. Appears only after the user has started playback at least once
-// (`hasPlayed`) — including on the homepage alongside MusicWidget — then stays
+// (`hasPlayed`), including on the homepage alongside MusicWidget, then stays
 // for the session (playing, paused, or ended). Cueing the playlist alone does
 // not show it. Pill/panel/scrim/drag mechanics live in <LiveActivity />; this
 // file only supplies music-specific content.

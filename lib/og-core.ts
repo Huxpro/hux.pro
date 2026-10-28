@@ -1,10 +1,10 @@
 /**
- * Open Graph crawl + parse — framework-agnostic core.
+ * Open Graph crawl + parse: the framework-agnostic core.
  *
  * This module holds the *single* implementation of "fetch a URL and pull out
  * its OG/Twitter-card metadata". It is intentionally free of any Next.js or
  * React imports so it can be used identically by:
- *   - the runtime Server Action (`lib/og.ts`), and
+ *   - the runtime route (`app/api/og/route.ts`), and
  *   - the build-time snapshot script (`scripts/og-snapshot.ts`).
  *
  * Sharing one parser is what makes "the snapshot equals what the server would
@@ -37,7 +37,7 @@ export type SnapshotEntry = OGFields;
 
 export interface OGFetchResult {
   /** True when the page was fetched successfully (HTTP 2xx). A 200 with no
-   *  OG tags is still `ok: true` — we reached the page. Only network errors
+   *  OG tags is still `ok: true`, since we reached the page. Only network errors
    *  and non-2xx responses (e.g. Medium's 403) are `ok: false`. */
   ok: boolean;
   /** HTTP status when a response came back, else undefined (network error). */
@@ -48,7 +48,7 @@ export interface OGFetchResult {
   data: OGData;
   /**
    * Whether the page may be framed, read from the response headers. Present
-   * whenever a response came back at all — a 403 still says `SAMEORIGIN`,
+   * whenever a response came back at all. A 403 still says `SAMEORIGIN`,
    * which is how Medium's refusal to be crawled still tells us it refuses
    * to be framed.
    */
@@ -90,13 +90,13 @@ export function framePolicyFromHeaders(headers: Headers): FramePolicy {
 /**
  * User-Agent used to fetch link previews.
  *
- * Many sites (Medium, X, etc.) gate their server-rendered HTML — and the
- * Open Graph / Twitter Card tags that come with it — behind bot detection,
+ * Many sites (Medium, X, etc.) gate their server-rendered HTML (and the
+ * Open Graph / Twitter Card tags that come with it) behind bot detection,
  * returning 403 to a generic or unknown agent while serving the full markup
  * to recognized link-unfurling crawlers. We identify as one of those so the
  * same preview a Slack/Twitter/Facebook unfurl would get is available to us.
  * (A plain "OGBot/1.0" or a vanilla desktop-browser UA both get a 403 from
- * Medium — which is why the Medium link previewed as a bare domain before.)
+ * Medium. That is why the Medium link previewed as a bare domain before.)
  */
 const CRAWLER_USER_AGENT =
   "Mozilla/5.0 (compatible; Slackbot-LinkExpanding 1.0; +https://api.slack.com/robots)";
@@ -108,7 +108,7 @@ const CRAWLER_USER_AGENT =
  *
  * Used to "look through" archived URLs so the displayed domain and the
  * archived treatment match the original source, not `web.archive.org`. The
- * fetched HTML itself is unaffected — Wayback preserves the original
+ * fetched HTML itself is unaffected: Wayback preserves the original
  * `<meta>` tags verbatim, so OG parsing already returns the original
  * title/description; only the hostname needs unwrapping.
  */
@@ -160,7 +160,7 @@ export function isGithubSocialImage(image?: string | null): boolean {
 }
 
 /**
- * True when a link points at a talk-recording host — a page that IS a video
+ * True when a link points at a talk-recording host: a page that is a video
  * even though we render it as an OG card (no embeddable iframe / derivable
  * cover, unlike YouTube/Bilibili). Used to give such cards a "video-ish" play
  * affordance so a GitNation talk reads like the recording it is.
@@ -170,7 +170,7 @@ const VIDEO_LINK_HOSTS: Record<string, string> = { "gitnation.com": "GitNation" 
 export function isVideoLinkHost(url: string): boolean {
   return videoLinkHostLabel(url) !== null;
 }
-/** The talks host's name for a chip — `GitNation` — or null for any other page. */
+/** The talks host's name for a chip (`GitNation`), or null for any other page. */
 export function videoLinkHostLabel(url: string): string | null {
   const host = getHostname(url)?.toLowerCase();
   if (!host) return null;
@@ -178,42 +178,93 @@ export function videoLinkHostLabel(url: string): string | null {
   return hit ? VIDEO_LINK_HOSTS[hit] : null;
 }
 
+/** Give up on a page that has not answered in this long. */
+const FETCH_TIMEOUT_MS = 8000;
+/** Read at most this much of a page: the tags live in its head. */
+const MAX_HTML_BYTES = 1024 * 1024;
+/** Follow at most this many redirects when each hop is guarded. */
+const MAX_REDIRECTS = 5;
+
+export interface FetchOGOptions {
+  /** Next.js Data Cache TTL (seconds). Ignored by plain Node fetch. */
+  revalidate?: number;
+  /**
+   * Checks every address the crawl is about to request (the URL and each
+   * redirect) and throws to refuse it. The runtime path passes one that
+   * refuses private networks (`lib/og-guard.ts`), since there the URL comes
+   * from a visitor; the snapshot script crawls URLs an author wrote.
+   */
+  guard?: (url: URL) => Promise<void>;
+}
+
+/** The page's HTML up to `</head>` or the byte cap, whichever comes first. */
+async function readHead(response: Response): Promise<string> {
+  if (!response.body) return response.text();
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let html = "";
+  let bytes = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    bytes += value.byteLength;
+    html += decoder.decode(value, { stream: true });
+    if (bytes >= MAX_HTML_BYTES || /<\/head>/i.test(html)) {
+      await reader.cancel().catch(() => {});
+      break;
+    }
+  }
+  return html + decoder.decode();
+}
+
 /**
- * Fetch and parse Open Graph metadata from a URL.
- *
- * Never throws — failures are reported via `ok: false` so callers can decide
+ * Fetch a URL and parse its OG metadata. Never throws. Failures are
+ * reported via `ok: false` with a human-readable `error`, so callers decide
  * how to recover (the snapshot script, for instance, keeps prior good data
  * and flags the URL for a manual `preview`).
  *
- * @param url        Target URL.
- * @param revalidate Optional Next.js Data Cache TTL (seconds). Ignored by the
- *                   plain Node fetch used in the snapshot script.
+ * Bounded: it gives up after {@link FETCH_TIMEOUT_MS} and reads no more than
+ * the page's head (at most {@link MAX_HTML_BYTES}).
  */
 export async function fetchOG(
   url: string,
-  revalidate?: number,
+  options: FetchOGOptions = {},
 ): Promise<OGFetchResult> {
+  const { revalidate, guard } = options;
   try {
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": CRAWLER_USER_AGENT,
-        Accept: "text/html,application/xhtml+xml",
-        // Prefer English markup — some sites (e.g. web.dev) localize OG tags
-        // by Accept-Language and would otherwise return the datacenter
-        // region's default locale.
-        "Accept-Language": "en-US,en;q=0.9",
-      },
-      // `next` is a Next.js fetch extension; plain Node fetch ignores it.
-      ...(revalidate !== undefined
-        ? { next: { revalidate } as { revalidate: number } }
-        : {}),
-    } as RequestInit);
+    const signal = AbortSignal.timeout(FETCH_TIMEOUT_MS);
+    let target = new URL(url);
+    let response: Response;
+    for (let hop = 0; ; hop++) {
+      if (guard) await guard(target);
+      response = await fetch(target, {
+        headers: {
+          "User-Agent": CRAWLER_USER_AGENT,
+          Accept: "text/html,application/xhtml+xml",
+          // Prefer English markup. Some sites (e.g. web.dev) localize OG tags
+          // by Accept-Language and would otherwise return the datacenter
+          // region's default locale.
+          "Accept-Language": "en-US,en;q=0.9",
+        },
+        signal,
+        // A guarded crawl follows redirects itself, so every hop is checked.
+        redirect: guard ? "manual" : "follow",
+        // `next` is a Next.js fetch extension; plain Node fetch ignores it.
+        ...(revalidate !== undefined
+          ? { next: { revalidate } as { revalidate: number } }
+          : {}),
+      } as RequestInit);
+      const location = response.headers.get("location");
+      if (!guard || response.status < 300 || response.status >= 400 || !location) break;
+      if (hop >= MAX_REDIRECTS) throw new Error("too many redirects");
+      target = new URL(location, target);
+    }
 
     const policy = framePolicyFromHeaders(response.headers);
 
     if (!response.ok) {
       // A refusal to be crawled is a page too, and its headers still say
-      // whether it may be framed — Medium's 403 carries `SAMEORIGIN`. But a
+      // whether it may be framed: Medium's 403 carries `SAMEORIGIN`. But a
       // bot wall with no policy header says nothing about the real page, so
       // only an explicit refusal is trusted from a failed fetch.
       return {
@@ -225,7 +276,7 @@ export async function fetchOG(
       };
     }
 
-    const html = await response.text();
+    const html = await readHead(response);
     return {
       ok: true,
       status: response.status,
@@ -242,22 +293,30 @@ export async function fetchOG(
 }
 
 /**
+ * A `content` attribute's value, up to its own closing quote. The value
+ * used to be `[^"']+`, which stopped at either quote, so a double-quoted
+ * description with an apostrophe in it ("The world's largest event…")
+ * was cut to "The world". The quote that opens it is the one that closes it.
+ */
+const CONTENT = `content=(?<q>["'])(?<v>(?:(?!\\k<q>)[\\s\\S])+)\\k<q>`;
+
+/**
  * Parse OG/Twitter-card metadata out of an HTML string.
- * Lightweight regex extraction — no external HTML parser needed.
+ * Lightweight regex extraction; no external HTML parser needed.
  */
 export function parseOG(html: string, url: string): OGData {
   const getMetaContent = (property: string): string | undefined => {
     const patterns = [
       // og:property (property before content, and content before property)
-      `<meta[^>]*property=["']og:${property}["'][^>]*content=["']([^"']+)["']`,
-      `<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:${property}["']`,
+      `<meta[^>]*property=["']og:${property}["'][^>]*${CONTENT}`,
+      `<meta[^>]*${CONTENT}[^>]*property=["']og:${property}["']`,
       // twitter:property (both attribute orders)
-      `<meta[^>]*name=["']twitter:${property}["'][^>]*content=["']([^"']+)["']`,
-      `<meta[^>]*content=["']([^"']+)["'][^>]*name=["']twitter:${property}["']`,
+      `<meta[^>]*name=["']twitter:${property}["'][^>]*${CONTENT}`,
+      `<meta[^>]*${CONTENT}[^>]*name=["']twitter:${property}["']`,
     ];
     for (const p of patterns) {
       const m = html.match(new RegExp(p, "i"));
-      if (m) return decodeHTMLEntities(m[1]);
+      if (m?.groups) return decodeHTMLEntities(m.groups.v);
     }
     return undefined;
   };
@@ -273,9 +332,9 @@ export function parseOG(html: string, url: string): OGData {
   let description = getMetaContent("description");
   if (!description) {
     const descMatch = html.match(
-      /<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i,
+      new RegExp(`<meta[^>]*name=["']description["'][^>]*${CONTENT}`, "i"),
     );
-    if (descMatch) description = decodeHTMLEntities(descMatch[1]);
+    if (descMatch?.groups) description = decodeHTMLEntities(descMatch.groups.v);
   }
 
   const image = getMetaContent("image");
@@ -331,7 +390,7 @@ export function decodeHTMLEntities(str: string): string {
 /** Social platforms that render as native widgets (no OG card needed). */
 export type SocialEmbedPlatform = "twitter" | "x" | "instagram" | "tiktok";
 
-/** How each platform writes its own name — the rail pill, the cover chip. */
+/** How each platform writes its own name, on the rail pill and the cover chip. */
 export const SOCIAL_PLATFORM_LABEL: Record<SocialEmbedPlatform, string> = {
   twitter: "X",
   x: "X",
@@ -377,7 +436,7 @@ export interface PreviewableMedia {
 }
 
 /**
- * True when a media item renders as an OG-style card on the /works timeline —
+ * True when a media item renders as an OG-style card on the /works timeline,
  * i.e. a `link` media with `present: "card"`. Cards are exactly what the
  * card pipeline (snapshot + manual override + live fallback) serves; pills
  * and social widgets and video players are out of scope.
@@ -389,7 +448,7 @@ export function mediaIsCardTarget(m: PreviewableMedia): boolean {
 /**
  * True when a card target needs a *live crawl* to build its preview.
  * A complete manual `preview` (title + image) is authoritative and skips the
- * crawl entirely — the recovery path for sites that block crawling.
+ * crawl entirely. It is the recovery path for sites that block crawling.
  */
 export function mediaNeedsLiveCrawl(m: PreviewableMedia): boolean {
   if (!mediaIsCardTarget(m)) return false;
@@ -398,13 +457,13 @@ export function mediaNeedsLiveCrawl(m: PreviewableMedia): boolean {
 }
 
 // =============================================================================
-// Video covers (Bilibili / Vimeo) — derived at build time, snapshot-cached
+// Video covers (Bilibili / Vimeo): derived at build time, snapshot-cached
 //
 // YouTube covers are derivable from the video ID at runtime
 // (`img.youtube.com/vi/{id}/maxresdefault.jpg`) so they don't need a snapshot.
 // Bilibili and Vimeo need an API call: Bilibili's `view` endpoint and Vimeo's
 // oEmbed. We do that once at build time so /works has zero runtime dependency
-// on third-party APIs for its covers — same shape as the card pipeline.
+// on third-party APIs for its covers. Same shape as the card pipeline.
 // =============================================================================
 
 /**
@@ -496,7 +555,7 @@ export async function fetchVimeoCover(url: string): Promise<VideoCoverResult> {
 }
 
 /**
- * True when a media item is a *video cover target* — i.e. needs an API call
+ * True when a media item is a *video cover target*, i.e. needs an API call
  * at build time to resolve its cover. YouTube is intentionally excluded: its
  * cover is derivable from the video ID at runtime, so snapshotting it would
  * be redundant churn.

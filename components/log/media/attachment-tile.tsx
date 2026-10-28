@@ -1,40 +1,40 @@
 "use client";
 
 /**
- * AttachmentTile — one cover in a commit's attachment object.
+ * AttachmentTile: one cover in a commit's attachment object.
  *
  * Every cover on /works is this: a 2:1 crop of the artwork wearing its chip,
  * and nothing else on it. 2:1 because it is the aspect the covers already
- * come in — an OG image is 1.91:1, and a 16:9 video poster loses a sliver
+ * come in. An OG image is 1.91:1, and a 16:9 video poster loses a sliver
  * top and bottom, which the hover peek and the surface show whole. One aspect
  * for every kind is what lets a row of them line up, and what lets a video
  * sit beside a card without one towering over the other.
  *
  * Two sizes, one per form (lib/log-view.ts, docs/system-attachments.md):
  *
- *  - `covers` — `covers`: 112px tall, the glyph chip. A cover you can
+ *  - `covers` (form `covers`): 112px tall, the glyph chip. A cover you can
  *    recognise a slide or a screenshot at; two of them and the handle fill
  *    the column, which is how the height was chosen.
- *  - `cell`   — `feed`: the width of its grid cell. The feed writes the
+ *  - `cell` (form `feed`): the width of its grid cell. The feed writes the
  *    caption out, so the chip is the glyph alone on a recording or a deck
  *    (a play mark is an affordance, not information) and nothing on a card.
  *
  * A tile is drawn from a `TileSlot`: everything the strip or the grid needs
- * to know about one item — its place in the set, where its click lands, its
- * chip, its caption — resolved once per item by the caller (`resolveTile`)
+ * to know about one item (its place in the set, where its click lands, its
+ * chip, its caption), resolved once per item by the caller (`resolveTile`)
  * rather than once per tile per render. The tile does no lookups of its own.
  *
  * The tile is an anchor even when the attachment system takes the click:
  * ⌘-click, middle-click and "copy link address" keep working, and there is a
  * real destination when no provider is mounted. Which door the click takes
- * is the caller's: `open` (the policy's home — the sheet on a phone) for the
- * folded form, `act` (the native action — the stage, the page) for the feed,
+ * is the caller's: `open` (the policy's home, i.e. the sheet on a phone) for
+ * the folded form, `act` (the native action: the stage, the page) for the feed,
  * which has already shown everything the sheet would.
  *
  * In the feed the caption is the rest of the same control, not a second
  * click target that happens to do the same thing. Pass it as `footer` and
  * the cover wash, the copy wash, the cursor and the door all belong to
- * one `<a>` — a press on the title dims the artwork *and* the title, the
+ * one `<a>`. A press on the title dims the artwork *and* the title, the
  * way a chat unfurl does. Folding a commit is a different press: a muted
  * fill on the row, never this dim.
  */
@@ -79,7 +79,7 @@ export interface TileCaption {
   title: string;
   /** A page's blurb. */
   description?: string;
-  /** The tile's one name — its tooltip and accessible name. */
+  /** The tile's one name: its tooltip and accessible name. */
   label: string;
 }
 
@@ -124,13 +124,13 @@ export function tileCaption(media: Media, locale: Locale): TileCaption {
   return named(getDomainLabel(media.url), isImageMedia(media) ? media.alt || "" : "");
 }
 
-/** Everything a tile needs, resolved once per item — see the note above. */
+/** Everything a tile needs, resolved once per item (see the note above). */
 export interface TileSlot {
   media: Media;
   image: string;
   /** Its place in the set, or -1 when there is no set or provider. */
   index: number;
-  /** The click will open a tab — a page that refuses to be framed. */
+  /** The click will open a tab (a page that refuses to be framed). */
   leaves: boolean;
   /** The chip the cover wears: `New tab` when it leaves, else its kind's. */
   mark: MediaMarkSpec | null;
@@ -164,13 +164,13 @@ export interface AttachmentTileProps {
   locale: Locale;
   set?: AttachmentSet | null;
   attachments?: AttachmentsApi | null;
-  /** Which door the click takes — see the note above. Default `open`. */
+  /** Which door the click takes (see the note above). Default `open`. */
   mode?: "open" | "act";
-  /** Take the click instead of either door — the feed's inline player. */
+  /** Take the click instead of either door: the feed's inline player. */
   onPress?: () => void;
   /** The chip: the glyph by default; `none` for a card in the feed. */
   chip?: MediaMarkSize | "none";
-  /** Square the corners — a phone's edge-to-edge feed. */
+  /** Square the corners, for a phone's edge-to-edge feed. */
   flush?: boolean;
   /**
    * Copy under or beside the cover. Mounted inside the same `<a>`, so the
@@ -179,7 +179,7 @@ export interface AttachmentTileProps {
    */
   footer?: ReactNode;
   /**
-   * Wrapper around the crop — the phone feed's edge-to-edge bleed. It is a
+   * Wrapper around the crop: the phone feed's edge-to-edge bleed. It is a
    * wrapper, not a class on the crop: the crop is `w-full overflow-hidden`,
    * and negative margins on that box only shift a column-width picture.
    * Width auto plus the bleed is what actually runs to the screen's edge;
@@ -210,7 +210,7 @@ export function AttachmentTile({
     // A click on a cover is the cover's business: without this the row would
     // fold underneath you as you left for the video.
     e.stopPropagation();
-    // Modified clicks belong to the browser — never hijack them.
+    // Modified clicks belong to the browser. Never hijack them.
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     if (onPress) {
       e.preventDefault();

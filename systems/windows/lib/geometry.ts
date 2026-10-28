@@ -2,35 +2,35 @@ import { SURFACE_BREAKPOINTS } from "@/systems/surface";
 import type { Rect } from "./types";
 
 // =============================================================================
-// Window geometry — placement, size presets, clamping, and the working area
+// Window geometry: placement, size presets, clamping, and the working area
 //
 // Pure functions over rects and a viewport, so the provider can stay a thin
 // state machine. All coordinates are viewport pixels (the window layer is a
 // `position: fixed; inset: 0` surface, so client coords == layer coords).
 // =============================================================================
 
-/** Smallest a window may be resized to — enough to keep the chrome usable. */
+/** Smallest a window may be resized to: enough to keep the chrome usable. */
 export const MIN_SIZE = { width: 300, height: 220 };
 
 /** Inset the working area keeps from the left / right / bottom edges. */
 export const MARGIN = 12;
 
 /**
- * Top inset — larger than MARGIN so windows (and a maximized window's top edge)
+ * Top inset. Larger than MARGIN so windows (and a maximized window's top edge)
  * clear the top-center **live-activity dock band** (music / ambient / minimized
  * pills). This is why the mobile default never covers the dock, and why "max"
  * leaves a little breathing room up top.
  */
 export const DOCK_BAND = 56;
 
-/** Height of the floating chrome pill, in px — shared with the window layout. */
+/** Height of the floating chrome pill, in px. Shared with the window layout. */
 export const CHROME_H = 34;
 
 /**
  * The three window size presets, iPad-style:
- *   - portrait  — a phone-shaped card (mobile Lynx / web apps).
- *   - landscape — a wide card (docs, desktop web).
- *   - max       — the whole working area (with the dock-clearing top inset).
+ *   - portrait:  a phone-shaped card (mobile Lynx / web apps).
+ *   - landscape: a wide card (docs, desktop web).
+ *   - max:       the whole working area (with the dock-clearing top inset).
  */
 export type SizePreset = "portrait" | "landscape" | "max";
 
@@ -48,7 +48,7 @@ export function getViewport(): Viewport {
  * Phone-width, by the surface system's own definition. It is the same question
  * the shape fork asks (`WINDOW_PRESENTATION` in window.tsx), and it has to be
  * the same answer: a phone window is a sheet, and the rule that follows from
- * that — one app at a time — is true exactly when it is one. Two literals
+ * that (one app at a time) is true exactly when it is one. Two literals
  * agreeing by coincidence would let the two drift apart in silence.
  */
 export function isMobile(vp: Viewport): boolean {
@@ -88,7 +88,7 @@ export function presetSize(
       height: Math.min(680, area.height),
     };
   }
-  // portrait — a tall phone card (matches most Lynx sample apps).
+  // portrait: a tall phone card (matches most Lynx sample apps).
   return {
     width: Math.min(400, area.width),
     height: Math.min(760, area.height),
@@ -167,7 +167,7 @@ export function clampDrag(
  * Run `onChange` when the viewport changes size, at most once a frame.
  *
  * Every window geometry that is a fraction of the viewport has to be recomputed
- * when it moves, and on iOS it moves constantly — through a rotation and every
+ * when it moves, and on iOS it moves constantly: through a rotation and every
  * time the URL bar slides. So this is one listener and one frame for the whole
  * system, not one per subscriber: the layer renders every window including the
  * minimized ones, and on a phone all but one of those are put away. Five open

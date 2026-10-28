@@ -23,9 +23,9 @@ import {
 /**
  * Where the active wallpaper paints.
  *
- *   full   — behind the whole page
- *   widget — only inside widget cards
- *   off    — nowhere (the global background kill switch)
+ *   full     behind the whole page
+ *   widget   only inside widget cards
+ *   off      nowhere (the global background kill switch)
  */
 export type WallpaperPlacement = "full" | "off" | "widget";
 
@@ -57,11 +57,11 @@ export interface AmbientSettings {
   wallpaperPlayIndex: number;
   /** Shuffle's permutation of the album; Loop stores catalog order. */
   wallpaperPlayOrder: string[];
-  /** Wall-clock ms of the last advance — Hourly and Daily compare against this. */
+  /** Wall-clock ms of the last advance. Hourly and Daily compare against this. */
   wallpaperPlayAt: number;
   /**
    * The bezel's colour: a named tint or a `#rrggbb` literal. Whether the bezel
-   * is on is not a setting — the wallpaper kind decides, and the devtool can
+   * is on is not a setting: the wallpaper kind decides, and the devtool can
    * override it for the session. See `WALLPAPER_FAMILY_EDGES`.
    */
   bezelTint: BezelTint;
@@ -70,16 +70,8 @@ export interface AmbientSettings {
   /** Inner corner radius, px. `null` is `DEFAULT_BEZEL_RADIUS`. The same for every kind. */
   bezelRadius: number | null;
   /**
-   * At sunrise and sunset, the app theme follows the sun — Light while the sun
-   * is up, Dark once it is down. It only ever switches on a crossing the
-   * session watched happen, and it never writes the Appearance preference: the
-   * switch is a session override (see services/theme.tsx). On by default; this
-   * is the flag that turns it off.
-   */
-  themeFollowsSun: boolean;
-  /**
    * Rain and snow fall along the device's gyroscope rather than straight down
-   * the page (Sky only — see lib/gyroscope.ts). On by default: where the
+   * the page (Sky only; see lib/gyroscope.ts). On by default: where the
    * browser hands over motion freely it just works, and where it does not
    * this is the wish waiting for the one tap that grants it.
    */
@@ -92,9 +84,9 @@ export interface AmbientSettings {
    */
   weatherGyroGranted: boolean;
   /**
-   * The tilt has been offered once, on a rainy or snowy sky, and answered —
-   * taken or waved off. The offer is a one-time introduction to something the
-   * visitor did not ask about, and a second one would be nagging — so this is
+   * The tilt has been offered once, on a rainy or snowy sky, and answered
+   * (taken or waved off). The offer is a one-time introduction to something the
+   * visitor did not ask about, and a second one would be nagging. So this is
    * cleared only when a grant it led to has lapsed, or the ask never reached a
    * dialog. See lib/tilt-primer.ts.
    */
@@ -138,7 +130,6 @@ export function getDefaultSettings(): AmbientSettings {
     bezelTint: DEFAULT_BEZEL_TINT,
     bezelBand: null,
     bezelRadius: null,
-    themeFollowsSun: true,
     wallpaperReadingBlur: true,
     wallpaperReadingDim: true,
   };
@@ -224,8 +215,6 @@ export function getAmbientSettings(): AmbientSettings {
         parsed.bezelRadius ?? parsed.wallpaperLetterboxRadius,
         clampBezelRadius
       ),
-      // Default on: only an explicit false turns the sun off.
-      themeFollowsSun: parsed.themeFollowsSun !== false,
       wallpaperReadingBlur: parsed.wallpaperReadingBlur !== false,
       wallpaperReadingDim: parsed.wallpaperReadingDim !== false,
     };

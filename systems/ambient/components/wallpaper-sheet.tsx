@@ -17,6 +17,7 @@ import {
   useSurfaceContext,
 } from "@/systems/surface";
 import { getWeatherStyleGradient } from "../lib/gradient";
+import { motionStatus } from "../lib/permissions";
 import type { WallpaperPlacement } from "../lib/settings";
 import {
   getWallpaperPairPreview,
@@ -36,11 +37,11 @@ import {
   type WallpaperPlayEvery,
   type WeatherStyle,
 } from "../lib/wallpaper";
-import { useAmbientTime, useSolarTheme, useWallpaper, useWeather } from "../provider";
+import { useAmbientTime, useWallpaper, useWeather } from "../provider";
 import { WeatherWallpaper } from "./wallpaper";
 
 // ---------------------------------------------------------------------------
-// WallpaperSheet — the secondary window behind the Wallpaper command.
+// WallpaperSheet: the secondary window behind the Wallpaper command.
 //
 // Mounted once in the root layout; any trigger summons it via `openPicker()`
 // (the command palette today, the devtool panel too). Its shape is delegated to
@@ -54,10 +55,10 @@ import { WeatherWallpaper } from "./wallpaper";
 // A photograph is one picture, so its tile is that picture, unsplit.
 //
 // The catalog is split into categories (Weather, Apple, Nature) with the same
-// capsule the Featured Talks widget uses to switch albums — one group at a time
+// capsule the Featured Talks widget uses to switch albums. One group at a time
 // is the same choice in both places, so it looks the same.
 //
-// Weather is a category of its own, and the first: three tiles — Sky (the
+// Weather is a category of its own, and the first. It has three tiles: Sky (the
 // shader, previewed by a small live canvas), Gradient (the same scene as a
 // live CSS wash, previewed with the very gradient the page would paint) and
 // Classic (the original condition palettes). It used to be one tile leading
@@ -67,7 +68,7 @@ import { WeatherWallpaper } from "./wallpaper";
 // Apple and Nature each open with Shuffle and Loop, the same two modes iOS
 // Photo Shuffle and macOS Change Picture use on a folder of stills. Shuffle
 // is a fanned collage (iOS); Loop is the same stills in a tidy stack (macOS
-// sequential). They sit as their own pair — not in the stills grid — and
+// sequential). They sit as their own pair, not in the stills grid, and
 // Frequency (iOS Shuffle Frequency, On Lock → On Visit) lands directly under
 // them while either is on, so it is not stranded below nineteen pictures.
 // ---------------------------------------------------------------------------
@@ -158,7 +159,7 @@ function TileFrame({
  *
  * A phone glyph rides in front of the platform on the iOS pairs. Phone artwork
  * on a desktop viewport is a crop of itself, and that is worth knowing BEFORE
- * you pick it — the tile can't show it, because every tile is the same 16:10
+ * you pick it. The tile can't show it, because every tile is the same 16:10
  * card whatever shape the file is.
  */
 function TileCaption({
@@ -172,7 +173,7 @@ function TileCaption({
   phone?: boolean;
   /**
    * The committed file's pixels. On its own line, in mono, because it is a
-   * spec rather than a name — and the one thing about a picture you cannot
+   * spec rather than a name, and the one thing about a picture you cannot
    * judge from a 200px tile.
    */
   resolution?: string;
@@ -239,7 +240,7 @@ function PairHalves({
 }
 
 /**
- * A pair card. Both halves are always visible — light left, dark right —
+ * A pair card. Both halves are always visible (light left, dark right),
  * because the pair is what you are choosing; which half shows is the theme's
  * business, not yours.
  */
@@ -274,11 +275,11 @@ function WallpaperTile({
           type="button"
           onClick={() => selectWallpaper(wallpaper.id)}
           aria-pressed={selected}
-          aria-label={`Use the ${wallpaper.name} wallpaper — ${
+          aria-label={`Use the ${wallpaper.name} wallpaper (${
             meta ? `${meta}, ` : ""
           }${width} by ${height}${
             isPhoneWallpaper(wallpaper) ? ", a phone wallpaper" : ""
-          }`}
+          })`}
           className="absolute inset-0"
         >
           {single ? (
@@ -305,10 +306,10 @@ function WallpaperTile({
 
 /**
  * The weather tiles. Same frame, same size as the pair cards. Each previews
- * what choosing it would paint right now: the Sky tile runs the shader itself
- * at a tile-sized pixel budget — the one wallpaper that moves should move in
- * its tile — the Gradient tile paints the very gradient the page would, and
- * the Classic tile the palette for this condition and hour. Where WebGL2 is
+ * what choosing it would paint right now. The Sky tile runs the shader itself
+ * at a tile-sized pixel budget, because the one wallpaper that moves should
+ * move in its tile. The Gradient tile paints the very gradient the page would,
+ * and the Classic tile the palette for this condition and hour. Where WebGL2 is
  * missing the Sky tile shows the Gradient with a note, which is also what
  * choosing it would paint. Every tile wears a chip saying how it moves: Live
  * on the two realtime styles, Preset on Classic.
@@ -340,7 +341,7 @@ function WeatherStyleTile({
           type="button"
           onClick={() => selectWeather(style)}
           aria-pressed={selected}
-          aria-label={`${t(locale, "wallpaperWeather")} — ${name}`}
+          aria-label={`${t(locale, "wallpaperWeather")}: ${name}`}
           title={style === "sky" && !shaderSupported ? t(locale, "wallpaperNoWebGL") : undefined}
           className="absolute inset-0"
         >
@@ -378,7 +379,7 @@ function WeatherStyleTile({
  * Three thumbs from the album, the way iOS draws Photo Shuffle.
  *
  * Shuffle fans them (a handful of photos). Loop keeps them square and
- * slightly offset — catalog order, macOS Change Picture without Randomly.
+ * slightly offset: catalog order, macOS Change Picture without Randomly.
  */
 function PlayCollage({
   wallpapers,
@@ -450,7 +451,7 @@ function PlayTile({
           type="button"
           onClick={() => selectPlay(album, play)}
           aria-pressed={selected}
-          aria-label={`${name} — ${meta}`}
+          aria-label={`${name}, ${meta}`}
           className="absolute inset-0"
         >
           <PlayCollage wallpapers={albumWallpapers} variant={variant} fanned={shuffle} />
@@ -470,25 +471,26 @@ function PlayTile({
 }
 
 /**
- * Tilt — the one control the weather tiles need under them.
+ * Tilt: the one control the weather tiles need under them.
  *
  * The Sky's rain and snow fall along gravity rather than down the page, which
  * is a thing the *device* can do, not a thing the wallpaper is. Where the
  * browser hands motion over freely it is already on and this row only says
  * so; on iOS it is the tap that grants it, which is why it is here in the
  * picker and not only in the devtool. It shows the effective state rather
- * than the saved wish — the switch answers "is the sky tilting", so turning
- * it on is what asks for permission — and it is only shown when the Sky is
- * what paints, because it is the only style with drops to lean.
+ * than the saved wish. The switch answers "is the sky tilting", so turning
+ * it on is what asks for permission. It is only shown when the Sky is what
+ * paints, because it is the only style with drops to lean.
  */
 function WeatherTiltRow() {
   const { locale } = useLocale();
   const { gyro, setGyroEnabled } = useWallpaper();
   if (!gyro.supported) return null;
 
+  const motion = motionStatus(gyro);
   let note: TranslationKey = "wallpaperTiltNote";
-  if (gyro.denied) note = "wallpaperTiltDenied";
-  else if (gyro.enabled && gyro.gated) note = "wallpaperTiltAsk";
+  if (motion === "refused") note = "wallpaperTiltDenied";
+  else if (gyro.enabled && motion === "askable") note = "wallpaperTiltAsk";
   else if (gyro.active && gyro.readings === "silent") note = "wallpaperTiltSilent";
 
   return (
@@ -522,8 +524,8 @@ export function WallpaperSheet() {
       title={t(locale, "wallpaperTitle")}
       closeLabel={t(locale, "wallpaperClose")}
       windowWidth="min(92vw, 620px)"
-      // On a phone: the site's detents — level with whatever it is stacked
-      // on, and a drag carries it to the top for the whole catalog at once.
+      // On a phone: the site's detents. It sits level with whatever it is
+      // stacked on, and a drag carries it to the top for the whole catalog.
       snapPoints={SHEET_DETENTS}
     >
       {/* Remount on open so the tab matches the live wallpaper; the sheet
@@ -559,7 +561,6 @@ function WallpaperPickerBody() {
     playEvery,
     setPlayEvery,
   } = useWallpaper();
-  const { followSun, setFollowSun } = useSolarTheme();
   const isImage = kind === "image";
   const { isWindow } = useSurfaceContext();
   const columns = isWindow ? 3 : 2;
@@ -590,7 +591,7 @@ function WallpaperPickerBody() {
 
   return (
     <>
-      {/* Placement — where the active wallpaper paints, or nowhere. One compact
+      {/* Placement: where the active wallpaper paints, or nowhere. One compact
           row: it is a modifier, not the thing you came here for. */}
       <div className="pb-4 pt-1">
         <CompactRow
@@ -666,25 +667,6 @@ function WallpaperPickerBody() {
         ))}
       </div>
 
-      {/* Sunrise and sunset move the theme, not the wallpaper — but they are
-          the weather system's own events, so this is where they are turned
-          off. One row, the same shape as Placement. */}
-      {category === "weather" && (
-        <div className="space-y-2 pt-5">
-          <CompactRow<"on" | "off">
-            label={t(locale, "settingsSolarTheme")}
-            value={followSun ? "on" : "off"}
-            options={[
-              { value: "on", label: t(locale, "stateOn") },
-              { value: "off", label: t(locale, "stateOff") },
-            ]}
-            onChange={(value) => setFollowSun(value === "on")}
-          />
-          <p className="px-0.5 text-[11px] leading-snug text-tertiary-foreground">
-            {t(locale, "solarThemeHint")}
-          </p>
-        </div>
-      )}
       {category === "weather" && effectiveStyle === "sky" && <WeatherTiltRow />}
 
       {category !== "weather" && (

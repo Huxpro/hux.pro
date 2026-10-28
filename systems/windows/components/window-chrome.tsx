@@ -13,7 +13,7 @@ import { WindowMenuBody, WindowMenuSheet } from "./window-menu";
 import { PillTitle, pillShell, TrafficDots, type DotAction } from "./window-pill";
 
 // =============================================================================
-// WindowChrome — the window controls
+// WindowChrome: the window controls
 //
 // Native per platform:
 //   • Desktop (pointer) → a top-LEFT cluster of full-size dots that sit dim &
@@ -24,8 +24,8 @@ import { PillTitle, pillShell, TrafficDots, type DotAction } from "./window-pill
 // The menu takes the shape the device asks for, and only the shape:
 //
 //   • Desktop → a popover under the pill, a real modal: portaled to <body>
-//     with a full-viewport scrim (so a click anywhere — even over an iframe,
-//     whose pointer events don't bubble — dismisses it) and clamped into the
+//     with a full-viewport scrim, so a click anywhere dismisses it, even over
+//     an iframe (whose pointer events don't bubble). It is clamped into the
 //     viewport.
 //   • Touch → an action sheet from the bottom edge (window-menu.tsx), which is
 //     what iOS answers "long-press an object, get its actions" with. Nothing
@@ -36,15 +36,15 @@ import { PillTitle, pillShell, TrafficDots, type DotAction } from "./window-pill
 // tap-title / long-press.
 //
 // This is the chrome of a *windowed* window. Where the window is itself a
-// sheet (a phone — see window-sheet.tsx), there is no pill: the sheet's grip
+// sheet (a phone; see window-sheet.tsx), there is no pill: the sheet's grip
 // is the whole chrome, and the menu hangs off that instead.
 // =============================================================================
 
 const MENU_W = 208; // w-52
 
 /**
- * Where the desktop popover hangs. Touch has nothing to anchor to — it gets a
- * sheet — so the popover only ever hangs one way now, from the pill's top left.
+ * Where the desktop popover hangs. Touch has nothing to anchor to (it gets a
+ * sheet), so the popover only ever hangs one way now, from the pill's top left.
  */
 interface MenuAnchor {
   left: number;
@@ -65,7 +65,7 @@ export function WindowChrome({
 }) {
   const { close, minimize, toggleMaximize } = useWindows();
   // Canonical hover-capability read (not a raw `(hover: hover)` media query,
-  // which is unreliable — e.g. always `hover: none` in headless Chrome).
+  // which is unreliable: e.g. always `hover: none` in headless Chrome).
   const { hasFineHoverPointer } = useInputCapability();
   const { locale } = useLocale();
   const title = appTitle(win.app, locale);
@@ -75,7 +75,7 @@ export function WindowChrome({
   const shape = hasFineHoverPointer ? "popover" : "sheet";
   const [menuOpen, setMenuOpen] = useState(false);
   const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
-  // The pill "wakes up" (glass + full-opacity dots) while interacting — this is
+  // The pill "wakes up" (glass + full-opacity dots) while interacting. This is
   // what gives the mobile pill its glass look when there's no hover to trigger it.
   const interacting = gesturing || menuOpen;
 
@@ -103,7 +103,7 @@ export function WindowChrome({
   }, [menuOpen, shape]);
 
   /** Pick a row in the popover: it closes, the action lands. (The sheet form
-   *  waits for its own exit first — see WindowMenuSheet.) */
+   *  waits for its own exit first; see WindowMenuSheet.) */
   const run = (action?: () => void) => {
     closeMenu();
     action?.();
@@ -155,7 +155,7 @@ export function WindowChrome({
           onAction={(action) => dotAction[action](win.id)}
         />
 
-        {/* App title — revealed on hover; brightens on its own hover (clickable). */}
+        {/* App title: revealed on hover; brightens on its own hover (clickable). */}
         <PillTitle>{title}</PillTitle>
       </div>
 

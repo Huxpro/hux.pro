@@ -5,7 +5,7 @@ import { ImageOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * ExternalImage — the canonical `<img>` for third-party cover URLs.
+ * ExternalImage: the canonical `<img>` for third-party cover URLs.
  *
  * Centralizes three cross-cutting concerns that are easy to forget in fresh
  * code and that fail silently when forgotten:
@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
  *     exists. The fallback is a no-op for non-YouTube URLs.
  *
  *  3. Terminal-error fallback. On 404 / referrer-block / decode failure the
- *     browser draws its own broken-image glyph (a blue "?" in Chrome) — that
+ *     browser draws its own broken-image glyph (a blue "?" in Chrome), which
  *     is never the right look. We swap the `<img>` out for a neutral
  *     placeholder slot keyed by the same className, so consumers don't have
  *     to learn the failure protocol.
@@ -71,7 +71,7 @@ export function ExternalImage({
   // Cache-warm case: when the browser already has the image decoded, `load`
   // may fire before React attaches the listener, so check `complete` on mount.
   // `naturalWidth === 0` on a complete image means the decode failed (cached
-  // 404 or broken bytes) — surface the placeholder in that case.
+  // 404 or broken bytes), so surface the placeholder in that case.
   useEffect(() => {
     const el = imgRef.current;
     if (!el?.complete) return;

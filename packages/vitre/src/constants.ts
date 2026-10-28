@@ -23,7 +23,7 @@ export const SCROLL_CONTAINER_ID = "vitre-scroll";
 /**
  * Named scroll timeline on whichever element actually scrolls the page: the
  * root in window scroll, `#vitre-scroll` in container scroll. Host CSS that
- * used `scroll(root)` goes silent in container scroll — bind to this instead.
+ * used `scroll(root)` goes silent in container scroll; bind to this instead.
  */
 export const PAGE_SCROLL_TIMELINE = "--page-scroll";
 /** The `theme-color` meta the package owns. */
@@ -38,7 +38,7 @@ export const BOOT_GLOBAL = "__vitre";
  * and how much room <html> is given to park in. Two pixels rather than one:
  * Safari can hand back a fractional `scrollY` under pinch-zoom, and a park
  * that cannot be told apart from the top is a gesture that never arrives.
- * Both are invisible — <body> is fixed, so the document has nothing to move.
+ * Both are invisible: <body> is fixed, so the document has nothing to move.
  */
 export const STATUS_TAP_PARK_PX = 2;
 export const STATUS_TAP_RANGE_PX = 4;

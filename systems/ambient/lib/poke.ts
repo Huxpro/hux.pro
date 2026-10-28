@@ -1,5 +1,5 @@
 // =============================================================================
-// The poke — the sky answers where you touched it.
+// The poke: the sky answers where you touched it.
 //
 // Some weather is worth answering. On a thunder day a click calls a bolt down
 // onto the spot (`strike`); on a clear night it sends a meteor away from it
@@ -8,12 +8,12 @@
 //
 // The Sky is the only engine that answers. A wash has no geometry to draw a
 // channel or a streak on, and a flash with no bolt in it is a different, lesser
-// find — so the Gradient and Classic styles simply do not have these easter
-// eggs, rather than having worse ones.
+// find. So the Gradient and Classic styles do not have these easter eggs at
+// all, rather than having worse ones.
 //
 // This module is the part with no engine in it: which condition is armed, how
 // long each answer lives, how often one may fire, and the one question the
-// interaction turns on — did that click land on the sky, or on something?
+// interaction turns on: did that click land on the sky, or on something?
 //
 // That last question is asked by more than the pokes. The fog wipe (lib/wipe.ts)
 // and the gust (lib/wallpaper/stir.ts) are drags rather than taps and run their
@@ -25,8 +25,8 @@
 // "On the sky" is not a guess. A click is on the background when nothing
 // between the clicked element and <body> paints anything: no background colour,
 // no background image, no backdrop filter, and nothing interactive on the way
-// up. That is the same question the visitor answered with their eyes — the
-// pixel under the pointer was wallpaper — so the two can never disagree.
+// up. That is the same question the visitor answered with their eyes (the
+// pixel under the pointer was wallpaper), so the two can never disagree.
 //
 // The answers are disjoint by construction, so there is no arbitration here and
 // never needs to be: `lightning` is 1 only on a thunder day, whose cover of
@@ -51,7 +51,7 @@ export const POKE_KIND_CODE: Record<PokeKind, number> = {
 };
 
 /**
- * How long each answer lives, ms — the span the shader's envelope is spent
+ * How long each answer lives, ms: the span the shader's envelope is spent
  * over. Past it the renderer retires the poke, because there is nothing left
  * to draw.
  */
@@ -60,13 +60,13 @@ export const POKE_MS: Record<PokeKind, number> = {
   // A meteor comes in from off the edge of the screen and crosses it, at one
   // pace whatever the distance, so a long sweep takes the better part of a
   // second and its train wants a beat after that. The shader's METEOR_LIFE is
-  // this number — keep the two together.
+  // this number; keep the two together.
   meteor: 1700,
 };
 
 /**
  * The shortest gap between two pokes, ms. Clicking as fast as you can is capped
- * at two a second — a full-screen flash is exactly the thing that must never
+ * at two a second. A full-screen flash is exactly the thing that must never
  * become a strobe (WCAG allows three; we allow two). The meteor is no strobe
  * hazard, but the same ceiling is what stops a mashed click turning a wish into
  * a meteor shower.
@@ -76,15 +76,15 @@ export const POKE_COOLDOWN_MS = 500;
 /**
  * When a meteor is possible, in the two terms the real answer has.
  *
- * **Dark enough.** The sun must be more than twelve degrees below the horizon
- * — the end of nautical twilight, which is where meteor observing
+ * **Dark enough.** The sun must be more than twelve degrees below the horizon:
+ * the end of nautical twilight, which is where meteor observing
  * conventionally begins and the first line at which a streak has any contrast
  * to work with. Not a number chosen for feel: the two neighbouring
  * definitions were measured and rejected. Civil twilight (-6) puts meteors
  * over a sky still bright enough to read by. Astronomical twilight (-18), full
  * darkness, is the purist's answer and takes the egg away for 59 nights of the
- * year in London, 118 in Stockholm and 145 in Reykjavik — a threshold that
- * deletes a whole summer is not physics, it is a bug with a citation. At -12
+ * year in London, 118 in Stockholm and 145 in Reykjavik. A threshold that
+ * deletes a whole summer is a bug, even with a citation behind it. At -12
  * London never loses a night (its shortest window is 3.3 hours, its median
  * 9.3), and the far-northern white nights that do lose it genuinely have no
  * meteors to see.
@@ -94,7 +94,7 @@ export const POKE_COOLDOWN_MS = 500;
  * which is cover and fog and nothing else.
  *
  * What is deliberately NOT here is the moon. A bright moon washes out the
- * faint end of a shower — it cuts the RATE you see, not the possibility — and
+ * faint end of a shower (it cuts the RATE you see, not the possibility), and
  * a fireball is a fireball under a full moon. This used to gate on `stars`,
  * which multiplies all three together, and that conflation had two costs: the
  * window opened at an arbitrary -7.99 degrees rather than at any named line,
@@ -141,7 +141,7 @@ export interface MeteorWindow {
  * Minutes between samples in the scan below.
  *
  * Safe at five because the only thing that moves within a day is the sun, and
- * it crosses a given altitude at most once per half-day — so five minutes
+ * it crosses a given altitude at most once per half-day. So five minutes
  * cannot hide a whole window, and each edge is then found exactly. See the
  * decomposition in `meteorWindows`.
  */
@@ -155,11 +155,11 @@ const WINDOW_STEP_MIN = 5;
  * ephemeris, this owns the rule. `scene.ts`'s `daySceneAt` is the sampler the
  * devtool passes.
  *
- * The rule decomposes, and this exploits it rather than pretending not to.
- * `clarity` is a property of the weather and is exactly constant over a day —
- * measured, not assumed: 2304 condition/cover/override combinations sampled
- * minute by minute, zero variation — so a sky you cannot see through has no
- * window at all and costs one sample instead of three hundred. That is most
+ * The rule decomposes, and this exploits it. `clarity` is a property of the
+ * weather and is exactly constant over a day. That was measured, not assumed:
+ * 2304 condition/cover/override combinations sampled minute by minute, zero
+ * variation. So a sky you cannot see through has no window at all and costs
+ * one sample instead of three hundred. That is most
  * devtool states: four of the six condition profiles, and any forced cover
  * over about a half. What is left varies only with the sun.
  *
@@ -204,7 +204,7 @@ export function meteorWindows(
   // That final short stride is not a formality: at Quito the window opens
   // inside it on two days of the year, and a scan that stops at 1435 loses the
   // whole evening half of the window. Which is also why `previous` is carried
-  // rather than computed as `minute - WINDOW_STEP_MIN` — the last stride is
+  // rather than computed as `minute - WINDOW_STEP_MIN`: the last stride is
   // shorter than the rest.
   const last = DAY_MINUTES - 1;
   for (let m = WINDOW_STEP_MIN; m < last; m += WINDOW_STEP_MIN) step(m);
@@ -248,7 +248,7 @@ export function armedPoke(scene: WeatherScene): PokeKind | null {
 }
 
 /**
- * Things a click can land *on*. A click here is on the thing, not on the sky —
+ * Things a click can land *on*. A click here is on the thing, not on the sky,
  * even when the thing is transparent, as a bare link over the wallpaper is.
  */
 const INTERACTIVE = [
@@ -276,7 +276,7 @@ const INTERACTIVE = [
 
 /**
  * Does this colour paint nothing? `transparent`, and any notation whose alpha
- * is zero — `rgba(0, 0, 0, 0)` from legacy colours, `oklch(… / 0)` from the
+ * is zero: `rgba(0, 0, 0, 0)` from legacy colours, `oklch(… / 0)` from the
  * Tailwind v4 palette, `color(srgb … / 0)` from a wide-gamut one.
  */
 function paintsNothing(color: string): boolean {
@@ -324,8 +324,8 @@ export function isBackgroundClick(target: EventTarget | null): boolean {
  * How long a finger must rest before a press-and-hold counts, ms, and how far
  * it may drift while it does.
  *
- * One source for every hold in the ambient system — the fog wipe's arming and
- * the tilt primer's offer — and the same beat as the widget grid's
+ * One source for every hold in the ambient system (the fog wipe's arming and
+ * the tilt primer's offer), and the same beat as the widget grid's
  * `TOUCH_ACTIVATION`, so a visitor who has learned one hold has learned all of
  * them. They were two copies of 400/10 with three comments promising they
  * matched; now they match because there is one of them.
@@ -341,7 +341,7 @@ const CALLOUT = "-webkit-touch-callout";
  * the undo. **Call this on `pointerdown`, before the hold, not after it.**
  *
  * iOS starts a ~500 ms clock of its own the moment a finger lands. Left alone
- * it puts up the callout / selection magnifier — but worse than the visual, it
+ * it puts up the callout / selection magnifier. Worse than the visual, it
  * takes the touch: once WebKit's gesture recognizer claims the press it stops
  * sending pointer events and fires `pointercancel`, which lands right on top of
  * a 400 ms hold and kills it before it can fire. The fog wipe has suppressed
@@ -372,7 +372,7 @@ export function holdCallout(): () => void {
  * extends `MouseEvent`, so a click and a press are the same question here too.
  *
  * The expensive part is `isBackgroundClick`, which walks ancestors asking for
- * computed styles — so it goes last, and callers with a cheaper test of their
+ * computed styles. So it goes last, and callers with a cheaper test of their
  * own (a cooldown, a second finger) should get theirs in before this.
  */
 export function isBackgroundPress(event: MouseEvent): boolean {
@@ -388,7 +388,7 @@ export function isBackgroundPress(event: MouseEvent): boolean {
 /**
  * Where the poke lands, in the wallpaper layer's own space: 0..1 across,
  * 0..1 **bottom → top** (the shader's screen convention, same as `uSun`).
- * Null when the click was outside the layer — with the bezel on, the layer
+ * Null when the click was outside the layer. With the bezel on, the layer
  * stops inside it, and the band around it is not sky.
  */
 export function pokePoint(

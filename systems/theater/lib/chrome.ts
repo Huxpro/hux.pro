@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 // =============================================================================
-// Theater / talks glass chrome — one material system
+// Theater / talks glass chrome: one material system
 //
 // Matches AlbumTabs (Featured Talks widget): frosted track + lifted pill, not
 // inverted black stamps or four lonely discs. Shared by talks (widget, theater,
@@ -17,8 +17,8 @@ import { cn } from "@/lib/utils";
  * fill so a full-page wash doesn't black out the homepage.
  *
  * "A notch lighter" is an opacity modifier on the token rather than a literal
- * card alpha, and it is the only one of its kind: it keeps the relationship
- * that matters — 80% of whatever the widget glass is — so the veil follows the
+ * card alpha, and it is the only one of its kind. It keeps the relationship
+ * that matters (80% of whatever the widget glass is), so the veil follows the
  * Tinted/Clear setting with the cards instead of staying a Tinted-strength wash
  * over a Clear page. In Tinted that is exactly the 40% it was tuned to.
  */
@@ -42,14 +42,14 @@ export const GLASS_CLUSTER = cn(
 );
 
 /**
- * Widget rest vs hover — inverted per theme, opacity so gradient cards show through.
+ * Widget rest vs hover: inverted per theme, opacity so gradient cards show through.
  *
  * Light: a hairline frame at rest, ink deepens on hover.
  * Dark: no visible border at rest (fill only); hover brings a whisper of
  * edge + wash, never brighter than raised `GLASS_TRACK` (`white/08`).
  *
  * This control is its own named group (`group/glass`). It must not follow
- * the parent widget's hover/press — WidgetShell is `:active` whenever a
+ * the parent widget's hover/press. WidgetShell is `:active` whenever a
  * descendant (a thumbnail, a row) is held, and an unnamed `group-active:`
  * here used to light the tabs up under the wrong finger. Hover and press
  * on *this* track still deepen it (`hover:` / `active:`); the selected
@@ -73,7 +73,7 @@ export const GLASS_CLUSTER_FLAT = cn(
 
 /**
  * Selected pill: light lift in light mode; dark stamp in dark mode.
- * Follows the enclosing `group/glass` track — not the parent widget.
+ * Follows the enclosing `group/glass` track, not the parent widget.
  */
 export const GLASS_PILL_FLAT = cn(
   "pressable bg-glass-overlay ring-1 ring-border/30",
@@ -103,7 +103,7 @@ export const GLASS_HIT = cn(
 
 /**
  * Theme-aware icon button inside a cluster (or standalone orb).
- * `pressable` + `active:` — the wash lands on the touch-down frame (see
+ * `pressable` + `active:`, so the wash lands on the touch-down frame (see
  * globals.css); hover alone never reaches a finger.
  */
 export const GLASS_BTN = cn(
@@ -167,7 +167,7 @@ export const GLASS_ON_DARK_ORB = cn(
 );
 
 /**
- * Always-dark theater album tabs — same language as dark-mode widget tabs
+ * Always-dark theater album tabs. Same language as dark-mode widget tabs
  * (dim / frameless track + dark stamp). Not the brighter window-toolbar glass.
  */
 export const GLASS_ON_DARK_TRACK = cn(

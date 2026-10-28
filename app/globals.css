@@ -1,9 +1,15 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Streamdown (Ask's answers, systems/ask) styles its markdown with utility
+   classes in its own bundle; Tailwind only generates what it can see. */
+@source "../node_modules/streamdown/dist/*.js";
+@source "../node_modules/@streamdown/code/dist/*.js";
+@source "../node_modules/@streamdown/cjk/dist/*.js";
+
 @custom-variant dark (&:is(.dark *));
 
-/* `roomy:` — a screen that is both wide AND tall enough to have real space to
+/* `roomy:` matches a screen that is both wide AND tall enough to have space to
    spare, used by the home screen's widget board (see SortableMasonry's
    `gridScale`). Width alone isn't the signal: a short ultrawide monitor is
    already scrolling, so widening the board there changes a familiar desktop
@@ -11,23 +17,38 @@
    composition starts to fit with room left over. */
 @custom-variant roomy (@media (width >= 96rem) and (height >= 1000px));
 
-/* `bleed:` — wide enough for landscape media to break out of the reading
-   column. The rule that does it and the reader control that switches it off
+/* `bleed:` matches a viewport wide enough for landscape media to break out of
+   the reading column. The rule that does it and the reader control that switches it off
    (components/post/reading-sheet.tsx) both answer to this one number, so
    neither can drift from the other. Tailwind makes a variant of it. */
 @theme {
   --breakpoint-bleed: 900px;
 }
 
+/* `measure:` matches a viewport wide enough for every reading column to be its
+   own width. The columns are 600 / 680 / 760px, and under 760 the viewport is the column: at
+   a phone's width all three land on the same line, so "Column" would be a
+   control wired to nothing. The rule that sets the width and the reader
+   control that picks it (components/post/reading-sheet.tsx) both answer to
+   this number, like `bleed:` above. It is the wide column's width, so the two
+   change together. */
+@theme {
+  --breakpoint-measure: 760px;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  /* `decoration-ink-line`: the underline rung (--ink-line). Never
+     `decoration-<token>/NN`: that is a color-mix(), which Safari does not
+     paint as a decoration. */
+  --color-ink-line: var(--ink-line);
   --font-sans: var(--font-sans);
   --font-serif: var(--font-serif-latin), var(--font-serif-cjk), serif;
   --font-mono: var(--font-mono);
   --color-sidebar-ring: var(--sidebar-ring);
-  /* System glass fills. Every floating System UI surface — widgets, the
-     command palette, the devtool, Live Activities, adaptive surfaces — paints
+  /* System glass fills. Every floating System UI surface (widgets, the
+     command palette, the devtool, Live Activities, adaptive surfaces) paints
      with these rather than its own bg-card/NN, so one setting can restyle the
      whole material at once. See `Glass` in docs/system-glass.md. */
   --color-glass: var(--glass);
@@ -45,6 +66,14 @@
      quaternary labels): captions and watermarks, placeholders, dividers. */
   --color-tertiary-foreground: var(--tertiary-foreground);
   --color-quaternary-foreground: var(--quaternary-foreground);
+  /* The rung above the label ladder: running text, the article body's ink.
+     Text you read rather than scan. See `--ink-alpha-reading`. */
+  --color-reading-foreground: var(--reading-foreground);
+  /* The log's graph, on the ladder (see THE LADDER): `bg-graph-line`,
+     `stroke-graph-lit`, `ring-graph-node`… */
+  --color-graph-line: var(--graph-line);
+  --color-graph-node: var(--graph-node);
+  --color-graph-lit: var(--graph-lit);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
@@ -81,14 +110,14 @@
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
 
-  /* Elevation — app-wide shadow spec (two levels, à la Material elevation).
+  /* Elevation: app-wide shadow spec (two levels, à la Material elevation).
      Use these instead of raw `shadow-lg/2xl + shadow-black/xx`, so every
      floating surface reads on one of two heights:
 
-       shadow-raised  — resting floating controls + hover surfaces that sit
+       shadow-raised:  resting floating controls + hover surfaces that sit
                         just off the page: the FAB, the Live Activity pill,
                         every hover peek. A quiet, low lift.
-       shadow-overlay — focus / modal surfaces that float clearly above
+       shadow-overlay: focus / modal surfaces that float clearly above
                         content: the command palette, Live Activity expanded,
                         toasts, the devtool panel. A stronger, higher lift.
 
@@ -104,11 +133,11 @@
 
    Two kinds of variable live here:
 
-   INPUTS — a colour or a number someone chose. The ink and the page for each
+   INPUTS: a colour or a number someone chose. The ink and the page for each
    theme; the alpha ladder; the glass fills; the relief shape. The Legibility
    Lab (/editor/legibility) overrides these inline to try alternatives.
 
-   DERIVED — everything a component actually paints with, computed from the
+   DERIVED: everything a component actually paints with, computed from the
    inputs in one block (`THE LADDER` below) so a zone that changes an input
    (a flipped `.ink-bare`, a lab tile) re-derives the lot by re-declaring it.
 
@@ -131,7 +160,7 @@
 /* The page column (components/ui/page-layout.tsx reads these), and its
    bleed: from the column's edge to the viewport's. A rail that would be cut
    by the column runs under the bleed instead, so it is only ever cut by the
-   screen — on a phone that is the gutter, on a desk the margin. `html`
+   screen: on a phone that is the gutter, on a desk the margin. `html`
    clips x overflow (below), so the 100vw here cannot open a horizontal
    scroll. */
 :root {
@@ -146,10 +175,16 @@
 /* The gap under a page's hero (components/ui/hero-exit.ts), a variable so a
    bar pinned out of the hero can be lifted back over it by the same amount.
    `--dock-clear` is the bottom of the Dock's pills, published by the Dock
-   itself (systems/dock) — 0 until it has any. */
+   itself (systems/dock), and is 0 until it has any. `--pin-outset` is how far a
+   pinned bar's glass capsule reaches past its row (the /works and /prompt
+   toolbars), so the bar can clear the Dock by its glass and not by its text:
+   counted by the row, the two capsules stood 2px apart. */
 :root {
   --hero-gap: 1rem;
   --dock-clear: 0px;
+  --pin-outset: 0.375rem;
+  /* …and to either side (the capsules' `-inset-x-2.5`). */
+  --pin-outset-x: 0.625rem;
 }
 @media (width >= 40rem) {
   :root {
@@ -161,6 +196,15 @@
   /* --- INPUTS: the two colours of the light theme --- */
   --ink: oklch(0.145 0 0);
   --ink-inverse: oklch(0.985 0 0);
+  /* The line under text (a link's underline): the ink at 40%, and the only
+     rung written out rather than mixed. Safari paints `color-mix()` in
+     `color`, fills and borders, but not in `text-decoration-color`, where a
+     mixed rung is simply not drawn. So it is an input, one per ink, swapped
+     by a flipped zone exactly as `--ink` is. Keep the lightness in step
+     with the ink above. See docs/system-legibility.md. */
+  --ink-line-theme: oklch(0.145 0 0 / 0.4);
+  --ink-line-inverse: oklch(0.985 0 0 / 0.4);
+  --ink-line: var(--ink-line-theme);
   --ink-theme: var(--ink); /* the theme's own ink, kept for a zone that un-flips */
   /* The relief shape that goes with each ink: a white halo under dark ink,
      a dark drop under light ink (ryOS's numbers). `theme` is the pair for
@@ -183,21 +227,32 @@
   --popover: oklch(1 0 0);
 
   /* --- INPUTS: the ink ladder (Apple's label alphas, tuned for this ink) ---
-     primary is the ink itself; body prose is `foreground/85` at the call site. */
+     primary is the ink itself. `reading` is the rung for running text (an
+     article's body, a /prompt entry's reasoning, a commit's description),
+     which is read line after line rather than glanced at, and which Apple
+     sets in the label colour, not the secondary one. It is not a label rung.
+     The label rungs below it are for chrome; a paragraph on `secondary` is a paragraph
+     at 4.3:1 on white before any wallpaper is behind it. */
+  --ink-alpha-reading: 85%;
   --ink-alpha-secondary: 54%;
   --ink-alpha-tertiary: 32%;
   --ink-alpha-quaternary: 20%;
   --ink-alpha-ring: 45%;
 
-  /* --- INPUTS: the washes — fills that are ink at a few percent, so a hover,
+  /* --- INPUTS: the washes. Fills that are ink at a few percent, so a hover,
      a kbd, a divider read on any card under any material. --- */
   --wash-alpha-muted: 4%;
   --wash-alpha-accent: 7%;
   --wash-alpha-border: 9%;
 
   /* --- INPUTS: wallpaper-derived, written by the provider (see legibility.ts).
-     At rest — no wallpaper, or a weather gradient — every one is zero. --- */
+     At rest (no wallpaper, or a weather gradient) every one is zero. --- */
   --wp-ink-boost: 0%;
+  /* What a reading route adds to the secondary and tertiary rungs to reach
+     the policy's target contrast on the veiled picture (legibility.ts,
+     `readingLift`). Zero on the desktop. */
+  --wp-lift-secondary: 0%;
+  --wp-lift-tertiary: 0%;
   --wp-bare-boost: 0%; /* what a bare zone adds on top; zones opt in below */
   --wp-zone-boost: 0%;
   --wp-relief: 0;
@@ -210,7 +265,7 @@
   --wp-veil: 0;
   --wp-blur: 40px;
 
-  /* --- INPUTS: relief — the text shadow Aqua gave desktop labels and the Home
+  /* --- INPUTS: relief. The text shadow Aqua gave desktop labels and the Home
      Screen gives labels on a bright wallpaper. Two shapes, chosen by the ink:
      light ink gets a dark drop (ryOS Aqua Glass: 0 1px 3px .6 + 0 0 2px .45),
      dark ink gets a white halo (0 0 4px + 0 0 3px). `--wp-relief` scales both;
@@ -223,12 +278,12 @@
   --glass-relief-solid-k: 0;    /* sheets, popovers: solid enough already */
   --glass-add-k: 0.5;           /* how much of --wp-glass-add Tinted takes */
 
-  /* --- INPUTS: tint — how much of the wallpaper's colour goes where.
+  /* --- INPUTS: tint. How much of the wallpaper's colour goes where.
      Zero is the neutral baseline; `html[data-tint="wallpaper"]` raises them. --- */
   --tint-glass: 0%;
   --tint-accent: 0%;
 
-  /* --- INPUTS: glass fills — Tinted (色调), the default material. A material
+  /* --- INPUTS: glass fills for Tinted (色调), the default material. A material
      is seven numbers; the roles below turn them into colours once. --- */
   --glass-fill: 50%;
   --glass-fill-raised: 60%;
@@ -264,6 +319,9 @@
      Exact oklch conversion: oklch(21.78% 0 0) */
   --ink: oklch(0.93 0 0); /* slightly softer than pure white */
   --ink-inverse: oklch(0.145 0 0);
+  --ink-line-theme: oklch(0.93 0 0 / 0.4);
+  --ink-line-inverse: oklch(0.145 0 0 / 0.4);
+  --ink-line: var(--ink-line-theme);
   --ink-theme: var(--ink);
   --relief-theme-rgb: 0 0 0;
   --relief-theme-a1: var(--relief-drop-a1);
@@ -307,7 +365,7 @@
    Glass: Clear (透明)
    iOS 26's other Liquid Glass option. Fill drops to a vibrancy-style wash so
    white stops reading as milky and black stops reading as a slab, and whatever
-   is behind the surface — a wallpaper, the page — comes through as the colour.
+   is behind the surface (a wallpaper, the page) comes through as the colour.
    The blur stays ordinary `backdrop-blur`: no specular highlights, no lens
    distortion, nothing that pretends to be a physical lens.
 
@@ -337,7 +395,7 @@ html.dark.glass-clear {
    Tint: Wallpaper
    Glass borrows the picture's dominant colour, and so does the accent wash
    (selection, hover, the focus ring). "Apply color sparingly to the Liquid
-   Glass material … to the background rather than to symbols or text" — so the
+   Glass material … to the background rather than to symbols or text." So the
    ink ladder stays neutral, and only surfaces take the colour.
 ----------------------------------------------------------------------------- */
 html[data-tint="wallpaper"] {
@@ -346,7 +404,7 @@ html[data-tint="wallpaper"] {
 }
 
 /* =============================================================================
-   THE LADDER — every derived token, declared once, on every element that can
+   THE LADDER: every derived token, declared once, on every element that can
    change an input: the root, a flipped bare zone, and a lab tile (`.ink-scope`)
    carrying its own `--wp-*`. A custom property is computed where it is
    declared and inherited as a value, so a zone that only changed `--ink` would
@@ -364,12 +422,12 @@ html[data-tint="wallpaper"] {
   --popover-foreground: var(--ink);
   --muted-foreground: color-mix(
     in oklab,
-    var(--ink) calc(var(--ink-alpha-secondary) + var(--wp-ink-boost) + var(--wp-zone-boost)),
+    var(--ink) calc(var(--ink-alpha-secondary) + var(--wp-ink-boost) + var(--wp-zone-boost) + var(--wp-lift-secondary)),
     transparent
   );
   --tertiary-foreground: color-mix(
     in oklab,
-    var(--ink) calc(var(--ink-alpha-tertiary) + var(--wp-ink-boost) + var(--wp-zone-boost)),
+    var(--ink) calc(var(--ink-alpha-tertiary) + var(--wp-ink-boost) + var(--wp-zone-boost) + var(--wp-lift-tertiary)),
     transparent
   );
   --quaternary-foreground: color-mix(
@@ -377,6 +435,7 @@ html[data-tint="wallpaper"] {
     var(--ink) calc(var(--ink-alpha-quaternary) + var(--wp-ink-boost) + var(--wp-zone-boost)),
     transparent
   );
+  --reading-foreground: color-mix(in oklab, var(--ink) var(--ink-alpha-reading), transparent);
   --secondary-foreground: var(--ink);
   --accent-foreground: var(--ink);
 
@@ -387,6 +446,19 @@ html[data-tint="wallpaper"] {
   --input: var(--border);
   --accent-wash: color-mix(in oklab, var(--ink) var(--wash-alpha-accent), transparent);
   --ring-wash: color-mix(in oklab, var(--ink) var(--ink-alpha-ring), transparent);
+
+  /* --- The graph (/works) ---
+     The log's lines and nodes are roles on the rungs, not alphas of their
+     own, so they follow the theme, a flipped zone, the wallpaper boost and
+     the lab's sheet like every other token (docs/system-legibility.md).
+     A line at rest carries nothing of its own: a hairline, the border rung.
+     A node (a ref's ring, a role's ring) is decoration on it: quaternary,
+     the hash's rung, a step above its line. Lit (a chapter's track, a
+     connector while its end is pointed at), it annotates the rows it joins:
+     tertiary, the rung of a date beside its title. */
+  --graph-line: var(--border);
+  --graph-node: var(--quaternary-foreground);
+  --graph-lit: var(--tertiary-foreground);
 
   /* --- Tint --- */
   --tint: oklch(var(--wp-tint-l) var(--wp-tint-c) var(--wp-tint-h));
@@ -436,7 +508,7 @@ html[data-tint="wallpaper"] {
   /* --- Relief: the shape that goes with this element's ink, at bare / glass /
      solid strength. The primitives (`--relief-rgb`, the alphas, the offsets)
      follow the ink: the theme's pair at rest, the inverse pair in a flipped
-     zone — see "Flipped ink" below. --- */
+     zone. See "Flipped ink" below. --- */
   --relief-rgb: var(--relief-theme-rgb);
   --relief-a1: var(--relief-theme-a1);
   --relief-a2: var(--relief-theme-a2);
@@ -455,14 +527,14 @@ html[data-tint="wallpaper"] {
 }
 
 /* -----------------------------------------------------------------------------
-   Flipped ink — bare text over a wallpaper band that is on the wrong side of
+   Flipped ink: bare text over a wallpaper band that is on the wrong side of
    the theme's ink (a dark photograph under the light theme). The provider
    decides per band: `data-wallpaper-flip` for the top one, where `.ink-bare`
    (the home header) sits, and `data-wallpaper-flip-mid` for the middle one,
    where `.ink-bare-mid` (the app folder) sits. A flipped zone swaps to the
-   inverse ink — and to the inverse ink's relief shape, since the shape is a
-   property of the ink (dark text wants a white halo, light text a dark drop)
-   — and its ladder above re-derives. Surfaces (glass) never flip: they carry
+   inverse ink and to the inverse ink's relief shape, since the shape is a
+   property of the ink (dark text wants a white halo, light text a dark drop).
+   Its ladder above then re-derives. Surfaces (glass) never flip: they carry
    the card colour, so their ink was right all along. `.ink-flip` is the same
    swap unconditionally, for the lab's tiles. These rules follow the ladder so
    they win on the same element.
@@ -471,6 +543,7 @@ html[data-wallpaper-flip] .ink-bare,
 html[data-wallpaper-flip-mid] .ink-bare-mid,
 .ink-flip {
   --ink: var(--ink-inverse);
+  --ink-line: var(--ink-line-inverse);
   --relief-rgb: var(--relief-inverse-rgb);
   --relief-a1: var(--relief-inverse-a1);
   --relief-a2: var(--relief-inverse-a2);
@@ -486,10 +559,11 @@ html[data-wallpaper-flip-mid] .ink-bare-mid,
 /* A middle-band zone decides for itself, even inside a flipped top-band zone
    (the lab's bare specimen nests one in the other); and a bare zone that
    grows a glass surface under the pointer (the app folder, `.ink-bare-rest`)
-   stops being bare while hovered — the glass carries the card colour, so the
+   stops being bare while hovered. The glass carries the card colour, so the
    ink goes back to the theme's, shape and all. */
 html:not([data-wallpaper-flip-mid]) .ink-bare-mid {
   --ink: var(--ink-theme);
+  --ink-line: var(--ink-line-theme);
   --relief-rgb: var(--relief-theme-rgb);
   --relief-a1: var(--relief-theme-a1);
   --relief-a2: var(--relief-theme-a2);
@@ -501,6 +575,7 @@ html:not([data-wallpaper-flip-mid]) .ink-bare-mid {
   html[data-wallpaper-flip] .ink-bare.ink-bare-rest:hover,
   html[data-wallpaper-flip-mid] .ink-bare-mid.ink-bare-rest:hover {
     --ink: var(--ink-theme);
+    --ink-line: var(--ink-line-theme);
     --relief-rgb: var(--relief-theme-rgb);
     --relief-a1: var(--relief-theme-a1);
     --relief-a2: var(--relief-theme-a2);
@@ -510,7 +585,7 @@ html:not([data-wallpaper-flip-mid]) .ink-bare-mid {
   }
 }
 
-/* No relief resolved — `none`, not a transparent shadow, so the main path
+/* No relief resolved: `none`, not a transparent shadow, so the main path
    (the plain page, the weather gradient, a calm picture, a reading page)
    never rasterises one. The provider sets the attribute only above zero. */
 html:not([data-wallpaper-relief]) {
@@ -562,7 +637,7 @@ body,
   body {
     @apply bg-background text-foreground;
   }
-  /* Lock the viewport horizontally — fixed overlays (ruler ToC, dock)
+  /* Lock the viewport horizontally. Fixed overlays (ruler ToC, dock)
      must never let the page pan sideways. `clip` (unlike `hidden`)
      doesn't create a scroll container, so `position: sticky` keeps
      working. */
@@ -574,8 +649,8 @@ body,
 
 /* A drag, whatever is being dragged: the cursor says so, and nothing under the
    pointer turns into a text selection. A window pulled across an article used
-   to paint the whole page blue on the way — the gesture was about the window,
-   never about the words behind it. The page is a document again the frame the
+   to paint the whole page blue on the way, though the gesture was about the
+   window, never the words behind it. The page is a document again the frame the
    drag ends (see the voice block above). */
 html.dragging,
 html.dragging * {
@@ -593,7 +668,7 @@ html.dragging * {
   display: none;
 }
 
-/* Commit permalink arrival — /works#<hash>. The row you travelled to is
+/* Commit permalink arrival (/works#<hash>). The row you travelled to is
    marked for two seconds (see `useCommitAnchor`) so the eye lands on it
    instead of counting rows. A wash, not a border: the timeline's rows have no
    edges of their own, and giving one an outline for two seconds would read as
@@ -603,7 +678,7 @@ html.dragging * {
    setting per theme (7% light, 10% dark) so a tint holds over any wallpaper
    without each site guessing, per docs/system-legibility.md. Fades out on its
    own; fading in is the point of arrival, so that side is instant. The 2s is
-   the mark's whole life — `useCommitAnchor` takes the attribute off on
+   the mark's whole life: `useCommitAnchor` takes the attribute off on
    `animationend` rather than keeping a timer that agrees with this one. */
 [data-commit-target] [data-row-trigger] {
   animation: commit-target-wash 2s ease-out forwards;
@@ -627,7 +702,166 @@ html.dragging * {
   }
 }
 
-/* Theater stage — the YouTube IFrame API injects an <iframe> sized by the
+/* A heading travelled to (components/post/heading-landing.tsx), an entry on
+   /prompt (app/prompt/view.tsx): the same wash as a commit row's. */
+[data-hash-target] {
+  border-radius: 6px;
+  animation: commit-target-wash 2s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-hash-target] {
+    animation-duration: 0.01ms;
+  }
+}
+
+/* The signature: /works (TimelineCommit, "The signature"). A row's
+   `commit` / `Author:` / `Role:`, never at rest: on a desk it unspools from
+   the hash down into the margin while the row is hovered; anywhere, a tap on
+   the row's mark or its team prints it (`data-sig-open` on the row).
+
+   Every line is revealed by a clip sweeping its own box, never a transform:
+   a transformed layer re-rasterizes 12px mono, which shimmers and settles a
+   pixel late. Lines go in one after another (`--sig-i`, 70ms apart), the
+   way `git log` prints them, and a value a beat after its label
+   (`--sig-o`). Leaving is one quick fade for all of them, and the clip
+   closes only once they are invisible. The curve is the site's
+   (docs/motion.md). */
+[data-sig-host] {
+  --sig-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Phone: printed left to right. Desk: dropped from the hash, top down. */
+.sig-print,
+.sig-drop {
+  opacity: 0;
+  transition:
+    opacity 160ms ease-out,
+    clip-path 0s linear 160ms;
+}
+.sig-print {
+  clip-path: inset(0 100% 0 0);
+}
+.sig-drop {
+  clip-path: inset(0 0 100% 0);
+}
+[data-sig-open] .sig-print,
+[data-sig-open] > [data-sig-margin] .sig-drop {
+  opacity: 1;
+  clip-path: inset(0);
+  transition:
+    opacity 240ms ease-out
+      calc(var(--sig-delay, 0ms) + var(--sig-i, 0) * 70ms + var(--sig-o, 0ms)),
+    clip-path 420ms var(--sig-ease)
+      calc(var(--sig-delay, 0ms) + var(--sig-i, 0) * 70ms + var(--sig-o, 0ms));
+}
+
+/* The margin's block takes no pointer until it shows. An invisible card
+   trigger in an empty margin would peek at nothing. On hover it waits a
+   beat (`--sig-delay`) so a pointer sweeping down the page does not set
+   every margin it crosses flickering. */
+[data-sig-margin] {
+  pointer-events: none;
+}
+[data-sig-open] > [data-sig-margin] {
+  pointer-events: auto;
+}
+@media (hover: hover) {
+  [data-sig-host]:is(:hover, :focus-within) > [data-sig-margin] {
+    --sig-delay: 140ms;
+    pointer-events: auto;
+  }
+  [data-sig-host]:is(:hover, :focus-within) > [data-sig-margin] .sig-drop {
+    opacity: 1;
+    clip-path: inset(0);
+    transition:
+      opacity 240ms ease-out
+        calc(var(--sig-delay) + var(--sig-i, 0) * 70ms),
+      clip-path 420ms var(--sig-ease)
+        calc(var(--sig-delay) + var(--sig-i, 0) * 70ms);
+  }
+}
+
+/* The hash is the stack's `commit` field, so it lights with the rest: one
+   rung up from decoration while its author and role are out. */
+[data-sig-host] .sig-hash {
+  transition: color 200ms ease-out;
+}
+[data-sig-open] .sig-hash {
+  color: var(--tertiary-foreground);
+}
+@media (hover: hover) {
+  [data-sig-host]:is(:hover, :focus-within) .sig-hash {
+    color: var(--tertiary-foreground);
+  }
+  /* The hash's own hover (it is the permalink) still wins. */
+  [data-sig-host] .sig-hash:hover {
+    color: var(--muted-foreground);
+  }
+}
+
+/* The team that was tapped stays lit while its signature is out. */
+[data-sig-host] .sig-team {
+  transition: color 200ms ease-out;
+}
+[data-sig-open] .sig-team {
+  color: var(--muted-foreground);
+}
+
+/* Phone: the row opens to the stack's height rather than snapping to it
+   (grid rows 0fr → 1fr, which animates to an unknown height). */
+.sig-fold {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 360ms var(--sig-ease);
+}
+.sig-fold > * {
+  min-height: 0;
+  overflow: hidden;
+}
+[data-sig-open] .sig-fold {
+  grid-template-rows: 1fr;
+}
+
+/* The mark nods when it hands the signature over, from a tap on it or on
+   the team. The node's inner glyph, never the outer span: that one carries
+   the side lane's inline translate. */
+[data-sig-open] .sig-mark {
+  animation: sig-nod 420ms var(--sig-ease);
+}
+@keyframes sig-nod {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(0.72);
+  }
+  70% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sig-print,
+  .sig-drop,
+  [data-sig-open] .sig-print,
+  [data-sig-open] > [data-sig-margin] .sig-drop,
+  [data-sig-host]:is(:hover, :focus-within) > [data-sig-margin] .sig-drop {
+    clip-path: none;
+    transition: opacity 150ms ease-out;
+  }
+  .sig-fold {
+    transition: none;
+  }
+  [data-sig-open] .sig-mark {
+    animation: none;
+  }
+}
+
+/* Theater stage. The YouTube IFrame API injects an <iframe> sized by the
    width/height player options; force it to fill the morphing stage so the
    video stays responsive as the stage animates between theater and PiP. */
 .theater-stage iframe {
@@ -643,10 +877,10 @@ html.dragging * {
    - Serif only for emphasis (em, italic, blockquote)
    - "De-weighted" headings: smaller, subtle but slightly brighter than body */
 .prose-article {
-  @apply text-foreground/85 leading-relaxed;
+  @apply text-reading-foreground leading-relaxed;
   /* Everything sized inside an article is an `em` of this, so the reader's
-     size setting moves the whole composition rather than the body alone —
-     headings keep their hierarchy, captions and code keep their relation to
+     size setting moves the whole composition rather than the body alone.
+     Headings keep their hierarchy, captions and code keep their relation to
      the paragraph they annotate. `line-height` is unitless for the same
      reason: it follows whatever the size lands on. */
   font-size: var(--reading-size);
@@ -740,28 +974,71 @@ html.dragging * {
   margin-bottom: var(--reading-size);
 }
 
-.prose-article a:not(:where(.not-prose, .not-prose *)) {
-  @apply text-foreground underline underline-offset-2 decoration-muted-foreground/50 hover:decoration-foreground transition-colors;
+/* A link in running text: the article's, and every plain magic link's
+   (`.prose-link`, components/magic-link; it is `.not-prose` to keep out of
+   the rules below, so it names this one instead). The line at rest is an alpha
+   of the ink itself, not of the already-muted secondary ink: at half of
+   that (a third of the ink, all told) it read as no underline until hover
+   made it whole. The line is the ladder's underline rung, `--ink-line`. */
+.prose-article a:not(:where(.not-prose, .not-prose *)),
+.prose-link {
+  @apply text-foreground underline underline-offset-2 decoration-ink-line transition-colors;
+}
+/* In the About's notes (the annotation type), the same link in their
+   quieter ink. */
+.about-notes .prose-link {
+  color: var(--muted-foreground);
+}
+/* A /works venue (TimelineCommit): a magic link in the metadata line,
+   keeping the line's own rung. The underline says it summons something;
+   the colour stays the date's neighbour's. */
+.prose-link.venue-link {
+  color: inherit;
+}
+@media (hover: hover) {
+  .prose-link.venue-link:hover {
+    color: var(--foreground);
+  }
+}
+@media (hover: hover) {
+  .prose-article a:not(:where(.not-prose, .not-prose *)):hover,
+  .prose-link:hover {
+    -webkit-text-decoration-color: var(--foreground);
+    text-decoration-color: var(--foreground);
+  }
 }
 
 .prose-article strong:not(:where(.not-prose, .not-prose *)) {
   @apply font-semibold;
 }
 
-.prose-article em:not(:where(.not-prose, .not-prose *)) {
+/* Emphasis is the serif, in the article and in the About's words
+   (systems/about), which set their prose by these same rules. */
+.prose-article em:not(:where(.not-prose, .not-prose *)),
+.about-copy em {
   @apply font-serif italic;
 }
 
 /* Optical adjustment for Latin: Newsreader has smaller x-height than Inter.
    An em of the body, like every other size in here, so the correction keeps
    its proportion at every reading size instead of standing still. */
-.prose-article[lang="en"] em:not(:where(.not-prose, .not-prose *)) {
+.prose-article[lang="en"] em:not(:where(.not-prose, .not-prose *)),
+.about-copy:lang(en) em {
   font-size: 1.0625em;
 }
+/* The About's greeting takes it too where it is set at the words' own size
+   (a phone; on a desk it is a display size of its own). */
+@media (width < 40rem) {
+  .about-copy:lang(en) h1 {
+    font-size: 1.0625em;
+  }
+}
 
-/* Right spacing for Chinese italic to prevent overhang */
-.prose-article[lang="zh"] em:not(:where(.not-prose, .not-prose *)) {
-  margin-right: 0.1em;
+/* Chinese has no italic. A browser can only slant the glyphs, which reads
+   as a rendering fault, so Chinese emphasis is the serif, upright. */
+.prose-article[lang="zh"] em:not(:where(.not-prose, .not-prose *)),
+.about-copy:lang(zh) em {
+  font-style: normal;
 }
 
 /* Blockquote - Editorial hanging quotation marks style */
@@ -992,7 +1269,7 @@ html.dragging * {
 /* Desktop "bleed out": on wide screens, let landscape media break out of the
    680px reading column and grow toward the viewport, Medium-style. Applies to
    video embeds and to images flagged data-bleed="true" (see components/
-   mdx-image.tsx — wide, high-res captures opt in automatically, overridable
+   mdx-image.tsx: wide, high-res captures opt in automatically, overridable
    per image with a #bleed / #no-bleed URL fragment).
 
    Stays viewport-centered via the margin-left:50% + translateX(-50%) trick
@@ -1027,12 +1304,22 @@ html.dragging * {
 }
 
 /* =============================================================================
-   Reading settings — devtool "Reading" panel, reflected onto <html data-*>.
+   Reading settings: devtool "Reading" panel, reflected onto <html data-*>.
    ============================================================================= */
 
-/* Body typeface: serif mode swaps prose body copy to the serif stack. Headings
-   keep their explicit `font-sans`; code/quote/em keep their own families. */
-:root[data-reading-font="serif"] .prose-article {
+/* Typeface: serif mode swaps the whole reading composition to the serif stack:
+   the body, the headings inside it and the title over it. The headings and
+   the masthead title name `font-sans` explicitly (above, and TITLE_READER in
+   components/ui/header-zone.tsx), so inheriting from the body is not enough:
+   left alone, a serif page kept sans headings and a sans title. The About's
+   words are set as an article is and already follow the reading size, so they
+   follow the typeface too. Code keeps mono; quote/em were serif already. */
+:root[data-reading-font="serif"] .prose-article,
+:root[data-reading-font="serif"] .about-copy,
+:root[data-reading-font="serif"]
+  .prose-article
+  :is(h1, h2, h3):not(:where(.not-prose, .not-prose *)),
+:root[data-reading-font="serif"] main[data-variant="reader"] .reader-masthead h1 {
   @apply font-serif;
 }
 
@@ -1118,12 +1405,17 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* Reading measure: widen/narrow the reader column. Only the reader variant's
-   container is affected; poetic pages (home, lists) keep their width. */
-:root[data-reading-measure="narrow"] main[data-variant="reader"] {
-  max-width: 600px;
-}
-:root[data-reading-measure="wide"] main[data-variant="reader"] {
-  max-width: 760px;
+   container is affected; poetic pages (home, lists) keep their width. Only
+   where all three columns fit (`measure:`), so the setting does nothing where
+   the reader cannot see the row that sets it -- a phone does not keep a
+   narrow column chosen at a desk and hidden from the phone. */
+@media (width >= theme(--breakpoint-measure)) {
+  :root[data-reading-measure="narrow"] main[data-variant="reader"] {
+    max-width: 600px;
+  }
+  :root[data-reading-measure="wide"] main[data-variant="reader"] {
+    max-width: 760px;
+  }
 }
 
 /* Focus mode: dim every prose block except the one at the reading line, which
@@ -1213,6 +1505,41 @@ main[data-variant="reader"] .reader-masthead {
   animation-timing-function: ease-out;
   /* Prevent the element from being part of root transition */
   mix-blend-mode: normal;
+}
+
+/* -----------------------------------------------------------------------------
+   The Ask ball (systems/command/fab.tsx, AskBall) - Shared Element
+   -----------------------------------------------------------------------------
+   The ball beside the search bar changes place with the page (right of the
+   home's prompt, left of the corner's button). As a shared element it slides
+   straight there in the same transition as the page's crossfade, the way the
+   identifier moves; it looks the same at both ends, so the slide is all
+   there is: no crossfade of its own.
+
+   Named only while a transition runs: a view-transition-name makes the
+   element a backdrop root, and the frost inside it (a blurred backdrop, as
+   on the search bar) would see nothing behind the ball but the ball itself,
+   leaving bare tint. While it slides, its group blurs the page's snapshots
+   under it instead, so it is the same glass there too. */
+
+:root:active-view-transition [data-ask-ball] {
+  view-transition-name: ask-ball;
+}
+
+::view-transition-group(ask-ball) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 9999px;
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+
+::view-transition-old(ask-ball) {
+  display: none;
+}
+
+::view-transition-new(ask-ball) {
+  animation: none;
 }
 
 /* -----------------------------------------------------------------------------
@@ -1310,7 +1637,7 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
-   EQ Bars — Apple Music style "now playing" indicator
+   EQ Bars: Apple Music style "now playing" indicator
    ============================================================================= */
 
 @keyframes eq-bar {
@@ -1324,10 +1651,10 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
-   Timeline Connector — hover-only leader line that draws an L-shape from
+   Timeline Connector: hover-only leader line that draws an L-shape from
    a commit row to its role row. The `connector-draw` keyframe runs the
    stroke-dashoffset from full length to zero so the line traces itself
-   in once and then sits static. No terminator decoration — the L's own
+   in once and then sits static. No terminator decoration: the L's own
    corner where it meets the role row is the endpoint.
    ============================================================================= */
 
@@ -1354,8 +1681,8 @@ main[data-variant="reader"] .reader-masthead {
   }
 }
 
-/* Tenure rail: when the role row is hovered/focused/expanded, brighten
-   every rail span in its cluster. Member hover instead activates only
+/* Tenure rail: when the role row is hovered/focused/expanded, light every
+   rail span in its cluster, on the graph's lit rung (`--graph-lit`). Member hover instead activates only
    that member's connector via JS state. */
 
 .group\/tenure:has(> [data-role-row]:hover) [data-rail-above],
@@ -1364,15 +1691,11 @@ main[data-variant="reader"] .reader-masthead {
 .group\/tenure:has(> [data-role-row]:focus-within) [data-rail-below],
 .group\/tenure:has(> [data-role-row]:has([data-expanded])) [data-rail-above],
 .group\/tenure:has(> [data-role-row]:has([data-expanded])) [data-rail-below] {
-  background-color: color-mix(
-    in oklch,
-    var(--color-muted-foreground) 30%,
-    transparent
-  );
+  background-color: var(--graph-lit);
 }
 
 /* =============================================================================
-   Widget Jiggle — iPad-springboard "edit mode" wobble applied to widgets
+   Widget Jiggle: iPad-springboard "edit mode" wobble applied to widgets
    while the homepage grid is being rearranged. Lives on an inner wrapper so
    it never competes with the layout transform Framer Motion drives.
    ============================================================================= */
@@ -1400,7 +1723,7 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
-   Press feedback — `.pressable`
+   Press feedback: `.pressable`
    iOS highlights on touch-DOWN, instantly, and fades the highlight out on
    release; the web's hover-only wash (`hover:` is gated on `(hover: hover)`
    in Tailwind v4, so touch devices never see it) gives a finger nothing at
@@ -1420,16 +1743,16 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
-   Widget surface — `.widget-surface`
+   Widget surface: `.widget-surface`
    An iPadOS widget is one tappable object: its title, padding and static text
    open the widget, while rows, links, tabs and fields inside keep their own
-   taps. This paints the iOS tap wash for surface presses only — `:active`
+   taps. This paints the iOS tap wash for surface presses only. `:active`
    bubbles up from a pressed descendant, so one with its own action is
    excluded via `:has()`.
 
    The selector list mirrors `OWN_ACTION_SELECTORS` in
    `components/ui/widget-surface.ts`, which gates the tap and the long-press
-   pickup. Keep the two in sync — CSS cannot import the module.
+   pickup. Keep the two in sync; CSS cannot import the module.
 
    An overlay rather than a transform/filter: a transform on the shell would
    re-anchor the fixed gradient backdrop mid-press.
@@ -1472,19 +1795,19 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
-   Voice — `.system-chrome`, `.system-surface`, `.system-voice`, the default
+   Voice: `.system-chrome`, `.system-surface`, `.system-voice`, the default
    Four tiers, and a piece of UI picks one. The classes live here rather than
    as Tailwind utilities at the call sites so the policies can be read side by
    side, and so all three carry the text-field exception below: `user-select:
    none` inherited into an `<input>` costs Safari the caret, and a
    `select-none` in a class string has no way to say otherwise.
 
-   chrome    `.system-chrome` — navigation, the command bar, the dock, edit
+   chrome    `.system-chrome`: navigation, the command bar, the dock, edit
              controls, a window's own frame, every secondary surface (`SHELL`,
              systems/surface). The OS's own UI: no text selection, no
              long-press callout, no grey tap flash. A press on it is a gesture,
              never a grab at text.
-   surface   `.system-surface` — a whole composition that is not a document:
+   surface   `.system-surface`: a whole composition that is not a document:
              the home screen, the 404. iOS Safari skips `user-select: none` on
              individual labels and expands a long-press into a full-page
              selection (Copy / Find Selection across the viewport), so the lock
@@ -1492,11 +1815,11 @@ main[data-variant="reader"] .reader-masthead {
              WebKit makes anyway. (A descendant `*` rule is omitted on purpose:
              the CSS pipeline drops that selector. Inheritance plus the hook
              cover children.)
-   voice     `.system-voice` — System text inside a page that is otherwise a
+   voice     `.system-voice`: System text inside a page that is otherwise a
              document: poetic index titles, the widget grid, app labels.
              Selection only, so a link inside keeps its preview and its tap
              flash. Pair it with `cursor-default` where the arrow should say so
-             too — but never on an element inside a link or button, where a
+             too, but never on an element inside a link or button, where a
              cursor set here would beat the pointer the control lends it.
    document  no class. Prose, article titles (`TITLE_READER`), the /writing
              list, /works rows. Browser defaults: text stays selectable and a
@@ -1536,7 +1859,7 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
-   Press-and-hold — `.press-hold`
+   Press-and-hold: `.press-hold`
    Touch long-press to pick up a widget or app icon. iOS grows the held object
    slowly for the whole duration of the press and only then lifts it; the
    grow is the "this is about to happen" signal that lets the visitor bail by
@@ -1583,7 +1906,7 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
-   Widget gesture suppression — homescreen widgets are draggable objects, not
+   Widget gesture suppression. Homescreen widgets are draggable objects, not
    documents. A long-press should start a reorder drag, never the OS's native
    link "peek"/callout, text selection, or link/image drag-ghost. `select-none`
    on the item handles selection; these cover the iOS touch callout and the
@@ -1597,7 +1920,7 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 [data-widget-id] {
-  /* No grey flash on tap — widgets respond via their own hover/drag states. */
+  /* No grey flash on tap; widgets respond via their own hover/drag states. */
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -1609,11 +1932,11 @@ main[data-variant="reader"] .reader-masthead {
 
 
 /* =============================================================================
-   Secondary surface motion — `[data-surface-popup]`, `[data-surface-shell]`
+   Secondary surface motion: `[data-surface-popup]`, `[data-surface-shell]`
    Base UI's Drawer leaves every animation to CSS and publishes the state as
-   custom properties on the popup, so the whole vocabulary of a surface —
-   arriving, leaving, changing detent, following a finger, stepping back behind
-   another sheet — is written once, here, on the site's own curve.
+   custom properties on the popup. So every motion a surface makes (arriving,
+   leaving, changing detent, following a finger, stepping back behind another
+   sheet) is written once, here, on the site's own curve.
 
    From Base UI, on the popup: `--drawer-snap-point-offset` (how far down the
    active detent sits), `--drawer-swipe-movement-x/y` (the live drag),
@@ -1624,7 +1947,7 @@ main[data-variant="reader"] .reader-masthead {
 
    Every Base UI name here is that library's contract, not ours. Before
    changing a rule, read the "BEFORE CHANGING THIS FILE" block at the top of
-   systems/surface/sheet.tsx — it lists what these variables mean, which of
+   systems/surface/sheet.tsx. It lists what these variables mean, which of
    them do not inherit, and why a popup must never carry `transition: none`
    on the frame it starts leaving.
    ============================================================================= */
@@ -1634,8 +1957,8 @@ main[data-variant="reader"] .reader-masthead {
     transform var(--surface-duration) var(--surface-easing),
     padding-bottom var(--surface-duration) var(--surface-easing);
   /* Composited for its whole life, not just while a finger is on it. Base UI
-     writes an inline `translate3d(…)` on every touchstart — even a touch that
-     turns out to be a sideways scroll inside the sheet — and removes it on
+     writes an inline `translate3d(…)` on every touchstart (even a touch that
+     turns out to be a sideways scroll inside the sheet) and removes it on
      touchend, which drops the popup back to the 2D transform below. On
      WebKit a 3D transform is a compositing layer and a 2D one is not, so
      that release used to demote the popup and rebuild the layer tree around
@@ -1651,7 +1974,7 @@ main[data-variant="reader"] .reader-masthead {
    finger has stopped. Base UI marks the drag for exactly this. The duration,
    not the whole transition: on the frame the finger lets go the sheet can be
    marked swiping and leaving at once, and the leaving rule below only restores
-   a duration — a transition with no property to run on would let the sheet
+   a duration. A transition with no property to run on would let the sheet
    jump to the edge and be unmounted the next frame, with no exit at all. */
 [data-surface-popup][data-swiping] {
   transition-duration: 0ms;
@@ -1671,7 +1994,7 @@ main[data-variant="reader"] .reader-masthead {
    padding grows by the same amount, so the shell inside keeps its rounded
    corners a gap above the bottom edge instead of below the screen. The live
    drag is in there too, so between detents the sheet grows and shrinks from
-   the top with its bottom planted — but only down to the lowest detent
+   the top with its bottom planted, but only down to the lowest detent
    (`--surface-detent-floor`), because past that the drag is a dismissal and
    the sheet should leave whole rather than be squashed into the edge. */
 [data-surface-popup][data-surface-snap] {
@@ -1690,13 +2013,13 @@ main[data-variant="reader"] .reader-masthead {
 
 /* Arriving, a kept-mounted sheet rises at the size it is going to be.
 
-   Base UI resolves the active detent's offset from measurements — the popup's
-   height and the viewport's (useDrawerSnapPoints.js) — and a popup coming back
+   Base UI resolves the active detent's offset from measurements (the popup's
+   height and the viewport's, in useDrawerSnapPoints.js), and a popup coming back
    out of `display: none` has no box to measure, so on its first painted frame
    the offset is 0, which *is* the top detent: the sheet arrives at full height
    and then slides down into its detent over half a second, growing and
-   shrinking as it comes. The offset is no mystery though — it is
-   `popupHeight - detentHeight` — and sheet.tsx publishes exactly that as
+   shrinking as it comes. The offset is simply
+   `popupHeight - detentHeight`, and sheet.tsx publishes exactly that as
    `--surface-snap-fallback`, which CSS can compute without measuring anything.
    For the length of the entrance the sheet stands on ours; Base UI's lands
    under it, the same number, before the mark comes off.
@@ -1713,8 +2036,8 @@ main[data-variant="reader"] .reader-masthead {
 
 /* The one painted frame a kept-mounted sheet needs to have somewhere to rise
    from (sheet.tsx sets the mark for exactly one frame; the note there says
-   why). It must land instantly — this is the start of the journey, not part of
-   it — so the duration goes, never the property: a popup with no transition
+   why). It must land instantly, since it is where the journey starts, so the
+   duration goes, never the property: a popup with no transition
    property at all cannot be told when it has finished leaving (item 3 at the
    top of systems/surface/sheet.tsx). */
 [data-surface-popup][data-surface-arriving][data-swipe-direction="down"] {
@@ -1744,7 +2067,7 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* The glass shell inside the positioning box. It rests on the software
-   keyboard rather than behind it, and steps back — iOS's receded presenter —
+   keyboard rather than behind it, and steps back (iOS's receded presenter)
    while another sheet is open over it.
 
    How far back is `--surface-depth`, in sheets: the ones Base UI counts as
@@ -1758,8 +2081,8 @@ main[data-variant="reader"] .reader-masthead {
    The step back is background motion and takes its own curve: ease-in-out,
    not the fast-out the drawers travel on. A child sheet starts moving a frame
    after its parent's depth changes, and on the travel curve that frame is
-   already a third of the recede — the parent seems to flinch before the child
-   arrives. On a curve that starts gently the frame is nothing, and the two
+   already a third of the recede, so the parent seems to flinch before the child
+   arrives. On a curve that starts slowly the frame is nothing, and the two
    motions end together. */
 [data-surface-shell] {
   --drawer-swipe-progress: inherit;
@@ -1768,7 +2091,7 @@ main[data-variant="reader"] .reader-masthead {
       var(--surface-stack-depth, 0)
   );
   margin-bottom: var(--drawer-keyboard-inset, 0px);
-  /* An extra pinch a sheet can ask for without restating the formula — see
+  /* An extra pinch a sheet can ask for without restating the formula. See
      `[data-pull-armed]` below. */
   --surface-pull-give: 0;
   transform: translate3d(0, calc(var(--surface-depth) * -8px), 0)
@@ -1778,16 +2101,16 @@ main[data-variant="reader"] .reader-masthead {
     transform var(--surface-duration) var(--surface-recede-easing);
 }
 
-/* Under the finger the parent is direct, like the child — the duration only,
+/* Under the finger the parent is direct, like the child. The duration only,
    for the same reason as above. */
 [data-surface-popup][data-nested-drawer-swiping] > [data-surface-shell] {
   transition-duration: 0ms;
 }
 
 /* Pulled past the top far enough that letting go will lift the sheet off the
-   edge (`onPullPastTop`, sheet.tsx). It gives a little, the way a thing about
-   to come loose does, so the gesture can be seen before it is committed — and
-   eased back out of. Shares the depth transform rather than fighting it. */
+   edge (`onPullPastTop`, sheet.tsx). It shrinks a little, so the gesture can
+   be seen before it is committed, and eases back out of it. Shares the depth
+   transform rather than fighting it. */
 [data-surface-shell][data-pull-armed] {
   --surface-pull-give: 0.025;
   transition-duration: 180ms;
@@ -1801,20 +2124,120 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
-   Window grip — the hit area
+   Ask panel: the page makes room
+   While Ask sits at the side (systems/ask/surfaces.tsx sets `data-ask-docked`
+   on <html>), the page gives up the panel's width and the edge gap at its
+   trailing edge, so a column of prose is read beside the conversation rather
+   than under it. Only where the 680px column still fits beside a 440px
+   panel; on a narrower screen the panel floats over the page's edge, as every
+   other panel does, and so it does over the home's widget grid, which is not
+   a column to read. Padding on the page's own box (vitre's `#vitre-scroll`),
+   so fixed layers and the wallpaper keep the whole screen.
+   ============================================================================= */
+
+@media (min-width: 1280px) {
+  #vitre-scroll {
+    transition: padding-right 500ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  html[data-ask-docked] #vitre-scroll {
+    padding-right: calc(var(--surface-panel-w, 440px) + 0.75rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #vitre-scroll {
+    transition: none;
+  }
+}
+
+/* =============================================================================
+   Ask: a drag between places
+   The side panel and the dock follow the pointer (placement.tsx). The center
+   window is the palette's own drag; it fades only once letting go would put
+   it somewhere else (`data-ask-dragging`).
+   ============================================================================= */
+
+html[data-ask-dragging] :is([data-ask-center], [data-ask-panel] > *, [data-dock-panel]:has([data-ask-top])) {
+  opacity: 0.35;
+  transition: opacity 150ms ease-out;
+}
+
+/* The side panel and the dock follow the pointer while their header is
+   dragged (placement.tsx sets `data-ask-drag-from` and the offset). `translate`
+   composes with the drawer's own `transform`, so the entrance and the swipe
+   are left alone. The place being left is hidden for the handoff
+   (`data-ask-drag-commit` names it), or the panel would snap home for a frame
+   before the new one mounts. */
+html[data-ask-drag-from="side"] [data-ask-drag-host="side"],
+html[data-ask-drag-from="top"] [data-dock-panel]:has([data-ask-top]) {
+  translate: var(--ask-drag-x, 0px) var(--ask-drag-y, 0px);
+  z-index: 80;
+  cursor: grabbing;
+}
+
+/* Framer Motion owns the center card's mouse drag. A touch drag begins only
+   after Ask's long press, so it carries the same card with the independent
+   `translate` property instead. */
+html[data-ask-drag-touch][data-ask-drag-from="center"] [data-ask-center-host] {
+  translate: var(--ask-drag-x, 0px) var(--ask-drag-y, 0px);
+  cursor: grabbing;
+}
+
+html[data-ask-drag-touch][data-ask-drag-from="center"] [data-ask-center-host],
+html[data-ask-drag-touch][data-ask-drag-from="side"] [data-ask-drag-host="side"],
+html[data-ask-drag-touch][data-ask-drag-from="top"] [data-dock-panel]:has([data-ask-top]) [data-surface-shell] {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+html[data-ask-drag-commit="side"] [data-ask-drag-host="side"],
+html[data-ask-drag-commit="center"] [data-ask-center],
+html[data-ask-drag-commit="top"] [data-dock-panel]:has([data-ask-top]) {
+  opacity: 0;
+  transition: none;
+}
+
+/* A question handed from Command to an Ask surface that was already open
+   should not appear to vanish with the palette. The receiving pane answers
+   with one restrained focus pulse; it neither moves nor steals the keyboard. */
+html[data-ask-handoff="side"] [data-ask-drag-host="side"],
+html[data-ask-handoff="top"] [data-dock-panel]:has([data-ask-top]) [data-surface-shell],
+html[data-ask-handoff="center"] [data-surface-shell]:has([data-ask-panel]) {
+  animation: ask-handoff 650ms ease-out;
+}
+
+@keyframes ask-handoff {
+  0% { outline: 0 solid var(--ring); outline-offset: 0; }
+  35% { outline: 3px solid var(--ring); outline-offset: 3px; }
+  100% { outline: 0 solid transparent; outline-offset: 7px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-ask-handoff] [data-ask-drag-host="side"],
+  html[data-ask-handoff] [data-dock-panel]:has([data-ask-top]) [data-surface-shell],
+  html[data-ask-handoff] [data-surface-shell]:has([data-ask-panel]) {
+    animation: none;
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+}
+
+/* =============================================================================
+   Window grip: the hit area
    The chrome of an app window on a phone (systems/windows/components/
    window-grip.tsx) is the window's own pill of traffic lights, floating over
    edge-to-edge content as it does on the desktop, doing double duty as the
    sheet's grabber. It looks exactly like the desktop pill, down to the padding
-   (window-pill.tsx has all of it), and that pill is 48×28.5 — a fine target for
+   (window-pill.tsx has all of it), and that pill is 48×28.5: a fine target for
    a mouse and a small one for a thumb that also has to drag the sheet by it.
    So the only thing said here is the thing the look cannot say: the glass is
-   the pill, and the target reaches past it — though no further up than the
+   the pill, and the target reaches past it, though no further up than the
    shell's own edge, which clips. 72×44.5, from a pill of 48×28.5.
 
    Keeping the two apart is also what a future morph needs: a pill that shrinks
    into the site's 36×4 bar must not take its target down with it. There is no
-   shape change here today — the dots used to become that bar while the sheet
+   shape change here today. The dots used to become that bar while the sheet
    was dragged, keyed off one state or another, and every version of that state
    could be stranded with the controls hidden inside it. The note at the top of
    window-grip.tsx has the history.
@@ -1827,14 +2250,14 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
-   Dock panel motion — `[data-dock-panel]`, `[data-dock-pill]`
+   Dock panel motion: `[data-dock-panel]`, `[data-dock-pill]`
    The Live Activity panel is the same library as the sheets above, travelling
    UP instead of DOWN: a Base UI drawer anchored at the top of the screen that
    puts itself away over the top edge. It gets its own block rather than a
    `[data-swipe-direction="up"]` arm of the surface rules, because a top panel
-   shares none of the sheet's geometry — no detents, no padding-as-travel, no
-   bottom inset — and only the shell recede (`[data-surface-shell]`, above) is
-   genuinely common.
+   shares none of the sheet's geometry (no detents, no padding-as-travel, no
+   bottom inset). Only the shell recede (`[data-surface-shell]`, above) is
+   common to both.
 
    From Base UI, on the popup: `--drawer-swipe-movement-y` (the live drag) and
    `--drawer-swipe-strength` (how hard it was flicked). From live-activity.tsx:
@@ -1853,7 +2276,7 @@ main[data-variant="reader"] .reader-masthead {
    shell and on the pill, which are the glass.
 
    Before changing a rule, read the "BEFORE CHANGING THIS FILE" block at the
-   top of systems/dock/components/live-activity.tsx — the five notes there are
+   top of systems/dock/components/live-activity.tsx. The five notes there are
    what these rules are shaped around, notes 4 and 5 most of all: they are the
    reason the fade is not on the popup and the reason the closed transform has
    no `translateY`.
@@ -1871,23 +2294,23 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* Under the finger the panel is direct. The duration only, never the whole
-   transition — same reason as the sheet: on the frame a dismiss is released
+   transition, for the same reason as the sheet: on the frame a dismiss is released
    the popup can be swiping and leaving at once, and the leaving rule below
    restores a duration, not a property to run on. */
 [data-dock-panel][data-swiping] {
   transition-duration: 0ms;
 }
 
-/* The pop. A shade small, settling into place — the panel belongs to the pill
+/* The pop. A shade small, settling into place. The panel belongs to the pill
    it came from, and a pill is right there, so it has nowhere to travel from.
    The scale is the number the hand-written panel used, so the dock reads the
    way it always has.
 
-   Its `y: -10` is deliberately NOT here, and this is not a detail. Base UI's
+   Its `y: -10` is deliberately NOT here. Base UI's
    swipe-open measures how far "closed" is by reading the popup's transform at
    the moment the drag starts (`resolveClosedOffset`, which takes
    `min(height, |translateY|)`), and it reads it before it marks the popup as
-   swiping — so it sees this rule. A ten-pixel offset told it the panel was ten
+   swiping, so it sees this rule. A ten-pixel offset told it the panel was ten
    pixels from open, and a pull that should have tracked the finger down a whole
    panel height tracked it for ten pixels and then overshot: measured, the live
    `--drawer-swipe-movement-y` came back at +12px instead of the −170 it should
@@ -1909,7 +2332,7 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* Pulled open from the pill. `Drawer.SwipeArea` opens the drawer on the first
-   pixel of the drag, so the panel arrives — `data-starting-style` and all —
+   pixel of the drag, so the panel arrives (`data-starting-style` and all)
    while the finger is still down, and the rule above would hide it for the
    whole gesture. Under the finger the finger wins. Starting style only: on a
    release the popup carries `data-swiping` and `data-ending-style` together,
@@ -1927,7 +2350,7 @@ main[data-variant="reader"] .reader-masthead {
    at the top of this block). An animation rather than a transition, for two
    reasons: the shell's `transition` shorthand already belongs to the surface
    recede and a second rule would replace it wholesale, and `data-starting-style`
-   lives for a single frame — too short for a transition to key off, long enough
+   lives for a single frame: too short for a transition to key off, long enough
    to start an animation that then runs on its own. Base UI reads the popup's
    own animations to decide when an exit is over, not the subtree's, so this
    fade never holds the unmount open. */
@@ -1970,10 +2393,16 @@ main[data-variant="reader"] .reader-masthead {
 
 [data-dock-pill] > * {
   /* The site's surface curve, written out: the pill sits in the dock row, not
-     under the popup that carries `--surface-easing`. */
+     under the popup that carries `--surface-easing`. `width` is the pill
+     becoming a circle and back in the top band (systems/dock/band.ts). It has
+     to be here, since this unlayered rule outranks the trigger's own
+     `transition-*` utilities; so do its hover colours. */
   transition:
     opacity 220ms cubic-bezier(0.32, 0.72, 0, 1),
-    transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+    transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
+    width 320ms cubic-bezier(0.32, 0.72, 0, 1),
+    background-color 150ms ease,
+    border-color 150ms ease;
   transform-origin: top center;
 }
 
@@ -1998,22 +2427,22 @@ main[data-variant="reader"] .reader-masthead {
 }
 
 /* =============================================================================
-   The sky pull (systems/ambient/lib/sky-pull.ts) — pull the home down to look
+   The sky pull (systems/ambient/lib/sky-pull.ts): pull the home down to look
    up, and the sky window opens.
 
    `[data-sky-exits]` marks what steps out of the frame for the window: the home
    composition and the search button under it. Everything on the home already
-   sits low, so the way out is the way the pull was already taking it — down,
-   and out of the bottom — and the way back is up from there.
+   sits low, so the way out is the way the pull was already taking it: down,
+   and out of the bottom. The way back is up from there.
 
    The transform is only ever applied in the four states that need one. At rest
    there is none at all, because a transform on <main> would make it the
    containing block of anything fixed inside it and a stacking context of its
-   own — a cost for every visit, paid for a gesture most never make.
+   own. That would be a cost on every visit, paid for a gesture most never make.
 
      pulling    follows the finger exactly (no transition), fading a touch
      returning  eases back to rest after a pull let go short, or the window
-                closing — the one state with a transition home
+                closing; the one state with a transition home
      window     on its way out of the bottom, then gone and untouchable
    ============================================================================= */
 
@@ -2033,18 +2462,23 @@ html[data-sky-window] [data-sky-exits] {
   transform: translate3d(0, 110svh, 0);
   opacity: 0;
   pointer-events: none;
-  /* Accelerating away — it was already moving down under the finger. */
+  /* Accelerating away: it was already moving down under the finger. */
   transition:
     transform 560ms cubic-bezier(0.5, 0, 0.75, 0),
     opacity 420ms ease-in 140ms;
 }
 
 /* The cue at the top: comes down with the pull from above the edge, grows and
-   brightens as it comes — light, not a gauge — and says "let go" when letting
-   go will open the window. */
+   brightens as it comes (drawn as light, not as a gauge), and says "let go"
+   when letting go will open the window. It reads `--sky-pull-reveal`, not the
+   progress. That is nothing at all for the first ~8 mm of the pull (well past
+   where the platform calls a touch a drag), so a page nudged at its top just
+   moves. Then the whole cue (its light, its size, its glow) grows from zero on
+   a smoothstep that keeps growing until the line itself (`revealAt`,
+   lib/sky-pull.ts). */
 .sky-pull-cue {
   padding-top: calc(env(safe-area-inset-top) + 12px);
-  opacity: min(1, calc(var(--sky-pull-progress, 0) * 1.6));
+  opacity: var(--sky-pull-reveal, 0);
   transform: translate3d(0, calc(var(--sky-pull, 0px) * 0.45 - 44px), 0);
   transition:
     opacity 300ms ease-out,
@@ -2060,7 +2494,7 @@ html[data-sky-window] .sky-pull-cue {
 }
 
 .sky-pull-cue-bubble {
-  transform: scale(calc(0.72 + 0.28 * var(--sky-pull-progress, 0)));
+  transform: scale(calc(0.72 + 0.28 * var(--sky-pull-reveal, 0)));
   transition: transform 450ms cubic-bezier(0.2, 0.9, 0.25, 1);
 }
 
@@ -2069,29 +2503,29 @@ html[data-sky-pulling] .sky-pull-cue-bloom {
   transition: none;
 }
 
-/* The body brightens as it comes into view — a body rising, not a bar filling —
-   with a glow of its own, and the faintest shade under it so it still reads
+/* The body brightens as it comes into view, like a body rising rather than a
+   bar filling. It has a glow of its own, and the faintest shade under it so it still reads
    against a bright noon. */
 .sky-pull-cue-glyph {
-  opacity: calc(0.35 + 0.65 * var(--sky-pull-progress, 0));
+  opacity: calc(0.35 + 0.65 * var(--sky-pull-reveal, 0));
   filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.7)) drop-shadow(0 1px 3px rgb(0 0 0 / 0.18));
 }
 
 /* The light behind the glass: a soft bloom that widens with the pull and opens
-   out at the point of no return. White light, added — on a dark sky it glows,
-   on a bright one it is barely there, which is what light does. */
+   out at the point of no return. White light, added: on a dark sky it glows,
+   on a bright one it is barely there. */
 .sky-pull-cue-bloom {
   background: radial-gradient(circle, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0) 68%);
   mix-blend-mode: plus-lighter;
-  opacity: calc(0.25 + 0.5 * var(--sky-pull-progress, 0));
-  transform: scale(calc(1.2 + 1.3 * var(--sky-pull-progress, 0)));
+  opacity: calc(0.25 + 0.5 * var(--sky-pull-reveal, 0));
+  transform: scale(calc(1.2 + 1.3 * var(--sky-pull-reveal, 0)));
   transition:
     transform 450ms cubic-bezier(0.2, 0.9, 0.25, 1),
     opacity 450ms ease-out;
 }
 
 /* No state of its own at the point of no return: the light is one continuous
-   function of how far the pull has come, so nothing about it jumps — neither
+   function of how far the pull has come, so nothing about it jumps, neither
    crossing the line nor letting go on either side of it. Only the words say
    the line has been crossed. */
 
@@ -2120,12 +2554,12 @@ html[data-sky-armed] .sky-pull-cue-go {
 }
 
 /* =============================================================================
-   Tilt primer illustration — a phone tilting one way while the rain inside it
+   Tilt primer illustration: a phone tilting one way while the rain inside it
    tilts the other (systems/ambient/components/tilt-primer-sheet).
 
-   WHICH WAY THE CAMERA LOOKS is the whole legibility of this picture, and the
-   first version got it wrong. Drawn in the WORLD's frame — rain fixed, phone
-   turning — the rain never changes on screen, and the one thing the viewer is
+   WHICH WAY THE CAMERA LOOKS decides whether this picture reads, and the
+   first version got it wrong. Drawn in the WORLD's frame (rain fixed, phone
+   turning), the rain never changes on screen, so the one thing the viewer is
    meant to notice is the one thing that never moves. But nobody watches their
    phone from the world's frame: it is in your hand, so the screen is what holds
    still and the rain is what swings.
@@ -2133,21 +2567,21 @@ html[data-sky-armed] .sky-pull-cue-go {
    So the camera follows the device part of the way. With a device tilt of θ the
    phone is drawn at c·θ and the rain at (c − 1)·θ, c = 0.45: they swing apart,
    in opposite directions, and the angle between them is c·θ − (c − 1)·θ = θ
-   exactly, at every instant. Nothing is exaggerated — the cause and the effect
-   are simply both on screen, where at c = 1 only the cause was.
+   exactly, at every instant. Nothing is exaggerated. The cause and the effect
+   are both on screen, where at c = 1 only the cause was.
 
    The rain's group is NESTED in the phone's, so its own rotation is −θ whatever
    the camera does; only the phone's amplitude carries c.
 
-   CSS rather than a JS animator, for two reasons that are the whole quality of
-   the thing. One: the rain is "level" only for as long as the phone's rotation
+   CSS rather than a JS animator, for two reasons. One: the rain is "level"
+   only for as long as the phone's rotation
    and the rain's counter-rotation stay exactly opposite, and two declarative
    animations of the same duration cannot drift, where two dozen independently
    started JS springs can. Two: this plays over a live WebGL sky, and the main
    thread is already spoken for.
 
    Three animations in total, whatever the drop count: the shell, the level
-   group, and the rain — because the rain is a seamless TILE-tall tile stamped
+   group, and the rain. The rain is a seamless TILE-tall tile stamped
    three times and slid by exactly one tile, not a drop each. The fall is slow
    on purpose: the rocking is the thing to watch, and a busy shower competes
    with it.
@@ -2173,7 +2607,7 @@ html[data-sky-armed] .sky-pull-cue-go {
   transform-origin: 48px 80px;
 }
 
-/* The phone, at c·θ — 0.45 × 24°. */
+/* The phone, at c·θ: 0.45 × 24°. */
 @keyframes tilt-primer-rock {
   0%,
   100% {
@@ -2217,8 +2651,8 @@ html[data-sky-armed] .sky-pull-cue-go {
   animation: tilt-primer-fall 2.8s linear infinite;
 }
 
-/* Refused: upright, rain straight down the screen — what a refusal actually
-   leaves you with, rather than a picture still promising the thing. */
+/* Refused: upright, rain straight down the screen. That is what a refusal
+   leaves you with, so the picture should not still promise the effect. */
 .tilt-primer-flat .tilt-primer-phone,
 .tilt-primer-flat .tilt-primer-level {
   animation: none;
@@ -2229,10 +2663,10 @@ html[data-sky-armed] .sky-pull-cue-go {
   animation-play-state: paused;
 }
 
-/* Held: the same picture, stopped — a tilted phone with level rain, which
-   still says it where an upright one would just be a phone. Paused at 0% is
-   exactly that pose, so the still frame IS the animation, not a second
-   drawing to keep in step. */
+/* Held: the same picture, stopped. A tilted phone with level rain still
+   shows the effect, where an upright one would just be a phone. Paused at 0%
+   is exactly that pose, so the still frame is the animation's own frame and
+   there is no second drawing to keep in step. */
 @media (prefers-reduced-motion: reduce) {
   .tilt-primer-phone,
   .tilt-primer-level,
@@ -2242,13 +2676,13 @@ html[data-sky-armed] .sky-pull-cue-go {
 }
 
 /* =============================================================================
-   Sky primer illustration — a phone panning across a sky that holds still
+   Sky primer illustration: a phone panning across a sky that holds still
    (systems/ambient/components/sky-window-sheet).
 
    The sky window's whole idea is that the sky does NOT move: the phone moves
    over it, and the sun comes into the window and goes out again. So this
-   picture is drawn from the world's frame — the one the tilt primer's rain
-   picture above has to avoid, because there the thing to notice is the rain
+   picture is drawn from the world's frame. The tilt primer's rain picture
+   above has to avoid that frame, because there the thing to notice is the rain
    swinging inside the phone, and from the world's frame the rain never moves.
    Here the thing to notice is exactly that something holds still, and a phone
    sliding over a fixed sky is what says it.
@@ -2292,16 +2726,16 @@ html[data-sky-armed] .sky-pull-cue-go {
   animation: sky-primer-unpan 5.2s ease-in-out infinite;
 }
 
-/* Refused: parked between the sun and the moon, framing neither — a window
-   that cannot turn, which is what a refusal leaves you with. */
+/* Refused: parked between the sun and the moon, framing neither. A window
+   that cannot turn is what a refusal leaves you with. */
 .sky-primer-still .sky-primer-phone,
 .sky-primer-still .sky-primer-world {
   animation: none;
   transform: none;
 }
 
-/* Held: paused at 0%, which is the phone framing the sun — the still frame IS
-   the animation, not a second drawing to keep in step. */
+/* Held: paused at 0%, which is the phone framing the sun. The still frame is
+   the animation's own frame, so there is no second drawing to keep in step. */
 @media (prefers-reduced-motion: reduce) {
   .sky-primer-phone,
   .sky-primer-world {
@@ -2310,14 +2744,14 @@ html[data-sky-armed] .sky-pull-cue-go {
 }
 
 /* =============================================================================
-   Install illustration — the site's icon dropping into an empty slot on a home
+   Install illustration: the site's icon dropping into an empty slot on a home
    screen or a Dock (systems/install/components/install-sheet).
 
    One animation on one group: it falls in from a little above, a size too
    big, settles with a small overshoot the way a springboard icon does, holds
    long enough to be looked at, and fades so the loop can start over on the
-   empty dashed slot. The hold is most of the cycle — the landed icon is the
-   promise; the fall is only how the eye gets drawn to it.
+   empty dashed slot. The hold is most of the cycle. The landed icon is what
+   the picture is for; the fall only draws the eye to it.
 
    The transform origin is the slot's centre, set inline per slot: the group
    is transformed in the SVG's own units (view-box), so px there are viewBox
@@ -2354,7 +2788,7 @@ html[data-sky-armed] .sky-pull-cue-go {
   }
 }
 
-/* Landed — installed, or already running as the app: the icon in its place
+/* Landed (installed, or already running as the app): the icon in its place
    and nothing more to show. Reduced motion gets the same frame, since the
    landed icon is the one pose that says it without moving. */
 .install-landed .install-icon {
@@ -2365,4 +2799,152 @@ html[data-sky-armed] .sky-pull-cue-go {
   .install-icon {
     animation: none;
   }
+}
+
+/* =============================================================================
+   About: `.about-copy` (systems/about)
+   The About's blocks rise in turn as it arrives: the greeting first, the
+   credits last. A little blur on the way up, the way a system sheet's text
+   resolves; none of it with reduced motion.
+   ============================================================================= */
+
+.about-copy > * {
+  animation: about-rise 720ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.about-copy > :nth-child(1) { animation-delay: 120ms; }
+.about-copy > :nth-child(2) { animation-delay: 190ms; }
+.about-copy > :nth-child(3) { animation-delay: 260ms; }
+.about-copy > :nth-child(4) { animation-delay: 330ms; }
+.about-copy > :nth-child(5) { animation-delay: 400ms; }
+.about-copy > :nth-child(6) { animation-delay: 470ms; }
+.about-copy > :nth-child(n + 7) { animation-delay: 540ms; }
+
+@keyframes about-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* The way out rises last, with the credits; and words that overflow their
+   container fade at its foot, so the way out never cuts a line in half. */
+.about-foot {
+  animation: about-rise 720ms cubic-bezier(0.2, 0.8, 0.2, 1) 560ms both;
+}
+.about-scroll-fade {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2rem), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 2rem), transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-copy > *,
+  .about-foot {
+    animation: none;
+  }
+}
+
+/* The glow without WebGL (systems/glow): the same palette as a conic
+   gradient (`--glow-stops`, set from lib/palette.ts), masked to a band on the
+   host's edge and softened. Still, but the same light. A line keeps only the
+   bottom of the ring. */
+.glow-fallback {
+  padding: 6px;
+  background: conic-gradient(from 180deg, var(--glow-stops));
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  filter: blur(10px);
+}
+.glow-fallback-line {
+  -webkit-mask: linear-gradient(to top, #000 0 8px, transparent 60%);
+  mask: linear-gradient(to top, #000 0 8px, transparent 60%);
+}
+
+/* The palette's microphone while it listens (systems/command/voice.tsx): a
+   slow breath, so the button says "on" even where the glow is out of sight. */
+.voice-mic-live {
+  animation: voice-mic-breathe 1.6s ease-in-out infinite;
+}
+.voice-recording-dot {
+  animation: voice-recording-breathe 1.4s ease-in-out infinite;
+}
+@keyframes voice-recording-breathe {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--destructive); }
+  50% { opacity: 0.65; box-shadow: 0 0 0 3px transparent; }
+}
+@keyframes voice-mic-breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.9); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-mic-live, .voice-recording-dot { animation: none; }
+}
+
+/* =============================================================================
+   The PL chart (content/blog/pl-chart): abstraction colour
+   (lib/languages `absColor`).
+
+   The one hue on the site, because on the PL chart colour is data: a
+   language's abstraction level, 0 (bare metal) – 9 (pure). On :root, not
+   the page, so the note's popover and sheet (portaled) read them too.
+
+   violet     ordinal, one hue (OKLCH h 300) stepped 0.062 in L. Light: pale →
+              deep, the palest 2.1:1 on the page. Dark: dim → bright, from 2.1:1;
+              ten steps between that floor and white leave 0.058 each.
+   instagram  the original chart's gradient (#fcb045 → #fd1d1d → #833ab4),
+              sampled where its visualMap (min −1, max 9) put each level.
+   ink        the grayscale fallback: the theme's ink at 30 % → 100 %.
+   ============================================================================= */
+:root {
+  --abs-violet-0: oklch(0.77 0.138 300);
+  --abs-violet-1: oklch(0.708 0.18 300);
+  --abs-violet-2: oklch(0.646 0.19 300);
+  --abs-violet-3: oklch(0.583 0.19 300);
+  --abs-violet-4: oklch(0.521 0.19 300);
+  --abs-violet-5: oklch(0.459 0.19 300);
+  --abs-violet-6: oklch(0.397 0.19 300);
+  --abs-violet-7: oklch(0.334 0.178 300);
+  --abs-violet-8: oklch(0.272 0.144 300);
+  --abs-violet-9: oklch(0.21 0.112 300);
+  --abs-instagram-0: #fc933d;
+  --abs-instagram-1: #fc7535;
+  --abs-instagram-2: #fd582d;
+  --abs-instagram-3: #fd3a25;
+  --abs-instagram-4: #fd1d1d;
+  --abs-instagram-5: #e5233b;
+  --abs-instagram-6: #cc2959;
+  --abs-instagram-7: #b42e78;
+  --abs-instagram-8: #9b3496;
+  --abs-instagram-9: #833ab4;
+  --abs-ink-0: color-mix(in oklab, var(--ink) 30%, transparent);
+  --abs-ink-1: color-mix(in oklab, var(--ink) 38%, transparent);
+  --abs-ink-2: color-mix(in oklab, var(--ink) 46%, transparent);
+  --abs-ink-3: color-mix(in oklab, var(--ink) 53%, transparent);
+  --abs-ink-4: color-mix(in oklab, var(--ink) 61%, transparent);
+  --abs-ink-5: color-mix(in oklab, var(--ink) 69%, transparent);
+  --abs-ink-6: color-mix(in oklab, var(--ink) 77%, transparent);
+  --abs-ink-7: color-mix(in oklab, var(--ink) 84%, transparent);
+  --abs-ink-8: color-mix(in oklab, var(--ink) 92%, transparent);
+  --abs-ink-9: color-mix(in oklab, var(--ink) 100%, transparent);
+}
+.dark {
+  --abs-violet-0: oklch(0.445 0.19 300);
+  --abs-violet-1: oklch(0.503 0.19 300);
+  --abs-violet-2: oklch(0.561 0.19 300);
+  --abs-violet-3: oklch(0.618 0.19 300);
+  --abs-violet-4: oklch(0.676 0.19 300);
+  --abs-violet-5: oklch(0.734 0.162 300);
+  --abs-violet-6: oklch(0.792 0.124 300);
+  --abs-violet-7: oklch(0.849 0.086 300);
+  --abs-violet-8: oklch(0.907 0.052 300);
+  --abs-violet-9: oklch(0.965 0.018 300);
 }

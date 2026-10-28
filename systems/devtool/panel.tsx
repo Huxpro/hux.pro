@@ -11,7 +11,14 @@ import {
   GLASS_TINTS,
   getTintLabel,
 } from "@/services";
-import { useAmbientTime, useLocation, useSolarTheme, useWallpaper, useWeather } from "@/systems/ambient";
+import {
+  motionStatus,
+  useAmbientTime,
+  useLocation,
+  useSolarTheme,
+  useWallpaper,
+  useWeather,
+} from "@/systems/ambient";
 import { BEZEL_BAND_MAX, BEZEL_BAND_MIN, BEZEL_RADIUS_MAX } from "vitre";
 import {
   DEFAULT_BEZEL_TINT,
@@ -59,7 +66,6 @@ import {
   minutesOfDay,
   type MoonPhaseName,
 } from "@/systems/ambient/lib/solar";
-import type { WallpaperStats } from "@/systems/ambient/lib/wallpaper/renderer";
 import {
   getWallpaperPlayName,
   getWeatherWallpaperName,
@@ -80,10 +86,41 @@ import {
   DRAGGABLE_DEFAULTS,
   PHONE_PALETTE_DEFAULT,
   HOME_WEATHER_DEFAULT,
+  WORKS_REF_DEFAULT,
   type HomeWeather,
   type PhonePalette,
+  type WorksRef,
 } from "./provider";
 import { useHeroExit } from "@/components/ui/hero-exit";
+import { ASK_PLACEMENTS, useCommand } from "@/systems/command";
+import {
+  askConfigOf,
+  resetAskConfig,
+  setAskConfig,
+  useAskOverrides,
+  useAskPlatform,
+  type AskConfig,
+  type AskConfigKey,
+  type AskPlatform,
+} from "@/systems/ask/lib/config";
+import { ASK_EFFORTS, ASK_MODELS, DEFAULT_ASK_EFFORT, DEFAULT_ASK_MODEL } from "@/systems/ask/lib/models";
+import { askEffortPref, askModelPref } from "@/systems/ask/lib/prefs";
+import { askStrings } from "@/systems/ask/strings";
+import { DEFAULT_VOICE_MODEL, VOICE_MODELS, type VoiceModelChoice } from "@/systems/voice/models";
+import { DEFAULT_VOICE_VISUAL, voiceModelPref, voiceVisualPref, type VoiceVisualStyle } from "@/systems/voice/prefs";
+import { useOptionalAbout } from "@/systems/about/provider";
+import {
+  GLOW_BASELINE,
+  GLOW_TUNING_DEFAULTS,
+  autoHarmony,
+  setGlowTuning,
+  stopCss,
+  useGlowPaletteState,
+  type GlowHarmony,
+  useGlowTuning,
+  type GlowMotion,
+  type GlowTuning,
+} from "@/systems/glow";
 import { useOptionalWindows } from "@/systems/windows";
 import { useOptionalMusic } from "@/systems/music/provider";
 import type { AppLink } from "@/lib/app-icon-core";
@@ -111,6 +148,7 @@ import { cn } from "@/lib/utils";
 import {
   AppWindow,
   BookOpen,
+  Bot,
   Braces,
   Brain,
   Bug,
@@ -125,6 +163,7 @@ import {
   GripVertical,
   Image as ImageIcon,
   Layers2,
+  Mic,
   Moon,
   Music,
   Pause,
@@ -132,6 +171,7 @@ import {
   RefreshCw,
   RotateCcw,
   Compass,
+  GitBranch,
   SlidersHorizontal,
   Sparkles,
   Sun,
@@ -142,6 +182,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Segmented, Switch } from "@/components/ui/controls";
+import { WORKS_TALKS, WORKS_TALKS_DEFAULT, type WorksTalks } from "@/lib/works-talks";
 import { Slider } from "@/components/ui/slider";
 import { useRangeDrag } from "@/components/ui/use-range-drag";
 import {
@@ -155,7 +196,7 @@ import {
 } from "react";
 
 // =============================================================================
-// Devtool content — the modules, and nothing about where they are shown.
+// Devtool content: the modules, and nothing about where they are shown.
 //
 // The devtool is hosted in three different shells over its life (a bottom
 // sheet, a floating window, and neither while it is a pill), and none of that
@@ -165,17 +206,21 @@ import {
 // =============================================================================
 
 /**
- * The modules' ids, in the order they are rendered — so the rail reads in the
+ * The modules' ids, in the order they are rendered, so the rail reads in the
  * same order as the list it indexes. Keep in step with `DevtoolModules`.
  */
 const MODULE_ORDER = [
   "frontmatter",
   "reading",
+  "works",
   "wallpaper",
   "glass",
   "sky",
   "music",
   "command",
+  "ask",
+  "voice",
+  "glow",
   "draggable",
   "windows",
 ] as const;
@@ -186,11 +231,15 @@ export function DevtoolModules() {
     <>
       <FrontmatterModule />
       <ReadingModule />
+      <WorksModule />
       <WallpaperModule />
       <GlassModule />
       <SkyModule />
       <MusicModule />
       <CommandModule />
+      <AskModule />
+      <VoiceModule />
+      <GlowModule />
       <DraggableModule />
       <WindowsModule />
     </>
@@ -198,14 +247,14 @@ export function DevtoolModules() {
 }
 
 // =============================================================================
-// Sections — what the modules tell the rail about themselves
+// Sections: what the modules tell the rail about themselves
 //
 // Every module knows two things about itself the panel as a whole cannot:
 // whether it matters here and now (`relevant`), and whether anything inside it
 // is off its default (`star`). Relevance decides the fold until one is chosen
 // by hand; the star says "look in here" while the module is folded. The rail
 // needs both for every module at once, so each <DebugSection> reports them
-// here as it renders — the modules stay the only place that knows.
+// here as it renders. The modules stay the only place that knows.
 // =============================================================================
 
 /** Off its default: amber for this session only, sky for a saved setting. */
@@ -238,7 +287,7 @@ const SectionsApiContext = createContext<SectionsApi | null>(null);
 const SectionsContext = createContext<SectionsState | null>(null);
 
 /**
- * Wraps a shell's whole body — rail and modules both — so the two can meet.
+ * Wraps a shell's whole body (rail and modules both) so the two can meet.
  * `scrollRef` is the shell's scroll area, which the rail scrolls.
  */
 export function DevtoolSections({
@@ -313,7 +362,7 @@ export function DevtoolSections({
 }
 
 /**
- * The rail: one icon per module, above the list. Three things at a glance —
+ * The rail: one icon per module, above the list. Three things at a glance:
  * a dot under the ones that matter here, a star on the ones with something
  * changed inside, a filled chip on the ones that are open.
  *
@@ -565,12 +614,18 @@ interface DebugSectionProps {
   compact?: boolean;
   /**
    * Whether this module matters here and now. Unfolded when it does, folded
-   * when it does not — until a fold is chosen by hand, which is remembered
+   * when it does not, until a fold is chosen by hand, which is remembered
    * separately for each answer.
    */
   relevant: boolean;
   /** Something inside is off its default. Shown beside the title, and on the rail. */
   star?: Star;
+  /**
+   * Put everything in the module back to its default. With it, the title's
+   * star is a button: pressing it resets the whole module, as a row's star
+   * resets its row.
+   */
+  onReset?: () => void;
 }
 
 function DebugSection({
@@ -582,6 +637,7 @@ function DebugSection({
   compact,
   relevant,
   star = null,
+  onReset,
 }: DebugSectionProps) {
   // The title is the natural click target; the `action` slot stays a separate
   // sibling so its controls (toggles, copy) keep working without toggling the
@@ -604,40 +660,64 @@ function DebugSection({
     <div ref={setNode} className="border-b border-border/30 last:border-b-0">
       <div className="px-4 py-2 bg-muted/20">
         <div className="flex items-center justify-between gap-2">
-          <button
-            onClick={() => setSectionCollapsed(foldKey, !collapsed)}
-            className={cn(
-              "flex items-center gap-2 flex-1 min-w-0",
-              "text-xs font-mono text-muted-foreground uppercase tracking-wider",
-              "hover:text-foreground/80 transition-colors"
-            )}
-            aria-expanded={!collapsed}
-            aria-label={`Toggle ${title} section`}
-          >
-            <ChevronDown
+          <div className="flex flex-1 min-w-0 items-center">
+            <button
+              onClick={() => setSectionCollapsed(foldKey, !collapsed)}
               className={cn(
-                "h-3 w-3 shrink-0 transition-transform duration-200",
-                collapsed && "-rotate-90"
+                "flex items-center gap-2 min-w-0",
+                "text-xs font-mono text-muted-foreground uppercase tracking-wider",
+                "hover:text-foreground/80 transition-colors"
               )}
-            />
-            {icon}
-            <span className="truncate">{title}</span>
-            {star && (
-              <span
+              aria-expanded={!collapsed}
+              aria-label={`Toggle ${title} section`}
+            >
+              <ChevronDown
                 className={cn(
-                  "-ml-1.5 shrink-0",
-                  star === "session" ? "text-amber-500/80" : "text-sky-500/80"
+                  "h-3 w-3 shrink-0 transition-transform duration-200",
+                  collapsed && "-rotate-90"
                 )}
-                title={
-                  star === "session"
-                    ? "Something in here is overridden for this session"
-                    : "Something in here is off its default"
-                }
-              >
-                *
-              </span>
-            )}
-          </button>
+              />
+              {icon}
+              <span className="truncate">{title}</span>
+            </button>
+            {star &&
+              (onReset ? (
+                <button
+                  onClick={onReset}
+                  className={cn(
+                    "ml-0.5 shrink-0 text-xs font-mono transition-colors",
+                    star === "session"
+                      ? "text-amber-500/80 hover:text-amber-400"
+                      : "text-sky-500/80 hover:text-sky-400"
+                  )}
+                  title={`Reset ${title} to its defaults`}
+                  aria-label={`Reset ${title} to its defaults`}
+                >
+                  *
+                </button>
+              ) : (
+                <span
+                  className={cn(
+                    "ml-0.5 shrink-0 text-xs font-mono",
+                    star === "session" ? "text-amber-500/80" : "text-sky-500/80"
+                  )}
+                  title={
+                    star === "session"
+                      ? "Something in here is overridden for this session"
+                      : "Something in here is off its default"
+                  }
+                >
+                  *
+                </span>
+              ))}
+            {/* The rest of the title bar folds too, as it did when the title
+                button spanned it; the star is a button of its own beside it. */}
+            <div
+              aria-hidden
+              className="flex-1 self-stretch cursor-pointer"
+              onClick={() => setSectionCollapsed(foldKey, !collapsed)}
+            />
+          </div>
           {action && (
             <div className="flex items-center min-h-5 shrink-0">{action}</div>
           )}
@@ -683,7 +763,7 @@ function FrontmatterModule() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
     } catch {
-      // Clipboard blocked (insecure context / permissions) — no-op.
+      // Clipboard blocked (insecure context / permissions): no-op.
     }
   };
 
@@ -718,7 +798,7 @@ function FrontmatterModule() {
         </div>
       ) : (
         <div className="space-y-3">
-          {/* Route context — slug + which locale's file is rendered. */}
+          {/* Route context: slug + which locale's file is rendered. */}
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-xs font-mono text-foreground/90 break-all">
               {pageMeta.slug}
@@ -761,12 +841,12 @@ function FrontmatterModule() {
 // =============================================================================
 // Reading Module
 // Article reading-surface variations. Each setting persists (localStorage)
-// and applies even with the devtool disabled — the panel is just the UI.
-//   · Typeface  — body copy: sans or serif
-//   · Measure   — reading column width: narrow / default / wide
-//   · Bleed     — let wide media break out of the reading column on desktop
-//   · Focus     — dim every block but the one at the reading line
-//   · Ruler ToC — which screen edge the reading ruler docks to
+// and applies even with the devtool disabled; the panel is just the UI.
+//   · Typeface:  body copy, sans or serif
+//   · Measure:   reading column width (narrow / default / wide)
+//   · Bleed:     let wide media break out of the reading column on desktop
+//   · Focus:     dim every block but the one at the reading line
+//   · Ruler ToC: which screen edge the reading ruler docks to
 // =============================================================================
 
 /** Compact label + control row shared by the reading settings. */
@@ -791,7 +871,7 @@ function PanelStar({
   label?: string;
 }) {
   const title =
-    label ?? (source === "session" ? "Session override — reset" : "Saved — reset");
+    label ?? (source === "session" ? "Reset the session override" : "Reset the saved setting");
   return (
     <button
       onClick={onReset}
@@ -813,14 +893,23 @@ function PanelRow({
   label,
   children,
   star,
+  stacked = false,
 }: {
   label: string;
   children: React.ReactNode;
   /** <PanelStar> when this row is not at its default. */
   star?: React.ReactNode;
+  /** The control on a line of its own under the label, the panel's full
+   *  width: for one too wide to sit beside it. */
+  stacked?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2">
+    <div
+      className={cn(
+        "flex gap-2",
+        stacked ? "flex-col items-stretch gap-1.5" : "items-center justify-between",
+      )}
+    >
       <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
         {label}
         {star}
@@ -832,7 +921,7 @@ function PanelRow({
 
 /**
  * The shared controls in the devtool's voice. Both take their props straight
- * from the component so the panel cannot drift from it — the hand-written
+ * from the component so the panel cannot drift from it. The hand-written
  * shadow types these replaced had already lost `Segmented`'s `label`, which
  * left every segmented group in here without an accessible name.
  */
@@ -1029,8 +1118,8 @@ function ReadingModule() {
 // Glass Module
 //
 // The material every floating System UI surface is made of. Two options, the
-// same two iOS 26 offers — Tinted (色调) and Clear (透明) — and the same effect:
-// one class on <html> swapping a handful of CSS variables, so nothing
+// same two iOS 26 offers: Tinted (色调) and Clear (透明). The effect is the same
+// too: one class on <html> swapping a handful of CSS variables, so nothing
 // re-renders and every `bg-glass*` surface follows along.
 // =============================================================================
 
@@ -1088,10 +1177,10 @@ function GlassModule() {
           />
         </PanelRow>
         {/* What the legibility policy resolved for the wallpaper that is
-            painting, on the row that opens the lab where it is tuned — the
-            same row the Wallpaper module uses for the current picture. */}
+            painting, on the row that opens the lab where it is tuned. It is
+            the same row the Wallpaper module uses for the current picture. */}
         <Link
-          href="/editor/legibility"
+          href="/lab/legibility"
           className="flex w-full items-center gap-2 rounded-md border border-border/60 px-2 py-1.5 text-left transition-colors hover:bg-muted/40"
         >
           <span className="min-w-0 flex-1 truncate text-[10px] font-mono text-foreground/80">
@@ -1120,7 +1209,7 @@ function GlassModule() {
 //
 // Under Weather there are two more rows. Style is the persisted choice among
 // the picker's three weather tiles (Sky / Gradient / Classic); "No WebGL2" is
-// the one session override that exists here — it pretends WebGL2 is missing so
+// the one session override that exists here. It pretends WebGL2 is missing so
 // the Sky's fallback can be seen on a machine that has it. Style and engine
 // are otherwise one-to-one, so there is no engine picker. The last line reads
 // the live engine back: internal resolution, adaptive scale and frame time for
@@ -1186,7 +1275,7 @@ function WallpaperModule() {
   // The swatch: what the CSS stack would paint for the effective style.
   const swatch = getWeatherStyleGradient(effectiveStyle, scene, phase);
 
-  // Poll the renderer stats while the shader is live — as a formatted line, so
+  // Poll the renderer stats while the shader is live, as a formatted line, so
   // an unchanged readout is a no-op render.
   const [glStats, setGlStats] = useState<string | null>(null);
   useEffect(() => {
@@ -1234,8 +1323,8 @@ function WallpaperModule() {
 
   // Full and Widget are independent switches here, not two halves of one
   // segmented control: the persisted setting can only be one of them, but the
-  // devtool exists precisely to see combinations the setting cannot express —
-  // both on at once included. They drive the ephemeral overrides, which is what
+  // devtool exists to see combinations the setting cannot express, both on at
+  // once included. They drive the ephemeral overrides, which is what
   // those were for; the persisted mode follows only when nothing is overridden.
   const placements = [
     {
@@ -1269,7 +1358,7 @@ function WallpaperModule() {
 
   // The rows' stars, summed for the header. Only the rows that are showing:
   // the bezel's saved rows count while the bezel is on, the style while the
-  // kind is Weather — a star has to be findable once the module is open.
+  // kind is Weather. A star has to be findable once the module is open.
   const sessionOverridden =
     Object.values(devtoolOverrides).some((v) => v !== undefined) ||
     heroExitOverride !== undefined;
@@ -1336,7 +1425,7 @@ function WallpaperModule() {
             among thirty-odd tiles is the picker's job, and a second grid here
             was a second picker to keep in step. Under Weather, the style is
             the picker's two tiles as a segmented row, and Engine is the devtool
-            override on top of it — what actually paints. */}
+            override on top of it: what actually paints. */}
         <PanelRow label={zh ? "类型" : "Kind"}>
           <PanelSegmented<"weather" | "image">
             value={kind}
@@ -1589,7 +1678,7 @@ function WallpaperModule() {
           </PanelRow>
         </div>
 
-        {/* The resolved asset — the fastest way to trace a wrong background. */}
+        {/* The resolved asset: the fastest way to trace a wrong background. */}
         <div className="break-all text-[10px] font-mono tabular-nums text-muted-foreground">
           {isImage ? src : engineLine}
         </div>
@@ -1643,7 +1732,7 @@ function PanelSlider({
 /**
  * A shooting star: a head with motion streaks trailing it.
  *
- * Tabler Icons' `comet`, inlined — MIT, Copyright (c) 2020-2026 Paweł Kuna
+ * Tabler Icons' `comet`, inlined. MIT, Copyright (c) 2020-2026 Paweł Kuna
  * (https://tabler.io/icons). One glyph does not earn a dependency, and the
  * drawing conventions are the same as the icon set the rest of this panel uses
  * (24 x 24, 2px stroke, round caps and joins), so it sits among them without
@@ -1675,27 +1764,27 @@ function MeteorMark({ className }: { className?: string }) {
 
 
 // =============================================================================
-// Sky Module — weather and time as one thing
+// Sky Module: weather and time as one thing
 //
 // The wallpaper is a function of (condition, clock); the two used to sit in
 // separate modules with a hint pointing from one to the other. Here they are
 // one picture:
 //
-//   · a status line saying what the sky IS right now — condition, phase,
-//     clock, sun height, moon phase — every field derived from the same scene;
+//   · a status line saying what the sky IS right now (condition, phase,
+//     clock, sun height, moon phase), every field derived from the same scene;
 //   · a day timeline painted with the sky's own colours for the current
 //     condition, sunrise and sunset ticked on it, with a playhead you drag.
 //     Change the condition and the strip repaints; move the playhead and the
 //     condition chips swap to their night faces. Phase names under it jump;
 //   · the six conditions, one row, previewed at the effective time of day.
-//     Click to force one, click it again to go back to the real weather —
-//     no toggle to remember;
+//     Click to force one, click it again to go back to the real weather.
+//     No toggle to remember;
 //   · the date (which is what changes the moon), and a fold of fine-tune
 //     sliders over the derived scene plus the raw API readout.
 //
 // Day/night is never chosen here. It follows the clock, so a moon in a daytime
 // sky is impossible by construction. One "Now" in the corner puts everything
-// back — time, day, condition and tweaks alike.
+// back: time, day, condition and tweaks alike.
 // =============================================================================
 
 const PHASE_ORDER: AmbientPhase[] = [
@@ -1766,7 +1855,7 @@ function compassPoint(deg: number): string {
  * `wind.x` is `sin(from) × hemisphere × speed`, so a track running 0 → 359
  * goes calm → right → calm → left → calm: both ends dead, and the direction
  * you drag bears no relation to the direction the rain leans. The track runs
- * **270° → 450°** instead — west, through north, to east — which is monotonic
+ * **270° → 450°** instead (west, through north, to east), which is monotonic
  * the whole way: drag left and the rain leans left, drag right and it leans
  * right, and the middle is the one bearing that has no crosswind in it.
  *
@@ -1792,7 +1881,7 @@ function leanArrow(deg: number, hemisphere: 1 | -1): string {
   return x > 0.02 ? "→" : x < -0.02 ? "←" : "·";
 }
 
-/** Minutes in a day — the scrub's range, and one loop of Play. */
+/** Minutes in a day: the scrub's range, and one loop of Play. */
 
 /**
  * The transport: a minute for the day, or half of one. Two buttons rather than
@@ -1808,8 +1897,8 @@ const PLAY_RATES = [
 /**
  * The ink every mark on the day timeline is drawn in. White through
  * `mix-blend-difference`, so one value stays legible over a night that is
- * nearly black and a noon that is nearly white — which is the whole reason the
- * strip can carry marks at all. One constant because it was four literals at
+ * nearly black and a noon that is nearly white. That is why the strip can
+ * carry marks at all. One constant because it was four literals at
  * two different alphas, under a comment claiming they were the same.
  */
 const TIMELINE_INK = "border-white/60 bg-white/60 mix-blend-difference";
@@ -1869,7 +1958,12 @@ function SkyModule() {
     isTimeTravelActive,
     resetTimeTravel,
   } = useAmbientTime();
-  const { followSun, setFollowSun, sunTheme } = useSolarTheme();
+  const { sunTheme } = useSolarTheme();
+  // Follow the Sun is an Appearance; this row is a shortcut to it, next to the
+  // clock it rides. Off is Follow the System.
+  const { preference: appearance, setThemePreference } = useTheme();
+  const followSun = appearance === "sun";
+  const setFollowSun = (on: boolean) => setThemePreference(on ? "sun" : "system");
   const { gyro, setGyroEnabled, effectiveStyle, skyWindow, setSkyWindow } = useWallpaper();
   const { homeWeather, setHomeWeather } = useDevtool();
 
@@ -1888,7 +1982,7 @@ function SkyModule() {
 
   // Everything a walk down this day needs. One object for both the strip's
   // colours and the meteor's window, so the day they draw cannot drift apart
-  // with one edit — and keyed on the DAY, not the instant, so scrubbing or
+  // with one edit. It is keyed on the DAY, not the instant, so scrubbing or
   // playing the clock does not redo any of it.
   const daySample: DaySampleParams = useMemo(
     () => ({
@@ -1918,7 +2012,7 @@ function SkyModule() {
   );
 
   /**
-   * The window as a line of text — usually one night, so usually the two
+   * The window as a line of text. It is usually one night, so usually the two
    * intervals the strip needs rejoined. `meteorWindowSpan` owns that, next to
    * the code that split them.
    */
@@ -1929,7 +2023,7 @@ function SkyModule() {
       ? "无"
       : "none";
 
-  // Which conditions you could see a meteor THROUGH — the weather half of the
+  // Which conditions you could see a meteor THROUGH: the weather half of the
   // window, asked of the scene each chip would actually produce, overrides and
   // all. So it answers the question somebody about to click it has: if I picked
   // this one now, could I see one? Pulling the cloud slider down lights Cloudy
@@ -1984,8 +2078,8 @@ function SkyModule() {
   // It runs the playhead, nothing else: from wherever the clock is, through
   // midnight, round again. It used to start by jumping to 90 minutes before
   // sunrise and stop 90 after sunset, which is a second way of choosing a time
-  // on a panel whose whole top half is for choosing a time — the strip, the
-  // phase names and the sun's own ticks are right there. Pick a moment, then
+  // on a panel whose whole top half is for choosing a time (the strip, the
+  // phase names and the sun's own ticks are right there). Pick a moment, then
   // press play from it.
   /** 0 is paused; otherwise the multiple of `PLAY_DURATION_MS` being played. */
   const [playRate, setPlayRate] = useState(0);
@@ -2007,7 +2101,7 @@ function SkyModule() {
 
   /**
    * One button per speed: pressing the lit one pauses, pressing the other
-   * changes speed without starting over — the playhead is where it is, and
+   * changes speed without starting over. The playhead stays where it is, and
    * only the step it moves by changes.
    */
   const play = (rate: number) => {
@@ -2047,7 +2141,7 @@ function SkyModule() {
 
   // --- Gyroscope -----------------------------------------------------------
   // The live tilt, polled rather than subscribed: a readout is worth twice a
-  // second, not sixty times — the sky itself gets every reading.
+  // second, not sixty times. The sky itself gets every reading.
   const [tiltDeg, setTiltDeg] = useState<number | null>(null);
   useEffect(() => {
     if (gyro.readings !== "live") {
@@ -2063,10 +2157,11 @@ function SkyModule() {
 
   // Seven states, in the order they rule each other out: what the browser can
   // do, then what the visitor asked for, then what is actually arriving.
+  const motionAccess = motionStatus(gyro);
   const gyroReadout = ((): string => {
     if (!gyro.supported) return zh ? "无传感器" : "no sensor";
-    if (gyro.denied) return zh ? "已拒绝" : "denied";
-    if (gyro.enabled && gyro.gated) return zh ? "待授权" : "tap to allow";
+    if (motionAccess === "refused") return zh ? "已拒绝" : "denied";
+    if (gyro.enabled && motionAccess === "askable") return zh ? "待授权" : "tap to allow";
     if (!gyro.enabled) return zh ? "关" : "off";
     if (gyro.readings === "live") return `${tiltDeg ?? 0}°`;
     if (gyro.readings === "waiting") return "…";
@@ -2076,7 +2171,7 @@ function SkyModule() {
   // --- Sky window ----------------------------------------------------------
   // Where the window is looking, polled like the tilt. And a hand on it: a
   // desktop has no sensor to turn, so the heading and pitch can be driven from
-  // here instead — the sensor is ignored until the star hands it back.
+  // here instead. The sensor is ignored until the star hands it back.
   const [look, setLook] = useState<{ heading: number; pitch: number; compass: boolean } | null>(null);
   const [aim, setAim] = useState<{ heading: number; pitch: number } | null>(null);
   useEffect(() => {
@@ -2128,7 +2223,7 @@ function SkyModule() {
       if (view) {
         const { heading, pitch } = headingPitchOf(view.forward);
         // Roll: how far the screen's top has turned off the vertical plane,
-        // clockwise positive — 0 held level.
+        // clockwise positive; 0 held level.
         const roll = (Math.atan2(-view.right.z, view.up.z) * 180) / Math.PI;
         look = { heading, pitch, roll };
       }
@@ -2157,7 +2252,7 @@ function SkyModule() {
   };
 
   // The tweakable numbers: slider value ↔ scene value, one row each. Wind is
-  // two of them on purpose — a speed with no direction is a number that can
+  // two of them on purpose: a speed with no direction is a number that can
   // look like it does nothing, because a wind along the view axis has no
   // horizontal component and never leans the rain however hard it blows.
   const percent = (v: number) => `${v}%`;
@@ -2218,7 +2313,7 @@ function SkyModule() {
       }
     >
       <div className="space-y-3">
-        {/* What the sky is right now — every field from the same scene. */}
+        {/* What the sky is right now, every field from the same scene. */}
         <div className="flex items-center justify-between gap-2 rounded-lg border border-border/40 bg-muted/20 px-2.5 py-1.5 text-[11px] font-mono">
           <span className="flex min-w-0 items-center gap-1.5 text-foreground/90">
             <WeatherIcon condition={scene.condition} isDay={isDayNow} className="h-3.5 w-3.5 shrink-0" />
@@ -2332,7 +2427,7 @@ function SkyModule() {
             ))}
             {/* When a meteor is possible: the same ink as the sunrise and
                 sunset ticks (TIMELINE_INK), but a stretch rather than an
-                instant — a bar along the foot of the strip with a tick standing
+                instant: a bar along the foot of the strip with a tick standing
                 up at each end, drawn as one element's bottom and side borders.
                 A window across midnight arrives as two of these, one against
                 each end of the day. */}
@@ -2427,16 +2522,16 @@ function SkyModule() {
           </div>
           {/* The theme rides this timeline: play the day and it flips at the
               two ticks above, because the switch reads the same clock. The
-              toggle is the saved setting, not a session override — turning it
-              off here turns it off for good. */}
+              toggle is the Appearance itself, saved; off is Follow the
+              System. */}
           <PanelRow
-            label={zh ? "主题跟随太阳" : "Theme follows sun"}
+            label={t(locale, "themeSun")}
             star={
               followSun ? null : (
                 <PanelStar
                   onReset={() => setFollowSun(true)}
                   source="saved"
-                  label={zh ? "恢复跟随太阳" : "Follow the sun again"}
+                  label={zh ? "恢复跟随太阳" : "Follow the Sun again"}
                 />
               )
             }
@@ -2452,7 +2547,7 @@ function SkyModule() {
               <PanelToggle
                 on={followSun}
                 onClick={() => setFollowSun(!followSun)}
-                label="Theme follows the sun"
+                label="Follow the Sun"
               />
             </span>
           </PanelRow>
@@ -2513,7 +2608,7 @@ function SkyModule() {
                         : "A meteor can be seen through this weather (click the sky at night)"
                       : zh
                         ? "这个天气挡住了天空，没有流星"
-                        : "This weather covers the sky — no meteor",
+                        : "This weather covers the sky, so no meteor",
                   ].join(" · ")}
                 >
                   <div className="absolute inset-0 bg-white/10 dark:bg-black/10" />
@@ -2530,13 +2625,13 @@ function SkyModule() {
                       through. Only the weather half of the rule: when it is
                       dark enough is the strip's question, a few rows up. The
                       mark is live, so forcing Cloudy darkens it and then
-                      pulling the cloud slider down lights it again — which is
-                      the whole mechanism, shown rather than written.
+                      pulling the cloud slider down lights it again. The mark
+                      shows the mechanism, so it needs no text.
                       In `foreground` rather than white, for the same reason the
                       weather glyph below it is: these previews are pale in the
                       light theme and dark in the dark one, so the ink that
                       contrasts with both is the one that flips with them. White
-                      read beautifully on the night chips and disappeared
+                      read well on the night chips and disappeared
                       completely on the day ones. */}
                   {starry && (
                     <MeteorMark className="absolute left-1 top-1 h-3.5 w-3.5 text-foreground" />
@@ -2547,7 +2642,7 @@ function SkyModule() {
           </div>
         </div>
 
-        {/* The date — which is what moves the moon. */}
+        {/* The date, which is what moves the moon. */}
         <div className="space-y-1.5 border-t border-border/30 pt-2.5">
           <div className="flex items-center justify-between gap-2">
             <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
@@ -2586,8 +2681,8 @@ function SkyModule() {
 
         {/* The gyroscope: rain and snow fall along real gravity, in the Sky.
             A saved setting (blue star), on by default, and the only place
-            besides the picker where iOS's motion permission can be granted —
-            so the readout says which of "off", "unanswered" and "nothing
+            besides the picker where iOS's motion permission can be granted.
+            So the readout says which of "off", "unanswered" and "nothing
             coming through" is the case, and shows the live tilt once it is. */}
         <div className="border-t border-border/30 pt-2">
           <PanelRow
@@ -2620,7 +2715,7 @@ function SkyModule() {
           </PanelRow>
           {/* The sky window: the phone as a window onto the real sky. A
               session state, like the easter egg that opens it (a long press on
-              the home sky). The readout is where it looks — heading · pitch,
+              the home sky). The readout is where it looks (heading · pitch),
               with a ~ when there is no compass and north is a guess. */}
           <PanelRow
             label={zh ? "天空之窗" : "Window"}
@@ -2706,6 +2801,8 @@ function SkyModule() {
                 }
               />
               <MetaRow k={zh ? "偏移" : "offset"} v={deg(motion.diag.offsetDeg, 1)} />
+              {/* Magnetic → true north (WMM2025), east positive. */}
+              <MetaRow k={zh ? "磁偏角" : "declin."} v={deg(motion.diag.declinationDeg, 1)} />
               <MetaRow k={zh ? "校准中" : "aiming"} v={motion.diag.calibrating ? "yes" : "no"} />
               <MetaRow k={zh ? "朝向" : "heading"} v={deg(motion.view?.heading, 1)} />
               <MetaRow k={zh ? "仰角" : "pitch"} v={deg(motion.view?.pitch, 1)} />
@@ -2721,7 +2818,7 @@ function SkyModule() {
           )}
         </div>
 
-        {/* Where the location came from and how old it is — the first thing to
+        {/* Where the location came from and how old it is: the first thing to
             look at when the city is wrong. "tz≠" means the IP provider put the
             address in another UTC offset than this device's clock. */}
         {location && (
@@ -2839,7 +2936,7 @@ function SkyModule() {
 // =============================================================================
 // Music Module
 // Inspect the global player state and toggle the offline mock backend
-// (`hux_music_mock` — see systems/music/lib/mock.ts). Toggling hot-swaps the
+// (`hux_music_mock`; see systems/music/lib/mock.ts). Toggling hot-swaps the
 // backend in place via the provider (teardown → reset → re-init), no reload.
 // =============================================================================
 
@@ -2899,9 +2996,163 @@ function MusicModule() {
 }
 
 // =============================================================================
+// Works Module
+// How a chapter's ref sits on /works' graph, with its tag message. The
+// layouts on trial, switched on the real page. A saved setting (blue star).
+// =============================================================================
+
+const TALKS_TITLE: Record<WorksTalks, [string, string]> = {
+  beam: ["Its own row; hovering lights the connector", "独立一行；悬停点亮连线"],
+  cover: ["The recording joins the project's covers", "录像加入项目的封面"],
+  absorb: ["The cover, and the talk row leaves the log", "封面，且演讲行离开日志"],
+  trailer: ["A git trailer per talk under the project's text", "项目文字下的 git trailer"],
+  decorate: ["Refs on the project's title line, like git log --decorate", "项目标题行上的 ref，像 git log --decorate"],
+  nest: ["The talk hangs under its project, folded", "演讲折叠挂在项目下方"],
+};
+
+function WorksModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const {
+    worksRef,
+    setWorksRef,
+    worksShelf,
+    setWorksShelf,
+    worksFeed,
+    setWorksFeed,
+    worksTalks,
+    setWorksTalks,
+  } = useDevtool();
+  const onWorks = usePathname() === "/works";
+  const options: { value: WorksRef; label: string; title: string }[] = [
+    {
+      value: "auto",
+      label: "Auto",
+      title: zh
+        ? "桌面用 Hash，手机用 Under（选定的）"
+        : "Hash on a desk, Under on a phone (the one chosen)",
+    },
+    {
+      value: "stub",
+      label: "Stub",
+      title: zh
+        ? "标记在列边缘，trunk 拐弯接过去；描述是一段正文"
+        : "Marker at the column's edge, the trunk turning out to it; the message a paragraph",
+    },
+    {
+      value: "ring",
+      label: "Ring",
+      title: zh
+        ? "像一行 commit：trunk 上一个节点，标记在标题位，描述在描述位"
+        : "Like a row: a node on the trunk, the marker where a title goes, the message where a description goes",
+    },
+    {
+      value: "row",
+      label: "Row",
+      title: zh ? "Ring，时间段在日期位（右侧）" : "Ring, with the span where a date goes",
+    },
+    {
+      value: "under",
+      label: "Under",
+      title: zh ? "标记就是 trunk 上的节点" : "The marker is the node, on the trunk",
+    },
+    {
+      value: "hash",
+      label: "Hash",
+      title: zh
+        ? "标记在 hash 位（git log --decorate）"
+        : "The marker where a hash goes (git log --decorate)",
+    },
+  ];
+
+  return (
+    <DebugSection
+      id="works"
+      title={zh ? "作品" : "Works"}
+      icon={<GitBranch className="h-4 w-4" />}
+      compact
+      relevant={onWorks}
+      star={
+        worksRef !== WORKS_REF_DEFAULT || worksShelf || worksFeed || worksTalks !== WORKS_TALKS_DEFAULT
+          ? "saved"
+          : null
+      }
+      action={
+        <span className="text-[10px] font-mono text-muted-foreground">{worksRef}</span>
+      }
+    >
+      <PanelRow
+        label={zh ? "章节标记" : "Chapter ref"}
+        star={
+          worksRef !== WORKS_REF_DEFAULT ? (
+            <PanelStar source="saved" onReset={() => setWorksRef(WORKS_REF_DEFAULT)} />
+          ) : undefined
+        }
+      >
+        <PanelSegmented value={worksRef} options={options} onChange={setWorksRef} />
+      </PanelRow>
+      {/* The projects shelf above the log (components/log/project-shelf.tsx):
+          every project's mark in a row, a caret opening the directory. On
+          trial; off until it earns the page. */}
+      <PanelRow
+        label={zh ? "项目架" : "Projects shelf"}
+        star={
+          worksShelf ? (
+            <PanelStar source="saved" onReset={() => setWorksShelf(false)} />
+          ) : undefined
+        }
+      >
+        <PanelToggle
+          on={worksShelf}
+          onClick={() => setWorksShelf(!worksShelf)}
+          label={zh ? "项目架" : "Projects shelf"}
+        />
+      </PanelRow>
+      {/* How a project carries the talks that present it (lib/works-talks.ts).
+          On trial. */}
+      <PanelRow
+        label={zh ? "演讲" : "Talks"}
+        star={
+          worksTalks !== WORKS_TALKS_DEFAULT ? (
+            <PanelStar source="saved" onReset={() => setWorksTalks(WORKS_TALKS_DEFAULT)} />
+          ) : undefined
+        }
+      >
+        <PanelSegmented
+          value={worksTalks}
+          options={WORKS_TALKS.map((value) => ({
+            value,
+            label: value[0].toUpperCase() + value.slice(1),
+            title: TALKS_TITLE[value][zh ? 1 : 0],
+          }))}
+          onChange={setWorksTalks}
+        />
+      </PanelRow>
+      {/* The feed form (lib/log-view.ts): the grid with its captions written
+          out. On its way out; off, its stop leaves the form control and a
+          `?view=feed` link reads as covers. */}
+      <PanelRow
+        label={zh ? "信息流" : "Feed view"}
+        star={
+          worksFeed ? (
+            <PanelStar source="saved" onReset={() => setWorksFeed(false)} />
+          ) : undefined
+        }
+      >
+        <PanelToggle
+          on={worksFeed}
+          onClick={() => setWorksFeed(!worksFeed)}
+          label={zh ? "信息流" : "Feed view"}
+        />
+      </PanelRow>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
 // Command Module
 // The palette's shape on a phone. "Sheet" is the palette as it is; "Popover"
-// is the desktop card at phone width — the palette as it was, kept whole so
+// is the desktop card at phone width: the palette as it was, kept whole so
 // the two can be compared on the same device. A saved setting (blue star).
 // =============================================================================
 
@@ -2948,6 +3199,441 @@ function CommandModule() {
       >
         <PanelSegmented value={phonePalette} options={options} onChange={setPhonePalette} />
       </PanelRow>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Ask Module
+// How Ask behaves (systems/ask/lib/config.ts): every setting, for either
+// platform, starting from that platform's preset. A desk has three places and
+// the Dock's pill; a phone has one bottom drawer. The platform shown first is
+// the one this viewport is; the other can be set from here too, for when the
+// window is resized across `sm`. Then the visitor's own picks, model and
+// thinking, with their defaults. All saved (blue star).
+// =============================================================================
+
+function AskModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const { askStarted } = useCommand();
+  const here = useAskPlatform();
+  const [picked, setPicked] = useState<AskPlatform | null>(null);
+  const platform = picked ?? here;
+  const overrides = useAskOverrides();
+  const mine = overrides[platform];
+  const config: AskConfig = askConfigOf(platform);
+  const model = askModelPref.use();
+  const effort = askEffortPref.use();
+  const places = ASK_PLACEMENTS.map((value) => ({ value, label: askStrings(locale).placements[value] }));
+
+  const changed =
+    Object.keys(overrides.desk).length + Object.keys(overrides.phone).length > 0 ||
+    model !== DEFAULT_ASK_MODEL ||
+    effort !== DEFAULT_ASK_EFFORT;
+
+  const set = <K extends AskConfigKey>(key: K) => (value: AskConfig[K]) => setAskConfig(platform, key, value);
+  const star = (key: AskConfigKey) =>
+    key in mine ? (
+      <PanelStar source="saved" onReset={() => resetAskConfig(platform, key)} />
+    ) : undefined;
+
+  return (
+    <DebugSection
+      id="ask"
+      title={zh ? "问 AI" : "Ask"}
+      icon={<Bot className="h-4 w-4" />}
+      compact
+      relevant={askStarted}
+      star={changed ? "saved" : null}
+      onReset={() => {
+        resetAskConfig();
+        askModelPref.set(DEFAULT_ASK_MODEL);
+        askEffortPref.set(DEFAULT_ASK_EFFORT);
+      }}
+      // The platform this viewport is; the preset row can show the other.
+      action={<span className="text-[10px] font-mono text-muted-foreground">{here}</span>}
+    >
+      <div className="space-y-2">
+        <PanelRow label={zh ? "预设" : "Preset"}>
+          <PanelSegmented<AskPlatform>
+            value={platform}
+            label={zh ? "预设" : "Preset"}
+            options={[
+              {
+                value: "desk",
+                label: zh ? "桌面" : "Desk",
+                title: zh ? "三个位置和 Dock 胶囊" : "Three places and the Dock's pill",
+              },
+              {
+                value: "phone",
+                label: zh ? "手机" : "Phone",
+                title: zh ? "一个底部抽屉" : "One bottom drawer",
+              },
+            ]}
+            onChange={(value) => setPicked(value === here ? null : value)}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "从搜索打开" : "From search"} star={star("fromSearch")}>
+          <PanelSegmented
+            value={config.fromSearch}
+            label={zh ? "从搜索打开" : "From search"}
+            options={places}
+            onChange={set("fromSearch")}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "按钮 / K 打开" : "From a call"} star={star("fromCall")}>
+          <PanelSegmented
+            value={config.fromCall}
+            label={zh ? "按钮 / K 打开" : "From a call"}
+            options={[
+              { value: "last", label: "Last", title: zh ? "上次放的位置" : "Where it was last put" },
+              ...places,
+            ]}
+            onChange={set("fromCall")}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "阅读页" : "On reading pages"} star={star("onReadingPage")}>
+          <PanelSegmented
+            value={config.onReadingPage}
+            label={zh ? "阅读页" : "On reading pages"}
+            options={[
+              { value: "side", label: "Side", title: zh ? "K 在文章页打开到侧边；从命令面板进来仍居中" : "A call opens beside a page being read; the palette still morphs" },
+              { value: "same", label: zh ? "同上" : "Same", title: zh ? "按上面两条规则" : "Follow the two rules above" },
+            ]}
+            onChange={set("onReadingPage")}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "位置按钮" : "Place buttons"} star={star("placeButtons")}>
+          <PanelToggle
+            on={config.placeButtons}
+            onClick={() => set("placeButtons")(!config.placeButtons)}
+            label={zh ? "位置按钮" : "Place buttons"}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "拖拽换位" : "Drag between places"} star={star("drag")}>
+          <PanelToggle
+            on={config.drag}
+            onClick={() => set("drag")(!config.drag)}
+            label={zh ? "拖拽换位" : "Drag between places"}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "最小化" : "Minimize"} star={star("minimize")}>
+          <PanelSegmented
+            value={config.minimize}
+            label={zh ? "最小化" : "Minimize"}
+            options={[
+              { value: "dock", label: "Dock", title: zh ? "收进 Dock，成为胶囊" : "Into the Dock, as a pill" },
+              { value: "off", label: zh ? "关" : "Off", title: zh ? "没有最小化：收起即关闭" : "No minimize: putting away closes" },
+            ]}
+            onChange={set("minimize")}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "后台胶囊" : "Pill while writing"} star={star("backgroundPill")}>
+          <PanelToggle
+            on={config.backgroundPill}
+            onClick={() => set("backgroundPill")(!config.backgroundPill)}
+            label={zh ? "后台胶囊" : "Pill while writing"}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "光晕延迟" : "Glow delay"} star={star("glowDelay")}>
+          <PanelRange
+            value={config.glowDelay}
+            min={0}
+            max={600}
+            step={20}
+            onChange={set("glowDelay")}
+            label={zh ? "光晕延迟" : "Glow delay"}
+            format={(v) => `${v}`}
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "收键盘再等" : "Keyboard wait"} star={star("keyboardDelay")}>
+          <PanelRange
+            value={config.keyboardDelay}
+            min={0}
+            max={800}
+            step={20}
+            onChange={set("keyboardDelay")}
+            label={zh ? "收键盘再等" : "Keyboard wait"}
+            format={(v) => `${v}`}
+          />
+        </PanelRow>
+        <PanelRow
+          label={zh ? "模型" : "Model"}
+          star={
+            model !== DEFAULT_ASK_MODEL ? (
+              <PanelStar source="saved" onReset={() => askModelPref.set(DEFAULT_ASK_MODEL)} />
+            ) : undefined
+          }
+        >
+          <PanelSegmented
+            value={model}
+            label={zh ? "模型" : "Model"}
+            options={ASK_MODELS.map((m) => ({ value: m.id, label: m.label.replace(/ Flash$/, ""), title: m.label }))}
+            onChange={askModelPref.set}
+          />
+        </PanelRow>
+        <PanelRow
+          label={zh ? "思考" : "Thinking"}
+          star={
+            effort !== DEFAULT_ASK_EFFORT ? (
+              <PanelStar source="saved" onReset={() => askEffortPref.set(DEFAULT_ASK_EFFORT)} />
+            ) : undefined
+          }
+        >
+          <PanelSegmented
+            value={effort}
+            label={zh ? "思考" : "Thinking"}
+            options={ASK_EFFORTS.map((e) => ({ value: e, label: askStrings(locale).efforts[e] }))}
+            onChange={askEffortPref.set}
+          />
+        </PanelRow>
+      </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Voice Module
+// One saved choice for both the command palette and Ask. Browser recognition
+// is included so quality and interaction can be compared without an API call.
+// =============================================================================
+
+function VoiceModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const model = voiceModelPref.use();
+  const visual = voiceVisualPref.use();
+  const modelChanged = model !== DEFAULT_VOICE_MODEL;
+  const visualChanged = visual !== DEFAULT_VOICE_VISUAL;
+  const changed = modelChanged || visualChanged;
+  const [gatewayReady, setGatewayReady] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/voice", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((config) => { if (alive) setGatewayReady(!!config?.enabled); })
+      .catch(() => { if (alive) setGatewayReady(false); });
+    return () => { alive = false; };
+  }, []);
+  const options: { value: VoiceModelChoice; label: string; title: string }[] = [
+    { value: "browser", label: zh ? "浏览器" : "Browser", title: zh ? "浏览器语音识别，点按开始" : "Browser speech recognition, tap to start" },
+    ...VOICE_MODELS.map((choice) => ({
+      value: choice.id,
+      label: choice.label === "Grok STT" ? "Grok" : choice.label,
+      title: `${choice.label} · ${choice.pricePerHour}`,
+    })),
+  ];
+
+  return (
+    <DebugSection
+      id="voice"
+      title={zh ? "语音" : "Voice"}
+      icon={<Mic className="h-4 w-4" />}
+      compact
+      relevant
+      star={changed ? "saved" : null}
+      onReset={() => { voiceModelPref.set(DEFAULT_VOICE_MODEL); voiceVisualPref.set(DEFAULT_VOICE_VISUAL); }}
+      action={<span className="text-[10px] font-mono text-muted-foreground">{model === "browser" ? "Browser" : VOICE_MODELS.find((choice) => choice.id === model)?.label} · {visual === "glow" ? "Glow" : "Waveform"}</span>}
+    >
+      <div className="space-y-2">
+        <PanelRow label={zh ? "转写模型" : "Transcription model"} stacked star={modelChanged ? <PanelStar source="saved" onReset={() => voiceModelPref.set(DEFAULT_VOICE_MODEL)} /> : undefined}>
+          <PanelSegmented<VoiceModelChoice>
+            value={model}
+            label={zh ? "语音转写模型" : "Voice transcription model"}
+            options={options}
+            onChange={voiceModelPref.set}
+            fill
+          />
+        </PanelRow>
+        <PanelRow label={zh ? "音量视觉" : "Audio visual"} stacked star={visualChanged ? <PanelStar source="saved" onReset={() => voiceVisualPref.set(DEFAULT_VOICE_VISUAL)} /> : undefined}>
+          <PanelSegmented<VoiceVisualStyle>
+            value={visual}
+            label={zh ? "录音音量视觉样式" : "Recording audio visual style"}
+            options={[
+              { value: "glow", label: "Glow", title: zh ? "默认：随音量变化的边缘光" : "Default: voice-reactive edge light" },
+              { value: "waveform", label: zh ? "波形" : "Waveform", title: zh ? "横跨输入框的彩色音量线" : "Full-width colored audio bars" },
+            ]}
+            onChange={voiceVisualPref.set}
+            fill
+          />
+        </PanelRow>
+        <p className="text-[10px] text-muted-foreground">
+          {model === "browser"
+            ? zh ? "浏览器识别：点按开始。" : "Browser recognition: tap to start."
+            : gatewayReady === false
+              ? zh ? "此环境无法使用 Gateway，将使用浏览器识别。" : "Gateway unavailable here; using browser recognition."
+              : zh ? "轻点录音并停止以编辑，按住松开后在 Ask 中直接发送。" : "Tap and stop to edit; hold and release to send in Ask."}
+          {" "}Whisper $0.36/hr · Grok STT $0.10/hr
+        </p>
+      </div>
+    </DebugSection>
+  );
+}
+
+// =============================================================================
+// Glow Module: the light's volume (systems/glow), saved.
+// Site-wide strength multiplies every glow; the About's ring has its own
+// strength and depth on top. The devtool rides over the About while it is up
+// (dock.tsx), so these can be turned while the ring is on screen. `Show`
+// brings it up to look at.
+// =============================================================================
+
+/**
+ * The light's colours as they are now: the wallpaper's hue, the rule it
+ * gets, and the five stops (this theme's) the shader draws from.
+ */
+function GlowPaletteSwatches({ zh, harmony }: { zh: boolean; harmony: GlowHarmony }) {
+  const { source, to } = useGlowPaletteState();
+  const dark = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+  const stops = dark ? to.dark : to.light;
+  const rule = harmony === "auto" ? autoHarmony(source) : harmony;
+  return (
+    <PanelRow
+      label={
+        // Siri's palette owes the wallpaper nothing.
+        rule === "siri"
+          ? "Siri"
+          : source
+            ? `${zh ? "壁纸" : "Wallpaper"} ${Math.round(source.h)}° · ${rule}`
+            : `${zh ? "壁纸无色" : "Grey wallpaper"} · ${rule}`
+      }
+    >
+      <span className="flex items-center gap-1">
+        {source && rule !== "siri" && (
+          <span
+            className="mr-1 size-3 rounded-full border border-border/50"
+            style={{ background: `oklch(0.7 ${Math.min(source.c, 0.2)} ${source.h})` }}
+            title="The wallpaper's dominant colour"
+          />
+        )}
+        {[0, 1, 2, 3, 4].map((i) => (
+          <span key={i} className="size-3 rounded-sm" style={{ background: stopCss(stops, i) }} />
+        ))}
+      </span>
+    </PanelRow>
+  );
+}
+
+function GlowModule() {
+  const { locale } = useLocale();
+  const zh = locale === "zh";
+  const tuning = useGlowTuning();
+  const about = useOptionalAbout();
+  // The light is judged on the About: while it is up the module unfolds
+  // (`relevant`) and the panel brings it into view.
+  const aboutOpen = about?.isOpen ?? false;
+  const scrollTo = useContext(SectionsContext)?.scrollTo;
+  useEffect(() => {
+    if (!aboutOpen || !scrollTo) return;
+    // After the unfold has laid out.
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => scrollTo("glow")));
+    return () => cancelAnimationFrame(id);
+  }, [aboutOpen, scrollTo]);
+  type NumericKey = Exclude<keyof GlowTuning, "aboutMotion" | "aboutBaseline" | "harmony">;
+  const star = (key: keyof GlowTuning) =>
+    tuning[key] !== GLOW_TUNING_DEFAULTS[key] ? (
+      <PanelStar source="saved" onReset={() => setGlowTuning({ [key]: GLOW_TUNING_DEFAULTS[key] })} />
+    ) : undefined;
+  const changed = (Object.keys(GLOW_TUNING_DEFAULTS) as (keyof GlowTuning)[]).some(
+    (k) => tuning[k] !== GLOW_TUNING_DEFAULTS[k],
+  );
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+  const slider = (key: NumericKey, label: string, ariaLabel: string, min: number, max: number) => (
+    <PanelSlider
+      label={label}
+      ariaLabel={ariaLabel}
+      value={tuning[key]}
+      min={min}
+      max={max}
+      step={0.01}
+      format={pct}
+      star={star(key)}
+      onChange={(v) => setGlowTuning({ [key]: v })}
+    />
+  );
+
+  return (
+    <DebugSection
+      id="glow"
+      title={zh ? "光晕" : "Glow"}
+      icon={<Sparkles className="h-4 w-4" />}
+      compact
+      relevant={aboutOpen}
+      star={changed ? "saved" : null}
+      onReset={() => setGlowTuning(GLOW_TUNING_DEFAULTS)}
+      action={
+        about ? (
+          <button
+            onClick={() => (about.isOpen ? about.dismiss() : about.open())}
+            className={cn(PANEL_CHIP, "border-border/60 text-muted-foreground hover:text-foreground")}
+          >
+            {about.isOpen ? (zh ? "收起关于" : "Hide About") : zh ? "显示关于" : "Show About"}
+          </button>
+        ) : undefined
+      }
+    >
+      <div className="space-y-3">
+        {/* Where every glow's colours come from: Siri's palette (the
+            default), or the wallpaper's dominant colour by a colour-wheel
+            rule (systems/glow/lib/harmony.ts). Six choices do not fit
+            beside a label in the panel's width, so they take a line. */}
+        <PanelRow label={zh ? "配色" : "Colours"} star={star("harmony")} stacked>
+          <PanelSegmented<GlowHarmony>
+            value={tuning.harmony}
+            options={[
+              { value: "siri", label: "Siri" },
+              { value: "auto", label: zh ? "自动" : "Auto" },
+              { value: "analogous", label: zh ? "近似" : "Analog" },
+              { value: "complementary", label: zh ? "互补" : "Compl" },
+              { value: "split", label: zh ? "分裂" : "Split" },
+              { value: "triadic", label: zh ? "三角" : "Triad" },
+            ]}
+            onChange={(v) => setGlowTuning({ harmony: v })}
+            label="Glow colours"
+            fill
+          />
+        </PanelRow>
+        <GlowPaletteSwatches zh={zh} harmony={tuning.harmony} />
+        {slider("strength", zh ? "全站强度" : "Strength · all", "Glow strength, site-wide", 0, 1.5)}
+        {/* How the About's ring lives while it is up: the motions of
+            <Glow motion>, judged on the ring that matters. First of the
+            About's knobs, since the others are read against it. */}
+        <PanelRow label={zh ? "关于 · 动效" : "About · motion"} star={star("aboutMotion")}>
+          <PanelSegmented<GlowMotion>
+            value={tuning.aboutMotion}
+            options={[
+              { value: "flow", label: zh ? "流动" : "Flow" },
+              { value: "rotate", label: zh ? "旋转" : "Rotate" },
+              { value: "pulse", label: zh ? "呼吸" : "Pulse" },
+            ]}
+            onChange={(v) => setGlowTuning({ aboutMotion: v })}
+            label="About glow motion"
+          />
+        </PanelRow>
+        {slider("aboutStrength", zh ? "关于 · 强度" : "About · strength", "About glow strength", 0, 1.5)}
+        {/* Where the ring's light ends, as a share of the narrower gutter
+            between the screen's edge and the words (<EdgeGlow>'s `depth`):
+            100% just touches them, past it the light's tail lies over them.
+            The light stands as high off every edge. One per layout, the
+            About having two (systems/glow/lib/tuning.ts has the defaults). */}
+        {slider("aboutDesk", zh ? "关于 · 桌面深度" : "About · desk depth", "About glow depth, desk", 0.05, 2.5)}
+        {slider("aboutPhone", zh ? "关于 · 手机深度" : "About · phone depth", "About glow depth, phone", 0.05, 2.5)}
+        {/* Advanced: how much light the ring keeps where no wave, arc or
+            lobe is, whatever the motion (5% by default); the star gives the
+            default back. */}
+        <PanelSlider
+          label={zh ? "关于 · 底光" : "About · baseline"}
+          ariaLabel="About glow baseline"
+          value={tuning.aboutBaseline ?? GLOW_BASELINE[tuning.aboutMotion]}
+          min={0}
+          max={1}
+          step={0.01}
+          format={pct}
+          star={star("aboutBaseline")}
+          onChange={(v) => setGlowTuning({ aboutBaseline: v })}
+        />
+      </div>
     </DebugSection>
   );
 }

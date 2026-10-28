@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 
-// The main site's devtool vocabulary — a collapsible section, a row with a
-// label, a toggle, a segmented control, a range and a `*` — rebuilt without
+// The main site's devtool vocabulary (a collapsible section, a row with a
+// label, a toggle, a segmented control, a range and a `*`), rebuilt without
 // Tailwind so the demo stays standalone. See ../styles.css (`.dt-*`).
 
 export function Section({

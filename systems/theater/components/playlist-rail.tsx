@@ -6,10 +6,10 @@ import { useTheater } from "../provider";
 import { TrackThumb } from "./track-thumb";
 
 // ---------------------------------------------------------------------------
-// PlaylistRail — the "tracks" strip for the active album. Horizontally
+// PlaylistRail: the "tracks" strip for the active album. Horizontally
 // scrollable (browse every video), with the current track highlighted and
-// auto-scrolled into view. Click a card to jump to it — the mini-YouTube
-// playlist experience the spec calls for.
+// auto-scrolled into view. Click a card to jump to it, as in the mini-YouTube
+// playlist the spec calls for.
 // ---------------------------------------------------------------------------
 
 export function PlaylistRail({

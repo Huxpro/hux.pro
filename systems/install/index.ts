@@ -1,5 +1,5 @@
 // =============================================================================
-// Install System — "Add to Home Screen", and the directions that come first
+// Install System: "Add to Home Screen", and the directions that come first
 // =============================================================================
 
 export { InstallProvider, useInstall } from "./provider";

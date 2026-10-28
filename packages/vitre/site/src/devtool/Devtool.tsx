@@ -33,8 +33,8 @@ import { ActionButton, Range, Readout, Row, Section, Segmented, Star, Toggle } f
 
 // =============================================================================
 // The devtool: every configuration the package takes, the state it resolved,
-// and what it wrote to the page — the main site's devtool Wallpaper module,
-// grown to cover the whole API.
+// and what it wrote to the page. It is the main site's devtool Wallpaper
+// module, extended to cover the whole API.
 // =============================================================================
 
 function readHtml(): Record<string, string> {

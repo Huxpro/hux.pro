@@ -7,7 +7,7 @@
  *
  * So the generator rasterizes the same `buildIconSvg` output to PNG with resvg
  * (the wordmark font is supplied as a buffer, since resvg doesn't read inline
- * `@font-face`). This is a *generation-time* concern only — the PNGs are
+ * `@font-face`). This is a *generation-time* concern only. The PNGs are
  * committed artifacts, so the deployed runtime never imports resvg. Kept in its
  * own module, dynamically imported by the generator, so the native dep stays
  * out of the editor page's bundle.
@@ -23,7 +23,7 @@ import path from "path";
  * Rasterize an SVG string to a square PNG of `size` px.
  *
  * `fontBuffer` is the wordmark TTF and `fontFamily` its real family name (see
- * `fontFamilyName`). resvg loads fonts via `fontFiles` — `fontBuffers` is not a
+ * `fontFamilyName`). resvg loads fonts via `fontFiles`; `fontBuffers` is not a
  * supported option in this version and, when passed, silently makes resvg load
  * *system* fonts instead (rendering the wrong typeface). So we stage the TTF to
  * a temp file, point resvg at it, and disable system fonts so it can only use

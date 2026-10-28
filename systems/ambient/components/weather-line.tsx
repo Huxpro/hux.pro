@@ -9,7 +9,7 @@ import { useDisplayWeather } from "./weather-now";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
-// WeatherLine — the home screen's weather, said the way a lock screen says it.
+// WeatherLine: the home screen's weather, said the way a lock screen says it.
 //
 // One line over the greeting: the date, the place, the temperature. The sky
 // behind the page already shows the condition, and the dock's sunrise/sunset

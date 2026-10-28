@@ -37,15 +37,25 @@ const LangContext = createContext<LangContextValue>({ lang: "en", setLang: () =>
 export function LangProvider({
   children,
   persist = true,
+  lang: hostLang,
 }: {
   children: ReactNode;
   /** The phone inside the docs follows the docs and saves nothing itself. */
   persist?: boolean;
+  /**
+   * A host that owns the language (hux.pro's lab, which renders the docs):
+   * the docs read it, and nothing here reads the URL or storage, writes
+   * `<html lang>`, or offers a switch of its own. Safe to render on a server.
+   */
+  lang?: Lang;
 }) {
-  const [lang, setLangState] = useState<Lang>(initialLang);
+  const controlled = hostLang !== undefined;
+  const [own, setOwn] = useState<Lang>(() => hostLang ?? initialLang());
+  const lang = hostLang ?? own;
   const setLang = useCallback(
     (next: Lang) => {
-      setLangState(next);
+      if (controlled) return;
+      setOwn(next);
       if (!persist) return;
       try {
         localStorage.setItem(LANG_KEY, next);
@@ -53,11 +63,12 @@ export function LangProvider({
         // Private mode.
       }
     },
-    [persist]
+    [persist, controlled]
   );
   useEffect(() => {
+    if (controlled) return;
     document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
-  }, [lang]);
+  }, [lang, controlled]);
   return <LangContext.Provider value={{ lang, setLang }}>{children}</LangContext.Provider>;
 }
 

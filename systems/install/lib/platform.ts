@@ -4,15 +4,15 @@
 // There is no one API for it. Installing a site is a browser feature, and each
 // browser puts the door somewhere else:
 //
-//   · Chromium (Chrome, Edge, Samsung Internet, Opera — Android and desktop)
+//   · Chromium (Chrome, Edge, Samsung Internet, Opera; Android and desktop)
 //     fires `beforeinstallprompt` once the site qualifies (a manifest, icons,
 //     HTTPS). Held on to, it can open the browser's own install dialog from a
-//     button of ours — but only from a press, and only once per event.
+//     button of ours, but only from a press, and only once per event.
 //   · WebKit (every browser on an iPhone or iPad, and Safari on a Mac) has no
 //     such event and never will. The only door is the browser's own menu, so
 //     the most a page can do is say where the door is.
 //   · Firefox on the desktop has no door at all (bar a Windows-only taskbar
-//     pin), and an app's built-in browser — WeChat's, Instagram's — has none
+//     pin), and an app's built-in browser (WeChat's, Instagram's) has none
 //     either, only a way out to a browser that does.
 //
 // So the command cannot install anything by itself. What it can do is the
@@ -28,7 +28,7 @@
 
 /**
  * Which set of directions the sheet shows. One per place the door actually
- * is, not one per browser — Chrome, Edge and Firefox on an iPhone differ only
+ * is, not one per browser. Chrome, Edge and Firefox on an iPhone differ only
  * in where their Share button sits, and that is a step, not a guide.
  *
  *   installed          already running from the home screen / dock.
@@ -40,7 +40,7 @@
  *   in-app             an app's built-in browser (WeChat, …), on either
  *                      phone: it has no install at all, but it has "Open in
  *                      browser", and the browser does.
- *   android-chrome     Chrome (and Chromium browsers) on Android, ⋮ menu —
+ *   android-chrome     Chrome (and Chromium browsers) on Android, ⋮ menu;
  *                      shown when the browser has not handed us its dialog.
  *   android-samsung    Samsung Internet, ≡ menu.
  *   android-firefox    Firefox on Android, ⋮ menu.
@@ -96,7 +96,7 @@ export function isStandalone(): boolean {
   );
 }
 
-/** Pure, for the user agent alone — `detectInstallGuide` adds the page's own state. */
+/** Pure, for the user agent alone; `detectInstallGuide` adds the page's own state. */
 export function guideForUserAgent(
   ua: string,
   { touchMac = false }: { touchMac?: boolean } = {}
@@ -160,7 +160,7 @@ export interface BeforeInstallPromptEvent extends Event {
 }
 
 /**
- * The event arrives once, early — often before React has hydrated, so a
+ * The event arrives once, early, often before React has hydrated, so a
  * listener added in an effect can miss it. It is caught here instead, when
  * this module is first evaluated on the client, and handed to whoever
  * subscribes later.
@@ -205,7 +205,7 @@ export function subscribeInstall(fn: () => void): () => void {
  * press. The event is single-use, so it is spent here whatever the answer;
  * Chromium sends a fresh one later if the site is still installable.
  *
- * "unavailable" means there was no event to spend — the browser never offered
+ * "unavailable" means there was no event to spend: the browser never offered
  * one, or it has already been used.
  */
 export async function promptInstall(): Promise<

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * AttachmentGrid — a commit's attachment object in the `feed` form.
+ * AttachmentGrid: a commit's attachment object in the `feed` form.
  *
  * The feed is the reading with everything in it, so this is where the
  * captions are written out and where nothing needs a second step: a video
@@ -12,34 +12,34 @@
  * Two layouts, one per viewport, because a feed is a different thing on a
  * phone and on a desk:
  *
- * Desk — the feeds this borrows from (X, LinkedIn) agree that media has a
+ * Desk: the feeds this borrows from (X, LinkedIn) agree that media has a
  * footprint and the count changes how it is tiled, never how big the post
  * is. The unit is half the column, and the count decides only what the text
  * does:
  *
- *   ┌────────┐ ┌────────┐      a pair — two tiles, each captioned under:
+ *   ┌────────┐ ┌────────┐      a pair. Two tiles, each captioned under:
  *   │        │ │        │      where it is from, what it is, and its blurb.
  *   └────────┘ └────────┘      Cover and caption are one control: the same
  *    SOURCE      SOURCE        `<a>`, so hovering the title washes the art.
  *    Title       Title
  *    Blurb…      Blurb…
  *
- *   ┌────────┐  SOURCE         a lone card — the tile with its caption
+ *   ┌────────┐  SOURCE         a lone card. The tile with its caption
  *   │        │  Title           beside it and the room to say more: the
  *   └────────┘  Blurb…          unfurl a chat app prints for a link.
  *
- *   ┌───────────────────┐      a lone recording or deck — nothing to say
+ *   ┌───────────────────┐      a lone recording or deck. Nothing to say
  *   │                   │      beside it (the row above is its caption), so
  *   └───────────────────┘      it takes the column, as a video post does.
  *
- * Phone — a feed: one thing under the next, each running edge to edge like
+ * Phone: a feed. One thing under the next, each running edge to edge like
  * Instagram's or a landscape video on YouTube's, with the text back in the
  * column under it. Cover and caption are still one `<a>`: the bleed wraps
  * only the crop (`PHONE_BLEED` is a wrapper, not a class on the `w-full`
  * picture), so a tap on the title under a card is the same door as the
  * artwork, and the copy stays on the column. A recording or a deck plays
- * in place, and the bar under it — there from the start, so pressing play
- * moves nothing — names it and offers the stage (`PiP`) for whoever wants
+ * in place, and the bar under it (there from the start, so pressing play
+ * moves nothing) names it and offers the stage (`PiP`) for whoever wants
  * to keep scrolling. Nothing here opens the attachment sheet, which would
  * be a drawer opening on what is already on screen.
  */
@@ -64,7 +64,7 @@ import { MediaMark, newTabMark, SURFACE_CHIP } from "./media-mark";
 import { videoEmbedUrl } from "./video";
 
 export interface AttachmentGridProps {
-  /** Tiles, in authored order — the row's own strip items. */
+  /** Tiles, in authored order: the row's own strip items. */
   items: StripItem[];
   set?: AttachmentSet | null;
   className?: string;
@@ -100,12 +100,12 @@ function SourceLine({ slot, locale }: { slot: TileSlot; locale: Locale }) {
   );
 }
 
-/** Source, title, blurb — the caption in its three places.
+/** Source, title, blurb: the caption in its three places.
  *
  *  Always a child of the tile's `<a>` (`footer`), never its own click
  *  target. A press dims this copy (`COPY_WASH`) and the artwork together,
- *  which is how it reads as the open-attachment door — not the row's
- *  fold wash.
+ *  which is how it reads as the open-attachment door rather than the
+ *  row's fold wash.
  */
 function Caption({
   slot,
@@ -182,7 +182,7 @@ export function AttachmentGrid({
 
   // Main's tile, wrapped in the editor's handle. The wrapper is transparent
   // outside inspect mode (it returns its children), so the feed's own
-  // composition — the footer inside the same anchor, the bleed wrapper — is
+  // composition (the footer inside the same anchor, the bleed wrapper) is
   // untouched.
   const tileOf = (
     slot: TileSlot,
@@ -206,7 +206,7 @@ export function AttachmentGrid({
         set={set}
         attachments={attachments}
         mode="act"
-        // The glyph on what plays — a recording, a deck, a talks-host card —
+        // The glyph on what plays (a recording, a deck, a talks-host card),
         // and nothing on a page: the caption has said what it is.
         chip={slot.mark ? "mini" : "none"}
         flush={extra?.flush}
@@ -307,8 +307,8 @@ export function AttachmentGrid({
         // The span goes on a wrapper, like every other branch here, not on
         // the tile. `tileOf` may put the editor's inspect handle between the
         // grid and the tile (`InspectableMedia`), and that wrapper is then
-        // the grid item — leaving `col-span-2` on the anchor inside it,
-        // where nothing reads it, and the card at half the column. The inner
+        // the grid item. That would leave `col-span-2` on the anchor inside
+        // it, where nothing reads it, and the card at half the column. The inner
         // `grid grid-cols-2` is the card's own composition (cover beside
         // copy) and stays on the tile, which is what it describes.
         return (
@@ -334,7 +334,7 @@ export function AttachmentGrid({
 
 /**
  * A recording or a deck in the phone's feed: a 16:9 cover that plays in
- * place when pressed — the platform's player, or the deck itself — and a
+ * place when pressed (the platform's player, or the deck itself) and a
  * bar under it that is there before, during and after. The bar names the
  * item (its source, and the deck's title) and carries one control, `PiP`,
  * which hands playback to the stage (`act`: the theater, a PiP on a phone)
@@ -342,9 +342,9 @@ export function AttachmentGrid({
  * never play at once. Reserving the bar from the start is what keeps the
  * page still when play is pressed.
  *
- * While the item is on the stage, its place here says so — a dark wash and
+ * While the item is on the stage, its place here says so: a dark wash and
  * the PiP mark over the cover, the way a music app marks the track that is
- * playing elsewhere — and pressing it brings playback back: the stage
+ * playing elsewhere. Pressing it brings playback back: the stage
  * closes and the player mounts here again.
  */
 function InlinePlayable({

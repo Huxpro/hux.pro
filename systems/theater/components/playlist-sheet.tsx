@@ -22,32 +22,32 @@ import { AlbumTabs } from "./album-tabs";
 import { TrackThumb } from "./track-thumb";
 
 // ---------------------------------------------------------------------------
-// TheaterPlaylistSheet — the video system's playlist browser.
+// TheaterPlaylistSheet: the video system's playlist browser.
 //
 // The theater modal browses itself: album tabs across the top, a rail of
-// thumbnails under the stage. PiP has none of that — a phone, where PiP is the
-// *only* shape the player has, was left pressing Next blind. This is that
-// missing browser, and it is the same object the Music system already has
-// (`MusicPlaylistSheet`): one surface mounted in the root layout that any entry
-// point summons with `openPlaylist()`.
+// thumbnails under the stage. PiP has none of that. On a phone, where PiP is
+// the *only* shape the player has, the user was left pressing Next blind. This
+// is the missing browser, and it is the same object the Music system already
+// has (`MusicPlaylistSheet`): one surface mounted in the root layout that any
+// entry point summons with `openPlaylist()`.
 //
 // Shape is <AdaptiveSurface>'s call: sheet on a phone, panel on a tablet,
-// window on a desktop. None of them takes the page — or the video — away.
+// window on a desktop. None of them takes the page (or the video) away.
 //
 // On a phone the sheet and the player split the screen rather than stacking:
 // the provider parks the PiP window at the top of the screen, and the sheet's
 // top detent is that window's bottom edge, so the list never runs under the
 // video and the video never covers a row. Summoned from the Live Activity
-// instead, the same rule points at the dock card the player collapsed into —
-// the sheet stops under whatever shape the player is currently wearing, which
-// is why the detents are a function of where the player is rather than a pair
-// of fractions.
+// instead, the same rule points at the dock card the player collapsed into.
+// The sheet stops under whatever shape the player currently has, which is why
+// the detents are a function of where the player is rather than a pair of
+// fractions.
 //
 // Neither ceiling is measured here. The PiP window's comes from the same rect
 // the stage is drawn from, and the dock card's from the band the dock panel
-// already publishes to the surface stack — so the two edges of the split are
-// one number each, held by whoever owns that edge, and the sheet and the
-// player cannot end up disagreeing about where the line runs.
+// already publishes to the surface stack. Each edge of the split is one number,
+// held by whoever owns that edge, so the sheet and the player cannot disagree
+// about where the line runs.
 // ---------------------------------------------------------------------------
 
 /** Room for a column of 16:9 thumbnails without the drawer feel. */
@@ -74,7 +74,7 @@ export function TheaterPlaylistSheet() {
     selectTrack,
   } = useTheater();
 
-  // Center the playing track when the surface opens — not on every track
+  // Center the playing track when the surface opens, not on every track
   // change, so browsing ahead isn't yanked back to "now playing".
   const listRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
@@ -101,9 +101,9 @@ export function TheaterPlaylistSheet() {
 
   // The dock's, when the player is a Live Activity instead. The panel
   // measures itself for the surface stack already, so the sheet reads that
-  // rather than going out and measuring the dock a second time — and it
-  // follows the panel live, so collapsing the card back to its pill under an
-  // open sheet lets the sheet climb into the room that frees up.
+  // rather than measuring the dock a second time. It also follows the panel
+  // live, so collapsing the card back to its pill under an open sheet lets the
+  // sheet grow into the room that frees up.
   //
   // With no panel up the player is a pill in the dock row, and the ceiling is
   // the line the PiP window parks at: the same constant, so the two shapes of
@@ -147,7 +147,7 @@ export function TheaterPlaylistSheet() {
         </span>
       }
     >
-      {/* Albums first — the switch the PiP bar has no room for. The tabs
+      {/* Albums first: the switch the PiP bar has no room for. The tabs
           scroll sideways rather than wrap: an ad-hoc album is named after the
           video that opened it, and those titles are long. */}
       {albums.length > 1 && (
@@ -210,12 +210,12 @@ export function TheaterPlaylistSheet() {
 /**
  * The tablet panel's way of sharing the screen.
  *
- * A phone sheet resizes to stand under the player; a panel cannot — it is
+ * A phone sheet resizes to sit under the player; a panel cannot. It is
  * pinned to three edges of its side of the screen, and the PiP window rests
  * over its bottom corner. So the list ends above the window instead: a spacer
  * as tall as the overlap, so the last rows can be scrolled clear of it.
  *
- * Zero when the two do not overlap — a window dragged aside, a narrow panel.
+ * Zero when the two do not overlap (a window dragged aside, a narrow panel).
  * Measured from in here, because the scroll box does not exist until Base UI
  * mounts the popup, and says nothing until the panel has finished travelling
  * in from its edge: a panel still off the right edge overlaps nothing.

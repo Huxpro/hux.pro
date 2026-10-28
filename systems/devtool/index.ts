@@ -10,6 +10,9 @@ export {
   HOME_WEATHER_DEFAULT,
   type HeroExit,
   type HomeWeather,
+  WORKS_REF_DEFAULT,
+  WORKS_REFS,
+  type WorksRef,
 } from "./provider";
 export { DevtoolFAB } from "./dock";
 export { DevtoolPageMeta } from "./page-meta";

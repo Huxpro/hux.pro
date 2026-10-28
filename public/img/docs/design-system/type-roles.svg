@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 876 722" width="876" height="722">
+<rect x="0" y="0" width="876" height="722" fill="#ffffff"/>
+<text x="24" y="34" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#111">TYPE roles: rung × family</text>
+<text x="24" y="56" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" fill="#555">Rows are rungs of the ink ladder (text-*), columns are families. Each cell: role, size.</text>
+<text x="230" y="84" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="600" fill="#111">font-sans</text>
+<text x="230" y="101" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#444">Inter</text>
+<text x="230" y="117" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" font-style="italic">structure: titles, rows, body</text>
+<text x="446" y="84" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="600" fill="#111">font-serif</text>
+<text x="446" y="101" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#444">Newsreader + Noto Serif SC</text>
+<text x="446" y="117" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" font-style="italic">thinking: emphasis, poetic titles</text>
+<text x="662" y="84" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="600" fill="#111">font-mono</text>
+<text x="662" y="101" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#444">JetBrains Mono</text>
+<text x="662" y="117" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" font-style="italic">the machine: labels, dates, nav</text>
+<rect x="16" y="128" width="844" height="133" rx="10" fill="#f6f6f6" stroke="#e4e4e4"/>
+<text x="30" y="158" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="20" font-weight="500" fill="#0a0a0a">Aa</text>
+<text x="62" y="152" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#111">foreground</text>
+<text x="62" y="169" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#666">ink, 100 %</text>
+<rect x="218" y="134" width="206" height="121" rx="7" fill="#ffffff" stroke="#ececec"/>
+<text x="230" y="156" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">rowTitle<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">sm</tspan></text>
+<text x="230" y="177" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">rowHeading<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">sm medium</tspan></text>
+<text x="230" y="198" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">mediaTitle<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">sm medium</tspan></text>
+<text x="230" y="219" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">TITLE_READER<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">xl / 2xl medium</tspan></text>
+<text x="230" y="240" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">prose h1–h3<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">1.25 / 1.125 / 1em</tspan></text>
+<rect x="434" y="134" width="206" height="121" rx="7" fill="#ffffff" stroke="#ececec"/>
+<text x="446" y="156" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">TITLE_POETIC<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">3xl / 4xl</tspan></text>
+<text x="446" y="177" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">dek<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">italic, ink / 80</tspan></text>
+<rect x="650" y="134" width="206" height="121" rx="7" fill="#ffffff" stroke="#ececec"/>
+<text x="662" y="156" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#bbb">—</text>
+<rect x="16" y="269" width="844" height="70" rx="10" fill="#f6f6f6" stroke="#e4e4e4"/>
+<text x="30" y="299" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="20" font-weight="500" fill="#2e2e2e">Aa</text>
+<text x="62" y="293" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#111">reading-foreground</text>
+<text x="62" y="310" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#666">85 %</text>
+<rect x="218" y="275" width="206" height="58" rx="7" fill="#ffffff" stroke="#ececec"/>
+<text x="230" y="297" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">reading<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">sm</tspan></text>
+<text x="230" y="318" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">.prose-article<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">16px default</tspan></text>
+<rect x="434" y="275" width="206" height="58" rx="7" fill="#ffffff" stroke="#ececec"/>
+<text x="446" y="297" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">voice<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">sm, 15px in Latin</tspan></text>
+<text x="446" y="318" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">prose em<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">italic, 1.0625em</tspan></text>
+<rect x="650" y="275" width="206" height="58" rx="7" fill="#ffffff" stroke="#ececec"/>
+<text x="662" y="297" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#bbb">—</text>
+<rect x="16" y="347" width="844" height="133" rx="10" fill="#f6f6f6" stroke="#e4e4e4"/>
+<text x="30" y="377" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="20" font-weight="500" fill="#7b7b7b">Aa</text>
+<text x="62" y="371" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#111">muted-foreground</text>
+<text x="62" y="388" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#666">54 / 60 %  + boost</text>
+<rect x="218" y="353" width="206" height="121" rx="7" fill="#ffffff" stroke="#ececec"/>
+<text x="230" y="375" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">body<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">sm</tspan></text>
+<text x="230" y="396" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">message<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">13px</tspan></text>
+<text x="230" y="417" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">caption<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">xs</tspan></text>
+<text x="230" y="438" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">appLabel<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">11px</tspan></text>
+<rect x="434" y="353" width="206" height="121" rx="7" fill="#ffffff" stroke="#ececec"/>
+<text x="446" y="375" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#bbb">—</text>
+<rect x="650" y="353" width="206" height="121" rx="7" fill="#ffffff" stroke="#ececec"/>
+<text x="662" y="375" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">label<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">xs</tspan></text>
+<text x="662" y="396" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">meta<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">xs</tspan></text>
+<text x="662" y="417" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">identifier<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">xs, wider</tspan></text>
+<text x="662" y="438" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">nav<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">xs, wide</tspan></text>
+<text x="662" y="459" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">kbd<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">xs, on bg-muted/50</tspan></text>
+<rect x="16" y="488" width="844" height="70" rx="10" fill="#f6f6f6" stroke="#e4e4e4"/>
+<text x="30" y="518" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="20" font-weight="500" fill="#adadad">Aa</text>
+<text x="62" y="512" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#111">tertiary-foreground</text>
+<text x="62" y="529" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#666">32 / 36 %  + boost</text>
+<rect x="218" y="494" width="206" height="58" rx="7" fill="#ffffff" stroke="#ececec"/>
+<text x="230" y="516" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">captionQuiet<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">xs</tspan></text>
+<rect x="434" y="494" width="206" height="58" rx="7" fill="#ffffff" stroke="#ececec"/>
+<text x="446" y="516" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">aside<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">xs italic</tspan></text>
+<rect x="650" y="494" width="206" height="58" rx="7" fill="#ffffff" stroke="#ececec"/>
+<text x="662" y="516" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">rowMeta<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">xs</tspan></text>
+<text x="662" y="537" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">labelSm<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">10px</tspan></text>
+<rect x="16" y="566" width="844" height="70" rx="10" fill="#f6f6f6" stroke="#e4e4e4"/>
+<text x="30" y="596" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="20" font-weight="500" fill="#cbcbcb">Aa</text>
+<text x="62" y="590" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#111">quaternary-foreground</text>
+<text x="62" y="607" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#666">20 / 22 %  + boost</text>
+<rect x="218" y="572" width="206" height="58" rx="7" fill="#ffffff" stroke="#ececec"/>
+<text x="230" y="594" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#bbb">—</text>
+<rect x="434" y="572" width="206" height="58" rx="7" fill="#ffffff" stroke="#ececec"/>
+<text x="446" y="594" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#bbb">—</text>
+<rect x="650" y="572" width="206" height="58" rx="7" fill="#ffffff" stroke="#ececec"/>
+<text x="662" y="594" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#111">hash<tspan font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#777" dx="8">xs</tspan></text>
+<text x="24" y="662" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#666">Roles: TYPE in lib/typography.ts. TITLE_POETIC / TITLE_READER: components/ui/header-zone.tsx.</text>
+<text x="24" y="679" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#666">Prose: .prose-article in app/globals.css. Alphas light / dark from app/globals.css.</text>
+<text x="24" y="696" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" fill="#666">&quot;+ boost&quot; is the wallpaper boost (docs/system-legibility.md). Swatches: light theme on white.</text>
+</svg>

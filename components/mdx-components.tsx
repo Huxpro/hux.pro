@@ -32,7 +32,14 @@
  * @see docs/mdx.md - Documentation on MDX rendering
  */
 
+import {
+  ServerBadge,
+  ServerMagicLink,
+  ServerProseLink,
+} from "@/components/magic-link/server";
 import { CodeBlock } from "@/components/code-block";
+import { LanguageIndex } from "@/components/languages/language-index";
+import { PLChart } from "@/components/languages/pl-chart";
 import { HeadingWithLink } from "@/components/heading-link";
 import { MdxImage } from "@/components/mdx-image";
 import { HStackWidget, VStackWidget } from "@/components/home/featured-stack-widget";
@@ -107,7 +114,7 @@ function InlineCode({ children, ...props }: ComponentPropsWithoutRef<"code">) {
  * Link component with external link detection
  * External links open in new tab with security attributes
  */
-function SmartLink({
+export function SmartLink({
   href,
   children,
   ...props
@@ -148,7 +155,8 @@ const sharedComponents: MDXComponents = {
   // ---------------------------------------------------------------------------
   // HTML Element Overrides (prose styles apply from .prose-article CSS)
   // ---------------------------------------------------------------------------
-  a: SmartLink,
+  // A link to something this site knows peeks as it (components/magic-link).
+  a: ServerProseLink,
   code: InlineCode,
   pre: CodeBlock,
   table: TableWrapper,
@@ -178,6 +186,13 @@ const sharedComponents: MDXComponents = {
   // - Figure: Static image display (uses Next.js Image)
   // - MediaRenderer: Orchestrates multiple media items
   // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // The PL chart (content/blog/pl-chart.*.mdx): the chart and its notes, over
+  // content/languages.json. `locale` is the post's language, not the site's.
+  // ---------------------------------------------------------------------------
+  PLChart: withNotProse(PLChart),
+  LanguageNotes: withNotProse(LanguageIndex),
+
   Media: withNotProse(Media),
   Video: withNotProse(Video),
   SocialEmbed: withNotProse(SocialEmbed),
@@ -185,6 +200,19 @@ const sharedComponents: MDXComponents = {
   LinkCard: withNotProse(LinkCard),
   Figure: withNotProse(Figure),
   MediaRenderer: withNotProse(MediaRenderer),
+
+  // ---------------------------------------------------------------------------
+  // MagicLink / Badge: a word that summons something (a post, a work, a
+  // role, a page, an app). Peeks under the pointer as the thing does on
+  // /writing and /works; opens the drawer on a phone. A Badge is the same
+  // link dressed as a pill with the thing's icon. Inline, so not wrapped in
+  // `.not-prose` here; they carry the class themselves.
+  //   <MagicLink post="dreamer">dream</MagicLink>
+  //   <Badge commit="lynx-framework" />  <Badge role="alitrip-engineer">Alibaba</Badge>
+  // @see components/magic-link
+  // ---------------------------------------------------------------------------
+  Badge: ServerBadge,
+  MagicLink: ServerMagicLink,
 
   // ---------------------------------------------------------------------------
   // Widget Primitives (shadcn-like composable building blocks)
@@ -199,7 +227,7 @@ const sharedComponents: MDXComponents = {
   // ---------------------------------------------------------------------------
   // Docs: live code + preview playground
   // ---------------------------------------------------------------------------
-  // NOTE: Do NOT wrap with `.not-prose` — we want prose code styles (Shiki vars)
+  // NOTE: Do NOT wrap with `.not-prose`. We want prose code styles (Shiki vars)
   // to apply to the source pane.
   Playground,
 };

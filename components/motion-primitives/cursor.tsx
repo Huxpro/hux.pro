@@ -31,11 +31,14 @@ export type CursorProps = {
     exit: Variant;
   };
   onPositionChange?: (x: number, y: number) => void;
+  /** Paint layer, over `z-50`, for a cursor above a higher surface. */
+  zIndex?: number;
 };
 
 export function Cursor({
   children,
   className,
+  zIndex,
   springConfig,
   offset = { x: 16, y: 16 },
   attachToParent,
@@ -51,7 +54,7 @@ export function Cursor({
     typeof window !== "undefined" ? window.innerHeight / 2 : 0
   );
   // Horizontal offset stays fixed so the panel always sits in the same side
-  // gutter and never covers the reading column — with one exception: a panel
+  // gutter and never covers the reading column, with one exception: a panel
   // that would leave the screen on the right flips to the pointer's left
   // instead. A mark at the trailing edge of the column (a `<handle>` under
   // the date) would otherwise peek into the void. The vertical offset is
@@ -157,7 +160,7 @@ export function Cursor({
 
   // The panel exists only while it peeks. A fixed, transformed element is a
   // compositing layer, and one per row of /works was fifty layers on a desk
-  // before anyone hovered; idle, this is a hidden span — enough for the
+  // before anyone hovered. Idle, this is a hidden span, enough for the
   // parent-attach effect above to find the parent. `present` outlives
   // `isVisible` by the exit animation, so the panel can leave the way it
   // came. (React's "adjusting state during render" pattern, so the panel
@@ -182,6 +185,7 @@ export function Cursor({
         y: cursorYSpring,
         translateX,
         translateY,
+        ...(zIndex !== undefined ? { zIndex } : {}),
       }}
     >
       <AnimatePresence onExitComplete={() => setPresent(false)}>

@@ -1,32 +1,38 @@
 "use client";
 
 /**
- * TimelineMini — Minimized git-log row for widget-sized timelines.
+ * TimelineMini: minimized git-log row for widget-sized timelines.
  *
  * A trimmed-down `TimelineCommit`: same icon column + tenure rail, same
- * title / date summary line and `<handle>` byline — minus everything that
+ * title / date line, and nothing under it. It is /works' one-liner at
+ * widget width: the mark says what kind of thing it is (a project wears
+ * its own face), the title says which, the date says when. The team and
+ * the handle used to take a second line under each title; on a card that
+ * is "projects" by its own label, under a greeting that names the
+ * company, they were the chapter restated five times. Everything that
  * needs page-width real estate (hash column, link pills, cursor peek,
- * pinned/expanded media, inspect mode). Attachments never render here.
+ * pinned/expanded media, inspect mode) is likewise left to /works.
+ * Attachments never render here.
  *
- * Consumes NormalizedCommit — fully type-agnostic.
+ * Consumes NormalizedCommit, so it is type-agnostic.
  *
  * **The row is a permalink into /works.** It used to fold an author /
  * description block open in place, which made the card a second, worse
- * reader for something /works already shows better — and made the card's
- * own height a function of what you had tapped. Now that a commit has an
+ * reader for something /works already shows better. It also made the
+ * card's own height a function of what you had tapped. Now that a commit has an
  * address (`/works#<hash>`, see `use-commit-anchor.ts`), the row hands off
  * instead: tapping it opens that row on /works, which travels to it and
  * marks it. The preview stays a preview.
  *
- * That address belongs to /works and this component names it directly — it
+ * That address belongs to /works and this component names it directly. It
  * is that page in miniature, not a general-purpose row.
  */
 
 import { cn } from "@/lib/utils";
 import { Link } from "next-view-transitions";
-import type { Byline } from "./bylines";
 import type { NormalizedCommit } from "./commit-data";
 import { CommitIcon } from "./icons";
+import { ProjectMark } from "./project-mark";
 import { QuietLine } from "./quiet-line";
 
 import { TYPE } from "@/lib/typography";
@@ -37,8 +43,6 @@ interface TimelineMiniProps {
   rail?: string;
   /** True when this row IS a role that anchors its tenure segment. */
   isRole?: boolean;
-  /** Pre-localized author byline (see `computeBylines`). */
-  byline?: Byline | null;
   hideDate?: boolean;
   className?: string;
 }
@@ -47,38 +51,42 @@ export function TimelineMini({
   data,
   rail = "",
   isRole = false,
-  byline = null,
   hideDate = false,
   className,
 }: TimelineMiniProps) {
   const isEvent = data.type === "event";
   const isAside = data.present === "aside";
   // Folded asides borrow the event voice: muted italic line, rail
-  // dot. Mini rows do not unfold in place — they permalink into /works,
+  // dot. Mini rows do not unfold in place; they permalink into /works,
   // where the aside can be opened. The type is unchanged, so filters
   // still find it.
+  // The name, where the commit has one: a widget line has room for what a
+  // thing is called, and the title's detail is /works' to print.
   const displayTitle =
-    isAside && data.foldedTitle ? data.foldedTitle : data.title;
+    isAside && data.foldedTitle ? data.foldedTitle : data.name ?? data.title;
 
   // No outbound links on a mini row. They used to sit between the title and
-  // the date — a globe and a GitHub mark on nearly every project — and on a
+  // the date (a globe and a GitHub mark on nearly every project), and on a
   // widget-width card they were paid for out of the title, which truncated
   // to make room ("React Compiler (F…"). The row is already a permalink to
   // its full entry on /works, where every link is one more tap away; the
   // preview's job is to say what the thing is, in full.
 
-  // Events are the log's punctuation — they have no page of their own to
+  // Events have no page of their own to
   // open, so they stay plain text. Asides are real commits (a talk, a
   // post) wearing the event voice, so they still permalink into /works.
   const href = isEvent ? null : `/works#${data.hash}`;
 
   // Rail drawn through the icon column as two segments (above / below the
   // icon), each stopping short of the icon so it sits in a gap on the line.
-  // See TimelineCommit for the full rationale — same glyph vocabulary.
+  // See TimelineCommit for the full rationale; same glyph vocabulary.
   const hasRailAbove = rail === "│" || rail === "┘";
   const hasRailBelow = rail === "│" || rail === "┐";
   const isRoleAnchor = isRole && rail !== "";
-  const iconGapPx = isEvent || isAside ? 3 : isRoleAnchor ? 10 : 7;
+  // A project's mark fills the column the way the role ring does.
+  const wearsMark = !isEvent && !isAside && !!data.mark;
+  const iconGapPx =
+    isEvent || isAside ? 3 : isRoleAnchor || wearsMark ? 10 : 7;
 
   const body = (
     <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 items-start">
@@ -120,11 +128,16 @@ export function TimelineMini({
               ],
             )}
           >
-            <CommitIcon
-              type={data.type}
-              override={data.iconOverride}
-              className="w-3 h-3 text-tertiary-foreground"
-            />
+            {data.mark ? (
+              // The same face the row wears on /works (TimelineCommit).
+              <ProjectMark icon={data.mark} className="size-4 rounded-[4px]" />
+            ) : (
+              <CommitIcon
+                type={data.type}
+                override={data.iconOverride}
+                className="w-3 h-3 text-tertiary-foreground"
+              />
+            )}
           </span>
         )}
       </span>
@@ -165,51 +178,6 @@ export function TimelineMini({
         )}
       </div>
 
-      {/* Subtitle row: meta / team on the left, <handle> byline on the
-          right. Sparse handle: cluster heads print it at rest, the rest
-          fade in on row hover. */}
-      {(!(isEvent || isAside) && (data.meta || byline)) && (
-        <div
-          className={cn(
-            "col-start-2 mt-0.5 flex items-baseline justify-between gap-2",
-            TYPE.rowMeta,
-          )}
-        >
-          <span className="min-w-0 truncate">
-            {data.meta ? (
-              data.metaUrl ? (
-                <a
-                  href={data.metaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
-                >
-                  {data.meta}
-                  <span aria-hidden className="text-[0.7rem]">
-                    ↗
-                  </span>
-                </a>
-              ) : (
-                data.meta
-              )
-            ) : (
-              byline?.subtitle
-            )}
-          </span>
-          {byline && (
-            <span
-              className={cn(
-                "shrink-0 text-tertiary-foreground transition-opacity duration-200",
-                byline.isClusterHead
-                  ? "opacity-100"
-                  : "opacity-0 group-hover:opacity-100",
-              )}
-            >
-              {byline.handle}
-            </span>
-          )}
-        </div>
-      )}
     </div>
   );
 
@@ -219,10 +187,10 @@ export function TimelineMini({
     className,
   );
 
-  // Nested links (the `meta` site) are why the row is a
-  // grid with a link around it rather than an `<a>` with links inside it —
-  // except an anchor can't legally contain one, so the row's own anchor is
-  // a sibling laid over the row, under the pills in the stacking order.
+  // Nested links (the `meta` site) are why the row is not an `<a>` with
+  // links inside it: an anchor can't legally contain one. So the row is a
+  // grid, and its own anchor is a sibling laid over the row, under the pills
+  // in the stacking order.
   if (!href) return <div className={shell}>{body}</div>;
 
   return (

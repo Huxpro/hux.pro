@@ -1,5 +1,5 @@
 // =============================================================================
-// Stirring the weather — the rain-and-snow easter egg.
+// Stirring the weather: the rain-and-snow easter egg.
 //
 // Drag a hand across the page's background while it is raining or snowing and
 // you stir up a breeze. The rain leans over at once and travels along the lean;
@@ -8,10 +8,10 @@
 // settles back. The cloud decks feel nothing: you cannot stir a cloud by waving
 // at it.
 //
-// That is the whole of it. A hand adds a term to the wind; everything the sky
-// does with wind it already knew how to do. Nothing is held, nothing is towed
-// about, and there is no second physics to keep honest — which is why the sky
-// never has to be handed back at the end of a gesture.
+// A hand adds a term to the wind, and everything the sky does with wind it
+// already knew how to do. Nothing is held, nothing is towed about, and there
+// is no second physics to keep honest. That is why the sky never has to be
+// handed back at the end of a gesture.
 //
 // This module is only the recognizer: it decides whether a drag landed on the
 // background and reports how fast the hand is going, in CSS pixels per second.
@@ -29,7 +29,7 @@
 //
 //   · Touch events, not pointer events. The moment a touch drag turns into a
 //     page scroll the browser fires `pointercancel` and stops sending
-//     `pointermove` — which would cut the gesture off exactly where it is most
+//     `pointermove`. That would cut the gesture off exactly where it is most
 //     fun, since the background is mostly what you scroll from. `touchmove`
 //     keeps coming either way.
 //   · Nothing here ever calls `preventDefault`, and nothing here ever changes
@@ -53,8 +53,8 @@ export interface WindStirListener {
    *
    * There is no matching "stopped" call, and none is needed: a hand that has
    * stopped sends nothing, and the renderer lets an unrefreshed stir go stale
-   * within a breath. A gesture can therefore end — by lifting, by being
-   * cancelled, by the whole listener being detached — without anybody having
+   * within a breath. A gesture can therefore end (by lifting, by being
+   * cancelled, by the whole listener being detached) without anybody having
    * to put the sky back.
    */
   onStir: (vx: number) => void;
@@ -145,7 +145,7 @@ export function attachWindStir(listener: WindStirListener): () => void {
   // --- Wiring --------------------------------------------------------------
   //
   // On the window, in the capture phase, so a drag is still seen through a
-  // `stopPropagation` on the way up — and passive, because none of this ever
+  // `stopPropagation` on the way up, and passive, because none of this ever
   // cancels anything. The move handlers are live the whole time rather than
   // subscribed per gesture: Chrome decides whether a touch sequence needs the
   // main thread at all when the first finger lands, and a listener added after

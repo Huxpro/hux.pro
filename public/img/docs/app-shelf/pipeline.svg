@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" fill="#1f2328">
+  <rect width="960" height="560" fill="#ffffff"/>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#57606a"/>
+    </marker>
+  </defs>
+
+  <!-- band labels -->
+  <text x="20" y="24" font-size="12" font-weight="600" fill="#6e7781" letter-spacing="0.06em">AUTHOR</text>
+  <text x="290" y="24" font-size="12" font-weight="600" fill="#6e7781" letter-spacing="0.06em">BUILD TIME (by hand, network)</text>
+  <text x="640" y="24" font-size="12" font-weight="600" fill="#6e7781" letter-spacing="0.06em">COMMITTED</text>
+  <line x1="20" y1="372" x2="940" y2="372" stroke="#d0d7de" stroke-dasharray="4 4"/>
+  <text x="290" y="394" font-size="12" font-weight="600" fill="#6e7781" letter-spacing="0.06em">RUNTIME (no network, no crawling)</text>
+
+  <!-- apps.json -->
+  <rect x="20" y="40" width="220" height="150" rx="10" fill="#f6f8fa" stroke="#57606a"/>
+  <text x="34" y="64" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600">content/apps.json</text>
+  <text x="34" y="88" fill="#57606a">id, title, url</text>
+  <text x="34" y="108" fill="#57606a">titleZh?, runtime?, flavor?,</text>
+  <text x="34" y="126" fill="#57606a">bundleUrl?, size?, keywords?</text>
+  <text x="34" y="148" fill="#57606a">featured? (false = ⌘K only)</text>
+  <text x="34" y="172" fill="#cf222e">icon? (manual override)</text>
+
+  <!-- snapshot -->
+  <rect x="290" y="40" width="300" height="170" rx="10" fill="#ddf4ff" stroke="#0969da"/>
+  <text x="304" y="64" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600">pnpm apps:snapshot</text>
+  <text x="304" y="84" font-size="12" fill="#57606a">scripts/app-icon-snapshot.ts</text>
+  <text x="304" y="106" fill="#1f2328">discoverAppIcon(url), first image wins:</text>
+  <text x="314" y="126" font-size="12" fill="#1f2328">1 manifest icons[]</text>
+  <text x="314" y="144" font-size="12" fill="#1f2328">2 apple-touch-icon (+ /apple-touch-icon.png)</text>
+  <text x="314" y="162" font-size="12" fill="#1f2328">3 &lt;link rel="icon"&gt;   4 /favicon.ico</text>
+  <text x="304" y="186" fill="#cf222e">icon "/…": used as-is · "https://…": fetched</text>
+  <text x="304" y="202" font-size="12" fill="#57606a">crawl fails → keep prior icon; none → exit 1</text>
+
+  <!-- outputs -->
+  <rect x="640" y="40" width="300" height="62" rx="10" fill="#dafbe1" stroke="#1a7f37"/>
+  <text x="654" y="64" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600">public/app-icons/&lt;id&gt;.&lt;ext&gt;</text>
+  <text x="654" y="86" fill="#57606a">the bytes; files no app names are pruned</text>
+
+  <rect x="640" y="120" width="300" height="90" rx="10" fill="#dafbe1" stroke="#1a7f37"/>
+  <text x="654" y="144" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600">content/app-icons.json</text>
+  <text x="654" y="166" fill="#57606a">per id: url, file, source,</text>
+  <text x="654" y="184" fill="#57606a">iconUrl?, width, height</text>
+  <text x="654" y="202" font-size="12" fill="#57606a">source: manifest | apple-touch-icon | icon | …</text>
+
+  <!-- arrows build -->
+  <line x1="240" y1="115" x2="286" y2="115" stroke="#57606a" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="590" y1="71" x2="636" y2="71" stroke="#57606a" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="590" y1="165" x2="636" y2="165" stroke="#57606a" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- check -->
+  <rect x="290" y="250" width="300" height="80" rx="10" fill="#fff8c5" stroke="#9a6700"/>
+  <text x="304" y="274" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600">pnpm apps:check</text>
+  <text x="304" y="294" fill="#57606a">offline: every app has an entry, same url,</text>
+  <text x="304" y="312" fill="#57606a">file on disk; no stale ids. Not run by CI.</text>
+  <path d="M130,190 L130,290 L286,290" fill="none" stroke="#9a6700" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+  <path d="M700,210 L700,290 L594,290" fill="none" stroke="#9a6700" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+
+  <!-- runtime: lib/apps.ts -->
+  <rect x="20" y="420" width="250" height="120" rx="10" fill="#f6f8fa" stroke="#57606a"/>
+  <text x="34" y="444" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600">lib/apps.ts</text>
+  <text x="34" y="466" fill="#57606a">imports both JSON files</text>
+  <text x="34" y="488" fill="#1f2328">APPS, APPS_BY_ID, APP_ICONS</text>
+  <text x="34" y="508" fill="#1f2328">FEATURED_APPS (featured ≠ false)</text>
+  <text x="34" y="528" fill="#1f2328">iconFillsTile, chunkAppPages</text>
+  <path d="M60,190 L60,416" fill="none" stroke="#57606a" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M800,210 L800,352 L220,352 L220,416" fill="none" stroke="#57606a" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- AppTile -->
+  <rect x="320" y="420" width="290" height="120" rx="10" fill="#fbefff" stroke="#8250df"/>
+  <text x="334" y="444" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600">AppTile</text>
+  <text x="400" y="444" font-size="12" fill="#57606a">components/apps/app-tile.tsx</text>
+  <text x="334" y="466" fill="#1f2328">src: resolveAppIconSrc →</text>
+  <text x="344" y="484" fill="#57606a">snapshot file → icon → Lynx mark</text>
+  <text x="334" y="506" fill="#1f2328">iconFillsTile: square ≥ 160px →</text>
+  <text x="344" y="524" fill="#57606a">full bleed, else glyph on white plate</text>
+  <line x1="270" y1="480" x2="316" y2="480" stroke="#57606a" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- consumers -->
+  <rect x="660" y="420" width="280" height="54" rx="10" fill="#ffffff" stroke="#57606a"/>
+  <text x="674" y="442" font-weight="600">AppFolder (home grid, id "apps")</text>
+  <text x="674" y="462" font-size="12" fill="#57606a">FEATURED_APPS · lg 64px · badge on hover, edit</text>
+  <rect x="660" y="486" width="280" height="54" rx="10" fill="#ffffff" stroke="#57606a"/>
+  <text x="674" y="508" font-weight="600">CommandAppsStrip (⌘K)</text>
+  <text x="674" y="528" font-size="12" fill="#57606a">all APPS · md 48px · badge always</text>
+  <line x1="610" y1="447" x2="656" y2="447" stroke="#57606a" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="610" y1="513" x2="656" y2="513" stroke="#57606a" stroke-width="1.5" marker-end="url(#a)"/>
+</svg>

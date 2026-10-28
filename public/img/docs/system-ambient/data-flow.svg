@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 720" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<rect width="1000" height="720" fill="#ffffff"/>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#444"/></marker></defs>
+<rect x="20" y="20" width="300" height="100" rx="8" fill="#eef4fb" stroke="#9aa0aa"/>
+<text x="32" y="40" font-size="13" font-weight="600" fill="#1a1a1a">Location · useLocationQuery</text>
+<text x="32" y="60" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">IP: ipapi.co, then ipwho.is</text>
+<text x="32" y="77" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">precise: geolocation, if canTakeFix</text>
+<text x="32" y="94" font-size="11.5" fill="#333" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">→ ResolvedLocation { lat, lon }</text>
+<rect x="360" y="20" width="300" height="100" rx="8" fill="#eef4fb" stroke="#9aa0aa"/>
+<text x="372" y="40" font-size="13" font-weight="600" fill="#1a1a1a">Weather · useWeatherQuery</text>
+<text x="372" y="60" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">fetchCurrentWeather → Open-Meteo</text>
+<text x="372" y="77" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">current + daily sunrise,sunset</text>
+<text x="372" y="94" font-size="11.5" fill="#333" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">→ NormalizedWeather</text>
+<rect x="700" y="20" width="280" height="100" rx="8" fill="#eef4fb" stroke="#9aa0aa"/>
+<text x="712" y="40" font-size="13" font-weight="600" fill="#1a1a1a">Clock · useAmbientTime</text>
+<text x="712" y="60" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">nowMs: the wall clock, ticked</text>
+<text x="712" y="77" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">each minute; or devtool time</text>
+<text x="712" y="94" font-size="11.5" fill="#333" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">travel (timeScrubMinutes)</text>
+<line x1="320" y1="70" x2="358" y2="70" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="360" y="180" width="300" height="100" rx="8" fill="#f5f6f8" stroke="#9aa0aa"/>
+<text x="372" y="200" font-size="13" font-weight="600" fill="#1a1a1a">Sun &amp; moon · lib/solar.ts</text>
+<text x="372" y="220" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">at nowMs, for lat, lon:</text>
+<text x="372" y="237" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">sun elevation / azimuth (NOAA)</text>
+<text x="372" y="254" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">moon position + phase (Schlyter)</text>
+<rect x="700" y="180" width="280" height="100" rx="8" fill="#f5f6f8" stroke="#9aa0aa"/>
+<text x="712" y="200" font-size="13" font-weight="600" fill="#1a1a1a">Phase · deriveAmbientPhase</text>
+<text x="712" y="220" font-size="11.5" fill="#333" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">nowMs × sunriseMs, sunsetMs</text>
+<text x="712" y="237" font-size="11.5" fill="#333" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">→ AmbientPhase (six)</text>
+<text x="712" y="254" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">greeting · Dock activity</text>
+<path d="M 170 120 L 170 230 L 358 230" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/>
+<path d="M 640 120 L 640 145 L 800 145 L 800 178" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/>
+<text x="706" y="139" font-size="11" fill="#555" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">sunrise/sunsetMs</text>
+<circle cx="680" cy="145" r="2.5" fill="#444"/>
+<line x1="900" y1="120" x2="900" y2="178" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/>
+<text x="906" y="154" font-size="11" fill="#555" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">nowMs</text>
+<rect x="180" y="340" width="480" height="100" rx="8" fill="#f5f6f8" stroke="#9aa0aa"/>
+<text x="192" y="360" font-size="13" font-weight="600" fill="#1a1a1a">Scene · deriveWeatherScene (lib/scene.ts)</text>
+<text x="192" y="380" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">weather × sun × moon × wallpaperTheme → WeatherScene</text>
+<text x="192" y="397" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">sky, clouds, precipitation, wind, fog, lightning, stars,</text>
+<text x="192" y="414" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">veil, exposure; colours already keyed to the theme</text>
+<path d="M 680 145 L 680 390 L 662 390" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/>
+<text x="686" y="320" font-size="11" fill="#555" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">weather</text>
+<line x1="510" y1="280" x2="510" y2="338" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="20" y="500" width="300" height="100" rx="8" fill="#f3f0fa" stroke="#9aa0aa"/>
+<text x="32" y="520" font-size="13" font-weight="600" fill="#1a1a1a">Sky · WallpaperRenderer</text>
+<text x="32" y="540" font-size="11.5" fill="#333" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">setScene(scene) → targets</text>
+<text x="32" y="557" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">eased per frame into uniforms</text>
+<text x="32" y="574" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">→ shader.ts on a WebGL2 canvas</text>
+<rect x="350" y="500" width="300" height="100" rx="8" fill="#f3f0fa" stroke="#9aa0aa"/>
+<text x="362" y="520" font-size="13" font-weight="600" fill="#1a1a1a">Gradient · sceneToCssGradient</text>
+<text x="362" y="540" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">the same scene as a CSS wash</text>
+<text x="362" y="557" font-size="11.5" fill="#333" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">→ wallpaper.layers, crossfaded</text>
+<text x="362" y="574" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">widget cards, and the Sky's fallback</text>
+<rect x="680" y="500" width="300" height="100" rx="8" fill="#f3f0fa" stroke="#9aa0aa"/>
+<text x="692" y="520" font-size="13" font-weight="600" fill="#1a1a1a">Classic · getClassicGradient</text>
+<text x="692" y="540" font-size="11.5" fill="#333" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">(scene, phase): hand-tuned palettes</text>
+<text x="692" y="557" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">steps at phase and condition</text>
+<text x="692" y="574" font-size="11.5" fill="#333" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">→ wallpaper.layers</text>
+<path d="M 300 440 L 300 470 L 170 470 L 170 498" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/>
+<line x1="500" y1="440" x2="500" y2="498" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/>
+<path d="M 620 440 L 620 470 L 760 470 L 760 498" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/>
+<path d="M 940 280 L 940 498" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/>
+<text x="934" y="400" font-size="11" fill="#555" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">phase</text>
+<rect x="180" y="630" width="640" height="74" rx="8" fill="#eef7ef" stroke="#9aa0aa"/>
+<text x="192" y="650" font-size="13" font-weight="600" fill="#1a1a1a">Legibility · resolveLegibility → applyLegibility</text>
+<text x="192" y="670" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">profile: profileFromScene for Sky and Gradient; wallpaper-profiles.json for Classic and images</text>
+<text x="192" y="687" font-size="12" fill="#333" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">→ CSS variables on &lt;html&gt; (ink, relief, glass); docs/system-legibility.md</text>
+<path d="M 335 440 L 335 628" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#a)"/>
+<text x="340" y="622" font-size="11" fill="#555" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">profileFromScene</text>
+<path d="M 830 600 L 830 667 L 822 667" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#a)" stroke-dasharray="4 3"/>
+</svg>

@@ -118,9 +118,11 @@ export interface VitreProps {
  *
  * Render it once, around the page. It draws the bands and corners above
  * everything, writes the root attributes the stylesheet needs, keeps the
- * chrome in step whenever the colour it should show changes, and restores its
- * root attributes if something strips them (React 19 does, after a failed
- * hydration). It provides `useVitre()`.
+ * chrome in step whenever the colour it should show changes, and again when
+ * the page is hidden or shown (`visibilitychange`, `pagehide`, `pageshow`):
+ * iOS re-samples the page background then, including a Home Screen web app
+ * closed and reopened. It restores its root attributes if something strips
+ * them (React 19 does, after a failed hydration). It provides `useVitre()`.
  */
 export declare function Vitre(props: VitreProps): JSX.Element;
 
@@ -182,8 +184,9 @@ export interface ChromeSyncOptions {
  * fixed bezel in `color` grows from `band` to at least `CHROME_MORPH_PX`, holds
  * while Safari samples it, then eases back to `band` and is removed. A band
  * already that thick does not move. `theme-color` is set too, for iOS 18.
- * `<Vitre>` calls it whenever its chrome colour changes; call it yourself only
- * for a change `<Vitre>` cannot see. Pass `morph: false` where the platform
+ * `<Vitre>` calls it whenever its chrome colour changes, and when the page is
+ * hidden or shown. Call it yourself only for a change `<Vitre>` cannot see.
+ * Pass `morph: false` where the platform
  * does not need the trick: `theme-color` is still set, and nothing is drawn.
  */
 export declare function syncChrome(color: string, options?: ChromeSyncOptions): void;

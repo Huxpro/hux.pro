@@ -16,10 +16,17 @@ import {
   shouldOfferTilt,
   TILT_PRIMER_MIN_PRECIP,
 } from "../lib/tilt-primer";
-import { attachSkyPull, attachSkyReturn, settlePull, skyOpenAction } from "../lib/sky-pull";
+import {
+  attachSkyPull,
+  attachSkyReturn,
+  settlePull,
+  skyAsksPlace,
+  skyOpenAction,
+} from "../lib/sky-pull";
+import type { PermissionKind } from "../lib/permissions";
+import { usePermissions } from "./use-permissions";
 import { usePathname } from "next/navigation";
-import { showCustomToast } from "@/components/ui/system-sonner";
-import { SystemToast } from "@/components/ui/system-toast";
+import { showNotice } from "@/systems/dock";
 import { t, useLocale } from "@/services";
 import { Compass } from "lucide-react";
 import { useHomeEditing } from "@/components/ui/home-edit-store";
@@ -29,35 +36,38 @@ import { GradientStack } from "./gradient-stack";
 import { BEZEL_INSET, VITRE_LAYER_ATTRIBUTE } from "vitre";
 import { WeatherWallpaper } from "./wallpaper";
 
+/** What the sky's offers need from the browser: the tilt and the window. */
+const SKY_NEEDS: readonly PermissionKind[] = ["motion", "location"];
+
 // ---------------------------------------------------------------------------
-// WallpaperBackground — the full-page background layer.
+// WallpaperBackground: the full-page background layer.
 //
 // Source-agnostic: it renders whatever the provider's single background stack
 // currently holds (a weather sky, or an image wallpaper). That is what keeps
-// them mutually exclusive — there is one layer, not several that have to be
+// them mutually exclusive. There is one layer, not several that have to be
 // arbitrated.
 //
 // Under the weather kind there are two engines for the same scene. The CG
 // style paints a WebGL canvas (sun, moon, clouds, rain, snow, fog, lightning,
-// stars) at full strength — its theme veil is mixed inside the shader. The
+// stars) at full strength; its theme veil is mixed inside the shader. The
 // gradient style, and any WebGL fallback, paints the crossfading CSS stack at
 // the wash opacity. The provider resolves which one (`renderer`), so this
 // component only swaps the child.
 //
 // It is also where the weather easter eggs are wired: the wallpaper layer is
-// pointer-events-none (it must be — it is behind the whole page), so the click
-// is caught on the document and handed to the shader. The tapped eggs — a bolt
-// on a thunder day, a meteor on a clear night — belong to the Sky alone: a wash
-// has no geometry to strike and no star field for a streak to belong to, and
-// either one faked would be a lesser find, so they are armed only while the
+// pointer-events-none (it has to be, since it is behind the whole page), so the
+// click is caught on the document and handed to the shader. The tapped eggs (a
+// bolt on a thunder day, a meteor on a clear night) belong to the Sky alone. A
+// wash has no geometry to strike and no star field for a streak to belong to,
+// and either one faked would be a lesser find, so they are armed only while the
 // shader is the one painting. See lib/poke.ts for which weather answers a
 // click, with what, and what counts as a click on the sky.
 //
-// The foggy-day egg — a drag wipes the mist clear — is wired here too, and on
+// The foggy-day egg (a drag wipes the mist clear) is wired here too, and on
 // the same terms: only the Sky has a fog layer to thin and a sky behind it to
 // uncover, so it is armed only while the shader is painting. See lib/wipe.ts.
 //
-// The rain-and-snow egg — a drag stirs up a gust — is armed inside
+// The rain-and-snow egg (a drag stirs up a gust) is armed inside
 // <WeatherWallpaper /> instead, for the same reason one layer down: only the
 // Sky has particles for a wind to blow.
 //
@@ -68,7 +78,7 @@ import { WeatherWallpaper } from "./wallpaper";
 //
 // An image wallpaper paints at FULL STRENGTH. On the home screen that is the
 // whole treatment: the picture is the content, sharp and untinted, with the
-// widgets floating on it. Reading pages recede it instead — a defocus inside
+// widgets on top of it. Reading pages recede it instead, with a defocus inside
 // each layer and a veil over the stack. The soft-edge mask stays on the layer
 // itself, OUTSIDE the blur, so the fade is never blurred or scaled with the
 // picture; that is the arrangement that holds up on iOS Safari.
@@ -80,7 +90,7 @@ interface WallpaperBackgroundProps {
 
 /**
  * The tap the easter eggs are found by: while a kind is armed, a click that
- * lands on the wallpaper — and nowhere else — is handed on to be answered.
+ * lands on the wallpaper, and nowhere else, is handed on to be answered.
  * Armed *is* the kind, so there is one source of truth for both questions.
  *
  * On `click` rather than `pointerdown`, which is what makes it survive a phone:
@@ -130,7 +140,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     gyro,
     skyWindow,
     setSkyWindow,
-    skyWantsLocation,
+    skyLocationOffered,
     gyroPrimed,
     offerTilt,
     openSkyOffer,
@@ -138,12 +148,15 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     statsRef,
   } = useWallpaper();
   const { scene } = useWeather();
+  // Where motion and the location stand: the one derivation every offer reads
+  // (lib/permissions.ts). The policies below decide what to do about it.
+  const { status: permissions } = usePermissions(SKY_NEEDS);
 
   const useShader = kind === "weather" && renderer === "shader";
 
   // The pokes, the Sky's alone: the ref is registered by <WeatherWallpaper />
   // and is null under every other engine, so the eggs cannot half-exist. One
-  // ref for both of them — a scene can only ever arm one, so there is never a
+  // ref for both of them. A scene can only ever arm one, so there is never a
   // question of which one answers.
   const layerRef = useRef<HTMLDivElement | null>(null);
   const pokeRef = useRef<
@@ -164,7 +177,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     return pokePoint(layer.getBoundingClientRect(), clientX, clientY);
   }, []);
 
-  // Which egg this weather has, if any — one scene can only ever arm one, so
+  // Which egg this weather has, if any. One scene can only ever arm one, so
   // nothing here has to arbitrate. A meteor is a small, fast, bright object
   // rather than a full-screen flash, so it is much less of a photosensitivity
   // concern than the strike; it refuses under `prefers-reduced-motion` all the
@@ -199,15 +212,16 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     });
   }, [wiping]);
 
-  // Not an egg — the feature introducing itself. A finger resting on a rainy
-  // or snowy sky brings up what the tilt does, once ever, and only where there
-  // is a permission standing between the visitor and it. See lib/tilt-primer.ts.
+  // Not an egg: this is the feature introducing itself. A finger resting on a
+  // rainy or snowy sky brings up what the tilt does, once ever, and only where
+  // there is a permission standing between the visitor and it. See
+  // lib/tilt-primer.ts.
   // It shares the hold with the fog wipe, and never collides with it: a scene
   // with rain or snow keeps its mist under the wipe's threshold (lib/scene.ts),
   // so the two are never armed on the same sky.
   const offering = shouldOfferTilt({
     primed: gyroPrimed,
-    gated: gyro.gated,
+    motion: permissions.motion,
     wished: gyro.enabled,
     falling:
       scene.precipitation.type !== "none" &&
@@ -220,7 +234,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   }, [offering, offerTilt]);
 
   // The sky window, and the pull that opens it (lib/sky-pull.ts). Pull the
-  // home down from the top and past a point it opens — or, where WebKit's gate
+  // home down from the top and past a point it opens. Where WebKit's gate
   // still stands or the place is only a guess, the sheet that asks comes up.
   // Swipe up and it closes. It belongs to the home: anywhere else the window
   // pauses (the stage comes back) until the home does.
@@ -230,10 +244,8 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
   const shown = skyWindow && onHome && sky;
   const openAction = skyOpenAction({
     sky: sky && onHome,
-    reachable: gyro.reachable,
-    gated: gyro.gated,
-    denied: gyro.denied,
-    wantsLocation: skyWantsLocation,
+    motion: permissions.motion,
+    place: skyAsksPlace(permissions.location, skyLocationOffered),
   });
   const previewRef = useRef<((amount: number) => void) | null>(null);
 
@@ -253,16 +265,15 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
         // instead of starting back up first.
         document.documentElement.setAttribute("data-sky-window", "");
         setSkyWindow(true);
-        // The sky answering is most of the feedback; this is the rest — what
+        // The sky answering is most of the feedback. This is the rest: what
         // just happened, and how to undo it.
-        showCustomToast(
-          <SystemToast
-            icon={Compass}
-            title={t(locale, "skyWindowOn")}
-            note={t(locale, "skyWindowOnNote")}
-          />,
-          { id: "sky-window", duration: 3200 }
-        );
+        showNotice({
+          id: "sky-window",
+          icon: Compass,
+          title: t(locale, "skyWindowOn"),
+          note: t(locale, "skyWindowOnNote"),
+          duration: 3200,
+        });
       },
     });
   }, [openAction, skyWindow, openSkyOffer, setSkyWindow, locale]);
@@ -271,16 +282,18 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
     if (!shown) return;
     return attachSkyReturn(() => {
       setSkyWindow(false);
-      showCustomToast(<SystemToast icon={Compass} title={t(locale, "skyWindowOff")} />, {
+      showNotice({
         id: "sky-window",
+        icon: Compass,
+        title: t(locale, "skyWindowOff"),
         duration: 1600,
       });
     });
   }, [shown, setSkyWindow, locale]);
 
   // The home steps out of the frame while the window is showing, and back in
-  // after (globals.css, "The sky pull"). Whatever opened or closed it — the
-  // pull, the sheet, the swipe, the devtool — this is the one place the page
+  // after (globals.css, "The sky pull"). Whatever opened or closed it (the
+  // pull, the sheet, the swipe, the devtool), this is the one place the page
   // hears about it.
   useEffect(() => {
     const el = document.documentElement;
@@ -316,7 +329,7 @@ export function WallpaperBackground({ enabled }: WallpaperBackgroundProps) {
       style={{
         opacity: enabled ? opacity : 0,
         // A wash weighs differently in the two themes (WALLPAPER_OPACITY), so
-        // this moves on a theme change too — at the crossfade's pace, which is
+        // this moves on a theme change too, at the crossfade's pace. That is
         // the sun's slower one while the theme hands over.
         transitionDuration: `${crossfadeMs}ms`,
         ...(bezel ? BEZEL_INSET : null),

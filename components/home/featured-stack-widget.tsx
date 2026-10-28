@@ -54,7 +54,7 @@ export function HStackWidget({
 }: FeaturedStackWidgetProps) {
   const items = useMemo(() => children.filter(Boolean), [children]);
   // The snap track, the in-view index and the dots are the shared pager
-  // (components/ui/snap-pager) — the same strip the attachment surface pages.
+  // (components/ui/snap-pager), the same strip the attachment surface pages.
   const { scrollRef, index, scrollTo } = useSnapPager(items.length);
 
   if (items.length === 0) return null;

@@ -1,5 +1,5 @@
 // =============================================================================
-// Wallpaper — the background catalog
+// Wallpaper: the background catalog
 //
 // The ambient background has always been a wallpaper; weather was just the only
 // source of one. This module names the shared concept and adds the second kind,
@@ -28,12 +28,12 @@
 // Three categories. The first is the live one; the other two are Apple's
 // artwork:
 //
-//   weather the sky outside, right now, in three styles: Sky (a WebGL shader —
+//   weather the sky outside, right now, in three styles: Sky (a WebGL shader:
 //           sun, moon, clouds, rain, snow, fog, lightning, stars), Gradient
 //           (the same scene as a CSS wash, live to the minute) and Classic
 //           (the six hand-tuned condition palettes the site started with).
 //           Sky falls back to Gradient where WebGL2 is missing.
-//   apple   the macOS / iPadOS / iOS release wallpapers, as light/dark pairs —
+//   apple   the macOS / iPadOS / iOS release wallpapers, as light/dark pairs:
 //           the artwork these releases are recognised by.
 //   nature  the Mac OS X Nature desktop pictures (Aurora, Zebra, …), taken
 //           from ryOS. One photograph each, so both halves are the same file.
@@ -73,7 +73,7 @@ export type WallpaperPlay = "off" | "shuffle" | "loop";
 
 /**
  * iOS Shuffle Frequency, with On Lock mapped to a site visit. On Tap is
- * omitted — there is no lock screen to tap.
+ * omitted, since there is no lock screen to tap.
  */
 export type WallpaperPlayEvery = "visit" | "hourly" | "daily";
 
@@ -97,11 +97,11 @@ export const WALLPAPER_CATEGORIES: readonly WallpaperCategory[] = [
 /**
  * The three weather wallpapers.
  *
- *   sky       the WebGL shader — the whole `WeatherScene` (lib/scene.ts),
+ *   sky       the WebGL shader: the whole `WeatherScene` (lib/scene.ts),
  *             animated, at full strength (its veil is painted inside the
  *             shader). Needs WebGL2; otherwise the page quietly paints the
  *             Gradient and the devtool says so.
- *   gradient  the same scene as a CSS gradient — the sky's colour at the real
+ *   gradient  the same scene as a CSS gradient: the sky's colour at the real
  *             sun position, live to the minute, crossfaded on change. Sky's
  *             fallback, and what widget cards paint under Sky.
  *   classic   the original: six hand-tuned condition palettes by day and
@@ -126,12 +126,12 @@ export const WEATHER_STYLE_META = {
   classic: "wallpaperWeatherClassicMeta",
 } as const satisfies Record<WeatherStyle, string>;
 
-/** "Weather · Sky" — how every surface names a weather style in use. */
+/** "Weather · Sky": how every surface names a weather style in use. */
 export function getWeatherWallpaperName(locale: Locale, style: WeatherStyle): string {
   return `${t(locale, "wallpaperWeather")} · ${t(locale, WEATHER_STYLE_LABEL[style])}`;
 }
 
-/** "Shuffle · Apple" — how the command row names a playing album. */
+/** "Shuffle · Apple": how the command row names a playing album. */
 export function getWallpaperPlayName(
   locale: Locale,
   play: Exclude<WallpaperPlay, "off">,
@@ -174,7 +174,7 @@ export function readWeatherStyle(raw: unknown): WeatherStyle {
  * `WallpaperAsset.srcset`. Today that is the @1x cover of `WALLPAPER_VIEWPORT`
  * whenever the full file is the @2x (or native) cover.
  *
- * ryOS does not ship these — it serves the original JPEG plus a picker thumb
+ * ryOS does not ship these. It serves the original JPEG plus a picker thumb
  * and paints a 24px blur-up while the JPEG decodes. We add @1x so a 1× display
  * does not pay for the retina file, and we reuse the 480px picker thumb as the
  * blur-up on the desktop (see <GradientStack />).
@@ -205,7 +205,7 @@ export interface WallpaperAsset {
 
 export interface Wallpaper {
   id: string;
-  /** Release or picture name — a proper noun, shown untranslated. */
+  /** Release or picture name: a proper noun, shown untranslated. */
   name: string;
   category: WallpaperCategory;
   /** Release platform. Only the release wallpapers have one. */
@@ -217,12 +217,13 @@ export interface Wallpaper {
    *
    * The caption says where the artwork comes from, so it should not repeat what
    * the name already said: the iPadOS colourways are named for the release, and
-   * "iPadOS 18 Violet — iPadOS · 2024" both stutters and overflows the tile.
+   * the name "iPadOS 18 Violet" with the caption "iPadOS · 2024" both
+   * stutters and overflows the tile.
    */
   caption?: string;
   /**
    * The light/dark pair; the theme picks between them. A photograph has one
-   * image, and both halves are that same asset — see `isSingleImage`.
+   * image, and both halves are that same asset (see `isSingleImage`).
    */
   light: WallpaperAsset;
   dark: WallpaperAsset;
@@ -245,7 +246,7 @@ export interface ResolvedWallpaper {
 
 /**
  * What is on the page: an image, or one of the weather styles. Callers decide
- * which style to feed in — the saved one (for the edge of the page, so the
+ * which style to feed in: the saved one (for the edge of the page, so the
  * boot script and the provider agree before WebGL support is known, and a Sky
  * that falls back keeps its frame) or the resolved one (for what paints).
  */
@@ -258,11 +259,11 @@ export function getWallpaperLook(kind: WallpaperKind, style: WeatherStyle): Wall
 /**
  * The one distinction every look-dependent treatment hangs on.
  *
- *   picture  a photograph, or the rendered Sky — something ON the page. Paints
+ *   picture  a photograph, or the rendered Sky: something ON the page. Paints
  *            at full strength (an image at half opacity is a washed-out
  *            picture; the Sky's veil is mixed inside the shader) and ends on a
  *            line inside a bezel.
- *   wash     a CSS gradient — the page's own colour pushed outward. Reads as
+ *   wash     a CSS gradient: the page's own colour pushed outward. Reads as
  *            intended below full strength, and fades back into the ground.
  *
  * Opacity and the edge treatment (lib/bezel.ts) are both keyed by this, so a
@@ -295,7 +296,7 @@ type Size = readonly [width: number, height: number];
 /**
  * The 16:10 desktop, in CSS pixels. That is the Mac OS X Nature frame and the
  * picker tile. Committed files cover this viewport at 1× and, when the source
- * has the pixels, at 2× (`WALLPAPER_MAX_DPR`) — never upscaled.
+ * has the pixels, at 2× (`WALLPAPER_MAX_DPR`). Never upscaled.
  */
 export const WALLPAPER_VIEWPORT = { width: 2560, height: 1600 } as const;
 export const WALLPAPER_MAX_DPR = 2;
@@ -352,7 +353,7 @@ export function readDisplaySize(): { width: number; height: number; dpr: number 
  * Smallest rendition of `asset` that covers `viewport` at its DPR, within
  * `WALLPAPER_MAX_STRETCH`. A 1× laptop takes `.1x.webp`; a 2×/3× display takes
  * the full file when the source had the pixels. A portrait phone covering a
- * 1600-tall Nature still still needs whatever the source was — we never
+ * 1600-tall Nature still still needs whatever the source was. We never
  * upscale.
  */
 export function pickWallpaperSrc(
@@ -383,7 +384,7 @@ function oneXSrcset(src: string, [width, height]: Size): WallpaperRendition[] {
 /**
  * A release pair: `public/wallpapers/<id>/{light,dark}.webp`.
  *
- * `[width, height]` is the committed full file — the @2x (or native) cover.
+ * `[width, height]` is the committed full file: the @2x (or native) cover.
  * A `.1x.webp` sibling is declared when that cover is larger than 1×.
  */
 function pair(
@@ -692,7 +693,7 @@ export const BUILT_IN_WALLPAPERS: Wallpaper[] = [
  * Is this phone artwork?
  *
  * Derived, not stored. It was a flag once, set by hand on the pairs whose files
- * happened to be tall — which quietly made it mean "this file is portrait"
+ * happened to be tall. That made it mean "this file is portrait"
  * rather than "this is a phone wallpaper". iOS 13 and 14 are phone wallpapers
  * that ship square, so the glyph describes the artwork, not the encoding: every
  * iOS wallpaper is one, and shows a crop of itself on a desktop viewport.
@@ -767,7 +768,7 @@ function buildAsset(
   // Thumb under the chosen file so the layer paints immediately (the 480px
   // file is already on disk from the picker). CSS treats a not-yet-decoded
   // image as transparent, so the thumb (and the flat base under that) show
-  // through until the retina file arrives — the ryOS blur-up, using the
+  // through until the retina file arrives. That is the ryOS blur-up, using the
   // picker thumb instead of a 24px LQIP. <GradientStack /> fades the full
   // file in on the full-page layer once it has decoded.
   const backgroundImage = showThumbFirst
@@ -784,7 +785,7 @@ function buildAsset(
 /**
  * Resolve a wallpaper to a renderable background.
  *
- * Which half of the pair shows always follows the app theme — the macOS
+ * Which half of the pair shows always follows the app theme, which is the macOS
  * Dynamic Desktop behaviour. There is deliberately no way to pin a half: the
  * only thing pinning ever bought was light artwork under light text, and the
  * damping needed to rescue that made the wallpaper a ghost anyway.
@@ -795,7 +796,7 @@ export function getWallpaperBackground(params: {
   /**
    * Resolve to the 480px thumb instead of the full-size file.
    *
-   * For picker tiles and devtool swatches, which are small — and for the
+   * For picker tiles and devtool swatches, which are small, and for the
    * blurred reading layer, where a 40px blur erases the difference anyway.
    */
   preview?: boolean;
@@ -813,7 +814,7 @@ export function getWallpaperBackground(params: {
 }
 
 /**
- * Both halves at once — for the pair tiles in the picker and the devtool.
+ * Both halves at once, for the pair tiles in the picker and the devtool.
  * Always the thumb rendition, so opening the picker pulls tens of kilobytes
  * rather than the whole catalog.
  */

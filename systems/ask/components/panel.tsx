@@ -1,0 +1,132 @@
+"use client";
+
+import { cn } from "@/lib/utils";
+import { useLocale } from "@/services";
+import { HEADER_BUTTON, SurfaceBody } from "@/systems/surface";
+import type { AskPlacement } from "@/systems/command";
+import { Drawer } from "@base-ui/react/drawer";
+import { History, Sparkles, SquarePen } from "lucide-react";
+import { useState } from "react";
+import { useAskContinuity, useAskRequest, useAskSession } from "../lib/use-ask";
+import { askStrings } from "../strings";
+import { AskComposer } from "./composer";
+import { AskHistory } from "./history";
+import { AskMessages } from "./messages";
+import { AskPlacementControls, useAskDragHandle } from "./placement";
+
+// =============================================================================
+// What Ask's panel holds: a title bar (history, new chat, close), the
+// conversation, the composer. Assembled from the pieces every Ask surface uses
+// (./messages, ./composer, ./history) inside the surface system's own chrome
+// (SurfaceBody), so the panel reads as the same object as the playlist or the
+// wallpaper picker. The state is the session's (../lib/chat), so closing the
+// panel and opening it again keeps the conversation while the post is the
+// same one. Another post starts a new chat (../lib/chat-continuity.ts).
+//
+// This is Ask's side place on a desk, and its center place as a phone's
+// sheet. Its title is the handle: drag the panel, and letting go in the
+// middle makes it the center chat, up in the top band the dock (./placement).
+//
+// The shell (../surfaces.tsx) loads this lazily, the first time Ask opens.
+// =============================================================================
+
+export interface AskPanelProps {
+  /** Which place this panel is: the side on a desk, the center as a phone's sheet. */
+  placement: AskPlacement;
+  /** The surface is showing. Opening it on another post starts a new chat. */
+  active: boolean;
+  /** A question to send on arrival, from the palette's field. */
+  request: { text: string; n: number } | null;
+  onClose: () => void;
+  /** A link to a page on this site was followed. */
+  onNavigate: (href: string) => void;
+}
+
+/** A header button that stays lit while the view it opens is showing. */
+const TOGGLE = "aria-pressed:bg-accent/60 aria-pressed:text-foreground";
+
+export default function AskPanel({ placement, active, request, onClose, onNavigate }: AskPanelProps) {
+  const { locale } = useLocale();
+  const s = askStrings(locale);
+  const { messages, newChat } = useAskSession();
+  const [showHistory, setShowHistory] = useState(false);
+  useAskContinuity(active);
+  useAskRequest(request);
+  const handle = useAskDragHandle(placement);
+
+  // A question handed over while the history is up is a question to watch
+  // being answered: back to the conversation.
+  const [seen, setSeen] = useState(request?.n);
+  if (request?.n !== seen) {
+    setSeen(request?.n);
+    setShowHistory(false);
+  }
+
+  return (
+    <SurfaceBody
+      title={
+        <span
+          className="flex items-center gap-1.5"
+        >
+          <Sparkles className="size-3.5 shrink-0" />
+          {showHistory ? s.history : s.ask}
+        </span>
+      }
+      titleAs={Drawer.Title}
+      headerHandle={{
+        onPointerDown: handle.onPointerDown,
+        className: handle.className,
+      }}
+      actions={
+        <>
+          <AskPlacementControls current={placement} className="mr-1" />
+          <button
+            type="button"
+            onClick={() => setShowHistory((v) => !v)}
+            aria-label={s.history}
+            aria-pressed={showHistory}
+            title={s.history}
+            className={cn(HEADER_BUTTON, TOGGLE)}
+          >
+            <History className="h-4 w-4" />
+          </button>
+          {messages.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                newChat();
+                setShowHistory(false);
+              }}
+              aria-label={s.newChat}
+              title={s.newChat}
+              className={HEADER_BUTTON}
+            >
+              <SquarePen className="h-4 w-4" />
+            </button>
+          )}
+        </>
+      }
+      closeLabel={s.close}
+      onClose={onClose}
+      // The conversation scrolls itself (it sticks to the bottom as a reply
+      // streams in), so the body is a column, not a scroll area.
+      contentClassName="flex min-h-0 flex-col overflow-hidden"
+      footer={
+        // The shell floats clear of the home indicator already (a sheet rests
+        // above it, the side panel 12px in), so the composer is held the
+        // same 8px off the glass on every side.
+        <div className="p-2 pt-0">
+          <AskComposer />
+        </div>
+      }
+    >
+      {showHistory ? (
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <AskHistory onOpen={() => setShowHistory(false)} />
+        </div>
+      ) : (
+        <AskMessages onNavigate={onNavigate} />
+      )}
+    </SurfaceBody>
+  );
+}

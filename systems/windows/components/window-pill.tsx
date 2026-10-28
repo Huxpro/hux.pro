@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 
 // =============================================================================
-// The chrome pill — the traffic lights and the glass they sit on
+// The chrome pill: the traffic lights and the glass they sit on
 //
 // One look, two homes: the floating pill of a desktop window (window-chrome)
 // and the grip of a phone window (window-grip), which is the same pill doing
@@ -29,7 +29,7 @@ function Dot({
   interacting: boolean;
   colorHover: string;
   label: string;
-  /** Omitted where the dots are an indicator only — a phone window's grip. */
+  /** Omitted where the dots are an indicator only (a phone window's grip). */
   onClick?: () => void;
   glyph: React.ReactNode;
 }) {
@@ -151,7 +151,7 @@ export function TrafficDots({
 }
 
 /**
- * The app's name, revealed on the pill on hover — and, where there is no hover,
+ * The app's name, revealed on the pill on hover. Where there is no hover, it is
  * still the thing that gives the pill its height. Its line box is why the pill
  * is 48×28.5 and not 48×18: a slightly plump capsule rather than a flat slot.
  * That is the shape it has always had, so both homes wear it, phone included.
@@ -176,8 +176,8 @@ export function PillTitle({ children }: { children: React.ReactNode }) {
 /**
  * The pill the dots sit on. Two states, kept mutually exclusive so light/dark
  * utilities never fight on specificity: chromeless at rest, glass while
- * something is happening — which is what gives a phone pill its glass look,
- * there being no hover to light it.
+ * something is happening. That is what gives a phone pill its glass look, since
+ * there is no hover to light it.
  *
  * `hoverLights` adds the desktop's hover state; a grip leaves it off, since a
  * press is the only thing that wakes it.

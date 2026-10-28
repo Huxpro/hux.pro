@@ -22,10 +22,10 @@ import { useMemo } from "react";
 
 import { TYPE } from "@/lib/typography";
 // ---------------------------------------------------------------------------
-// WritingWidget — the home "writing" card.
+// WritingWidget: the home "writing" card.
 //
-// The posts worth surfacing: the latest few — so the widget always says
-// what's new — then every post flagged `featured` in its frontmatter, so the
+// The posts worth surfacing: the latest few, so the widget always says
+// what's new, then every post flagged `featured` in its frontmatter, so the
 // evergreen pieces don't fall off the end as new ones land. Rows echo the
 // /writing list (title + lowercase mono date) and the /works rows (date at
 // the muted/50 tier) so the two widgets share one metadata register.
@@ -45,14 +45,14 @@ const LATEST_COUNT = 3;
  * Rows that fit the pointer's port without it having to scroll: six at 36px
  * inside a 256px max, once the fade's 28px is taken out. Below this the port
  * is not worn at all, because a list that cannot overflow must not reserve
- * room under its last row for a fade that will never run — which is how the
+ * room under its last row for a fade that will never run. That is how the
  * card ended up with 28px of nothing under it on a desktop and 12px on a
  * phone.
  */
 const PORT_ROWS = 6;
 
-/** Rows a finger sees. The rest are still rendered — they are what the
- *  pointer's port scrolls through — and hidden by a media query. */
+/** Rows a finger sees. The rest are still rendered (they are what the
+ *  pointer's port scrolls through) and hidden by a media query. */
 const TOUCH_ROWS = 5;
 
 export interface WritingSelection {
@@ -133,7 +133,7 @@ function PostRow({
   return (
     <Link
       href={getPostHref(post, locale, "/writing")}
-      // `pressable` + `active:` — the row washes on touch-down, not only on
+      // `pressable` + `active:`: the row washes on touch-down, not only on
       // hover (which touch devices never see), and eases back on release.
       className={cn(
         "pressable snap-start flex items-baseline gap-3 -mx-2 px-2 py-2 rounded-lg transition-colors duration-150 hover:bg-muted/20 active:bg-muted/35",
@@ -142,10 +142,10 @@ function PostRow({
     >
       {/* One line, like a project's name on the projects widget. Wrapping
           would make the card's height a function of how long the titles
-          happen to be — and a Chinese title against an English one is a
-          whole row of difference — where the whole point of a fixed row
-          count is that the card is the same size whatever is in it. The
-          title in full is one tap away. */}
+          happen to be, and a Chinese title against an English one is a
+          whole row of difference. A fixed row count is there so the card
+          is the same size whatever is in it. The title in full is one tap
+          away. */}
       <span className={cn("min-w-0 flex-1 truncate", TYPE.rowTitle)}>
         {getLocalizedTitle(post, locale)}
       </span>

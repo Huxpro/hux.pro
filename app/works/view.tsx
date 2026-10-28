@@ -4,11 +4,13 @@ import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PageLayout } from "@/components/ui/page-layout";
 import { chapterLabel, LogTimeline } from "@/components/log/log-timeline";
+import { useOptionalDevtool, WORKS_REF_DEFAULT } from "@/systems/devtool";
+import { ProjectShelf } from "@/components/log/project-shelf";
 import { WorksToolbar, type TypeFacet } from "@/components/log/works-toolbar";
 import { useCommitAnchor } from "@/components/log/use-commit-anchor";
+import { YearRail } from "@/components/log/year-rail";
 import { t, useLocale } from "@/services";
 import {
-  buildTimelineData,
   FILTERABLE_COMMIT_TYPES,
   isFilterableCommitType,
   isRowVisible,
@@ -16,11 +18,15 @@ import {
   type LogData,
 } from "@/lib/log";
 import {
+  DEFAULT_FORM,
+  LOG_FORMS,
   parseViewState,
   serializeViewState,
   toggleType,
   type LogForm,
 } from "@/lib/log-view";
+import { buildEraTimeline } from "@/lib/log-eras";
+import { arrangeTalks, WORKS_TALKS_DEFAULT } from "@/lib/works-talks";
 
 interface WorksViewProps {
   logData: LogData;
@@ -31,11 +37,6 @@ export function WorksView({ logData }: WorksViewProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-
-  const data = useMemo(
-    () => buildTimelineData(logData, locale),
-    [logData, locale],
-  );
 
   // View state lives in the URL, the way /writing's language filter does:
   // a reading of this page ("just the talks, with the media showing") is a
@@ -50,15 +51,15 @@ export function WorksView({ logData }: WorksViewProps) {
   const urlKey = serializeViewState(urlView);
 
   // …but the URL is not what we render from. `router.replace` re-runs the
-  // route, which costs about a second — far too long for a control you tap
-  // three times in a row to find the view you want. So local state paints
+  // route, which costs about a second. That is far too long for a control you
+  // tap three times in a row to find the view you want. So local state paints
   // immediately and the URL follows, which is also what makes the chips feel
   // like switches rather than links.
   const [view, setView] = useState(urlView);
   const [lastUrlKey, setLastUrlKey] = useState(urlKey);
   if (urlKey !== lastUrlKey) {
     setLastUrlKey(urlKey);
-    // Adopt the URL only when it is genuinely a different reading — our own
+    // Adopt the URL only when it is a different reading. Our own
     // replace() landing is not news, and re-adopting it would hand every
     // consumer a fresh `types` array for no reason. (React's "adjusting
     // state when a prop changes" pattern, as used by TimelineCommit.)
@@ -66,6 +67,44 @@ export function WorksView({ logData }: WorksViewProps) {
   }
 
   const selectHash = useCommitAnchor();
+
+  // How a chapter's ref sits on the graph. On trial, as a saved setting in
+  // the DevTool's Works module.
+  const devtool = useOptionalDevtool();
+
+  // How a project carries the talks that present it (lib/works-talks.ts).
+  // Filtered to projects alone, a project wears its talks' recordings among
+  // its covers: the talk rows are out of the reading, and a project's talks
+  // are part of what it is. Otherwise the DevTool's Works module picks the
+  // arrangement, on trial; its default leaves the rows as they are.
+  const projectsOnly = view.types.length === 1 && view.types[0] === "project";
+  const talksLook = projectsOnly
+    ? "cover"
+    : (devtool?.worksTalks ?? WORKS_TALKS_DEFAULT);
+  const data = useMemo(
+    () => arrangeTalks(buildEraTimeline(logData, locale), talksLook, locale),
+    [logData, locale, talksLook],
+  );
+  const refLook = devtool?.worksRef ?? WORKS_REF_DEFAULT;
+  // The projects shelf, on trial: a saved DevTool setting, off by default.
+  const shelf = devtool?.worksShelf ?? false;
+  // The feed, on its way out: offered only while the DevTool switches it on.
+  // Off, its stop leaves the control, and a `?view=feed` link (or one left
+  // in the URL from before) reads as the default form, the URL untouched.
+  const feed = devtool?.worksFeed ?? false;
+  const forms = useMemo<readonly LogForm[]>(
+    () => (feed ? LOG_FORMS : LOG_FORMS.filter((f) => f !== "feed")),
+    [feed],
+  );
+  const form: LogForm = forms.includes(view.form) ? view.form : DEFAULT_FORM;
+  // The shelf's projects: every project row the log prints, in the log's
+  // own order (newest first across the chapters). It stands only while
+  // the reading includes projects: a page filtered to talks opens on
+  // talks, not on a directory of something it is not showing.
+  const projects = useMemo(
+    () => data.flatMap(({ commits }) => commits.filter((c) => c.type === "project")),
+    [data],
+  );
 
   const commit = useCallback(
     (next: { types?: FilterableCommitType[]; form?: LogForm }) => {
@@ -85,7 +124,7 @@ export function WorksView({ logData }: WorksViewProps) {
   );
 
   // Facet counts are of the UNFILTERED timeline, so a chip's number never
-  // moves as you select — it answers "how much of this is there?", not "how
+  // moves as you select. It answers "how much of this is there?", not "how
   // much survived what I just did?", which is the question the rows answer.
   //
   // The question it answers precisely is "how many rows does tapping this
@@ -96,7 +135,7 @@ export function WorksView({ logData }: WorksViewProps) {
   // of 2 over a column of 9 is just a wrong number.
   //
   // Counted over `data` rather than the raw log, because `data` is what the
-  // timeline renders — locale filtered and grouped under a tag that exists.
+  // timeline renders: locale filtered and grouped under a tag that exists.
   // A count derived from a different array is a count that can disagree with
   // the rows under it.
   const facets = useMemo<TypeFacet[]>(() => {
@@ -130,17 +169,20 @@ export function WorksView({ logData }: WorksViewProps) {
   }, [data]);
 
   // The chapters, as the pinned bar names them when it wears one.
+  // Chapters that overlap share a block; each wears its own marker in turn.
   const chapters = useMemo(
     () =>
-      data.map(({ tag }, i) => ({
-        id: tag.id,
-        label: chapterLabel(tag, i, locale),
-      })),
+      data.flatMap(({ members }, i) =>
+        members.map((tag, k) => ({
+          id: tag.id,
+          label: chapterLabel(tag, k === 0 ? i : -1, locale),
+        })),
+      ),
     [data, locale],
   );
 
-  // Whether the log has anything to print under the current filter — the same
-  // question every TagBlock asks itself before rendering, so the end marker
+  // Whether the log has anything to print under the current filter. It is the
+  // same question every TagBlock asks itself before rendering, so the end marker
   // and the rows can never disagree. (They used to: this check knew about the
   // filter but not about `hideRow`, so a filter matching only suppressed rows
   // printed `git init` over an empty page.)
@@ -164,24 +206,40 @@ export function WorksView({ logData }: WorksViewProps) {
             commit({ types: toggleType(view.types, type) })
           }
           onClearTypes={() => commit({ types: [] })}
-          form={view.form}
+          form={form}
+          forms={forms}
           onFormChange={(form) => commit({ form })}
           chapters={chapters}
         />
       }
     >
+      {/* The directory: which projects there are, before when. */}
+      {shelf && (view.types.length === 0 || view.types.includes("project")) && (
+        <ProjectShelf
+          projects={projects}
+          locale={locale}
+          onSelectHash={selectHash}
+        />
+      )}
+
+      {/* The years, in the margin of a desk wide enough for one. Before the
+          log in the tab order, the way a table of contents comes before
+          what it lists: the filter, then the years, then the rows. */}
+      <YearRail data={data} types={view.types} locale={locale} />
+
       {/* Git Log Timeline */}
       <LogTimeline
         data={data}
         locale={locale}
         identities={logData.identities}
-        form={view.form}
+        form={form}
         activeTypes={view.types}
         onSelectHash={selectHash}
         pinnedChapters
+        refLook={refLook}
       />
 
-      {/* End marker — `git init` closes a timeline that has commits in it;
+      {/* End marker. `git init` closes a timeline that has commits in it;
           a filter that matched nothing says so in the same slot, in the same
           voice, rather than leaving the page to end in silence. */}
       <div className="mt-8 py-4 font-mono text-xs text-tertiary-foreground">

@@ -1,6 +1,7 @@
 import { ReadingRootSync } from "@/components/post/reading-settings";
 import { bezelBootResolver } from "@/systems/ambient/lib/bezel";
 import { vitreBootScript } from "vitre";
+import { THEME_BOOT_SCRIPT } from "@/services/theme-boot";
 import { Providers } from "@/shared/providers";
 import {
   AmbientPhaseActivity,
@@ -14,12 +15,15 @@ import {
   TiltPrimerSheet,
   WallpaperSheet,
 } from "@/systems/ambient";
+import { AboutSurface } from "@/systems/about";
+import { AboutCopy } from "@/systems/about/components/about-copy";
+import { AskDock, AskDragging, AskSelection, AskSide } from "@/systems/ask/surfaces";
 import { AttachmentSurface, ImageLightbox } from "@/systems/attachments";
 import { IdentityCard } from "@/systems/identity";
 import { InstallSheet } from "@/systems/install";
 import { CommandPalette, FloatingActionButton } from "@/systems/command";
 import { DevtoolFAB } from "@/systems/devtool";
-import { Dock } from "@/systems/dock";
+import { Dock, SampleActivities } from "@/systems/dock";
 import { MusicActivity, MusicPlaylistSheet } from "@/systems/music";
 import {
   TheaterActivity,
@@ -40,7 +44,7 @@ import "./globals.css";
 
 // Italic is loaded, not synthesized. The site marks Latin work titles with
 // it (`*The Gay Science*`), and a slanted-by-the-browser Inter is a sheared
-// roman, not Inter Italic — which is drawn, with its own `a` and `f`.
+// roman, not Inter Italic. Inter Italic is drawn, with its own `a` and `f`.
 const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
@@ -77,7 +81,7 @@ export const metadata: Metadata = {
     template: "%s | Hux.Pro",
   },
   description: "Prose, Profession, Programming, Production, Projects",
-  // Generative app icon — authored in `/editor/icon`, rendered from
+  // Generative app icon: authored in the Icon Lab (`/lab/icon`), rendered from
   // `content/icon.json` by `pnpm icon:generate`. SVG for modern browser tabs,
   // PNG apple-touch-icon for the iOS home screen; Android/PWA icons come from
   // the web manifest (app/manifest.ts). favicon.ico covers legacy.
@@ -127,6 +131,7 @@ export default function RootLayout({
         <head>
           {/* Before first paint: Safari picks its chrome colour at load, from
               the root background (iOS 26) or theme-color (iOS 18). */}
+          <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
           <script dangerouslySetInnerHTML={{ __html: BEZEL_BOOT }} />
         </head>
         <body
@@ -140,8 +145,10 @@ export default function RootLayout({
             <WindowLayer />
             <Dock>
               <AmbientPhaseActivity />
+              <AskDock />
               <MusicActivity />
               <TheaterActivity />
+              <SampleActivities />
               <MinimizedWindows />
             </Dock>
             <MusicPlaylistSheet />
@@ -159,8 +166,15 @@ export default function RootLayout({
             <AttachmentSurface />
             <ImageLightbox />
             <IdentityCard />
+            <AboutSurface
+              en={<AboutCopy locale="en" />}
+              zh={<AboutCopy locale="zh" />}
+            />
+            <AskSide />
             <CommandPalette />
             <FloatingActionButton />
+            <AskDragging />
+            <AskSelection />
           </Providers>
         </body>
       </html>

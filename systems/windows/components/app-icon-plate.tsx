@@ -6,14 +6,14 @@ import { cn } from "@/lib/utils";
 import { useLocale } from "@/services";
 
 // =============================================================================
-// AppIconPlate — an app's icon at any size, with the site's one rule about it
+// AppIconPlate: an app's icon at any size, with the site's one rule about it
 //
 // Full-bleed art fills its tile and brings its own ground; a glyph gets a plate
 // under it and a little padding, so a dark mark stays visible on a dark page;
 // an app with no icon at all shows its initial. That rule was being written out
-// again wherever an app is drawn small — the minimized dock pill, the window
-// menu's header — and the copies were already differing in what a missing icon
-// looks like. The size and anything around it (the dock's runtime badge) stay
+// again wherever an app is drawn small (the minimized dock pill, the window
+// menu's header), and the copies already differed in what a missing icon looks
+// like. The size and anything around it (the dock's runtime badge) stay
 // with the caller; only the rule lives here.
 // =============================================================================
 

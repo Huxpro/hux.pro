@@ -1,17 +1,17 @@
 // =============================================================================
-// Wallpaper play — Shuffle and Loop
+// Wallpaper play: Shuffle and Loop
 //
 // Apple and Nature can play the album instead of pinning one picture. The
 // picker exposes both as tiles, the way iOS puts Photo Shuffle among the
 // wallpaper types and macOS puts Change Picture on a folder:
 //
-//   shuffle  Photo Shuffle / Randomly — a fresh permutation of the album,
+//   shuffle  Photo Shuffle / Randomly: a fresh permutation of the album,
 //            reshuffled when the last frame has been shown.
-//   loop     Change Picture without Randomly — catalog order, then wrap.
+//   loop     Change Picture without Randomly: catalog order, then wrap.
 //
 // How often it advances is iOS Shuffle Frequency, mapped onto a site:
 //
-//   visit    On Lock — once per browser tab session
+//   visit    On Lock: once per browser tab session
 //   hourly   Hourly
 //   daily    Daily
 //
@@ -85,7 +85,7 @@ function snapshot(
  *
  * Shuffle draws a new permutation and lands on a picture other than the one
  * already showing (when the album has more than one). Loop takes the next
- * picture in catalog order — tapping the tile changes the desktop, the same
+ * picture in catalog order. Tapping the tile changes the desktop, the same
  * as tapping Tahoe.
  */
 export function startAlbumPlay(params: {
@@ -152,7 +152,7 @@ export function stepAlbumPlay(params: {
  * Whether this clock tick should show a new picture.
  *
  * On Visit fires once per tab session (`visitConsumed`). Hourly and Daily
- * compare `playAt` to `now` — a week away advances once, not seven times.
+ * compare `playAt` to `now`, so a week away advances once, not seven times.
  * That is how iOS Photo Shuffle behaves on wake.
  */
 export function shouldAdvancePlay(params: {

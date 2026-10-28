@@ -2,25 +2,27 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useNotice } from "./notice";
 
 // =============================================================================
-// Dock System — coordination layer for "Live Activities"
+// Dock System: coordination layer for "Live Activities"
 //
-// A Live Activity is a collapsed pill that morphs into an expanded panel —
-// the iOS Dynamic Island / Notification Center metaphor. Multiple activities
+// A Live Activity is a collapsed pill that morphs into an expanded panel,
+// after the iOS Dynamic Island / Notification Center. Multiple activities
 // (music, ambient phase changes, …) coexist in a single horizontal dock at the
 // top of the screen.
 //
 // This provider owns the *coordination*, not the visuals:
-//   • which activity (if any) is currently expanded — only ONE at a time
+//   • which activity (if any) is currently expanded (only ONE at a time)
 //   • collapse on route change
+//   • whether a notice (notice.ts) holds the dock's anchor right now
 //
 // Escape and the outside press are not here: the panel is a Base UI drawer
 // (live-activity.tsx) and the library already does both.
 //
 // The visuals live in <LiveActivity /> and the layout in <Dock />. Keeping the
-// shared state here means new activities just register an id and a renderer —
-// they never re-implement the open/close state machine.
+// shared state here means new activities just register an id and a renderer.
+// They never re-implement the open/close state machine.
 // =============================================================================
 
 interface DockContextType {
@@ -28,6 +30,12 @@ interface DockContextType {
   openId: string | null;
   /** True when any activity is expanded (used to hide sibling pills). */
   isAnyOpen: boolean;
+  /**
+   * True while a notice is shown where the pills are. It takes the anchor
+   * the way an open panel does: the pills step aside for it and come back
+   * when it goes. It waits while a panel is open, so the two never share it.
+   */
+  noticeUp: boolean;
   isOpen: (id: string) => boolean;
   open: (id: string) => void;
   close: () => void;
@@ -52,6 +60,7 @@ export function useDock() {
 export function DockProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [openId, setOpenId] = useState<string | null>(null);
+  const notice = useNotice();
 
   const open = useCallback((id: string) => setOpenId(id), []);
   const close = useCallback(() => setOpenId(null), []);
@@ -77,6 +86,7 @@ export function DockProvider({ children }: { children: React.ReactNode }) {
       value={{
         openId,
         isAnyOpen: openId !== null,
+        noticeUp: notice !== null && openId === null,
         isOpen,
         open,
         close,

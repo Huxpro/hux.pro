@@ -2293,6 +2293,24 @@
           }
         },
         {
+          "facet": {
+            "en": "desire",
+            "zh": "所欲"
+          },
+          "text": {
+            "en": "Make something people want.",
+            "zh": "做人们想要的东西。"
+          },
+          "quotedFrom": {
+            "name": "Paul Graham",
+            "ref": "hackers-and-painters",
+            "source": {
+              "en": "Y Combinator motto",
+              "zh": "Y Combinator 格言"
+            }
+          }
+        },
+        {
           "text": {
             "en": "This is for everyone.",
             "zh": "民咸用之。"

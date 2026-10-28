@@ -6,6 +6,25 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { DocContent } from "./content";
 
+/** Where a skill's file is read: the repository, since `.claude/` is not served. */
+const SKILL_URL = "https://github.com/Huxpro/hux.pro/blob/main/.claude/skills";
+
+/**
+ * The colophon a doc closes with, the way a post's `origin` closes the post:
+ * its provenance, then the skill(s) it is the long form of. Small print, not a
+ * banner over the title: a reader looks it up once, an agent reads the skill.
+ */
+function colophon(origin: string | undefined, skills: string[] | undefined, lang: Locale) {
+  const links = (skills ?? []).map((name) => `[${name}](${SKILL_URL}/${name}/SKILL.md)`);
+  const skillNote = links.length
+    ? lang === "zh"
+      ? `本页的清单版本是 Claude Code skill：${links.join("、")}`
+      : `The checklist form of this page is the Claude Code ${links.length > 1 ? "skills" : "skill"} ${links.join(", ")}`
+    : undefined;
+  const parts = [origin, skillNote].filter(Boolean);
+  return parts.length ? parts.join(" · ") : undefined;
+}
+
 export function generateStaticParams() {
   const slugs = getDocSlugs();
   const params: { slug: string[] }[] = [];
@@ -95,7 +114,8 @@ export default async function DocPage({
   // Remove the title from content since we display it separately
   const rawContent =
     locale === "zh" && doc.contentZh ? doc.contentZh : doc.content;
-  const content = rawContent.replace(/^#\s+.+\n/, "");
+  // Frontmatter leaves a blank line before the title: allow for it.
+  const content = rawContent.replace(/^\s*#\s+.+\n/, "");
 
   return (
     <DocContent
@@ -105,6 +125,8 @@ export default async function DocPage({
       language={doc.language}
       readingTime={doc.readingTime}
       readingTimeZh={doc.readingTimeZh}
+      origin={colophon(doc.origin, doc.skills, "en")}
+      originZh={colophon(doc.originZh, doc.skills, "zh")}
     >
       <MDXRenderer source={content} />
     </DocContent>

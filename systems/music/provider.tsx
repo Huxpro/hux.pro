@@ -43,7 +43,7 @@ interface MusicContextType {
   duration: number;
   /**
    * True after the user has started playback at least once this session.
-   * Cueing the playlist alone does not set this — used to park the music
+   * Cueing the playlist alone does not set this. Used to park the music
    * Live Activity only once listening has begun.
    */
   hasPlayed: boolean;
@@ -54,10 +54,10 @@ interface MusicContextType {
   next: () => void;
   previous: () => void;
   /**
-   * Offline mock backend (dev / headless verification — see lib/mock.ts).
+   * Offline mock backend (dev / headless verification; see lib/mock.ts).
    * Toggling hot-swaps the backend in place: the current player is torn
-   * down, playback state is reset, and the other backend initializes —
-   * no page reload. The flag is persisted so preload flows (Playwright
+   * down, playback state is reset, and the other backend initializes,
+   * with no page reload. The flag is persisted so preload flows (Playwright
    * `addInitScript`) and later visits agree.
    */
   isMockEnabled: boolean;
@@ -165,7 +165,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   // --- Mock backend flag ---
   // Lazy-initialized straight from localStorage (false on the server): safe
-  // without the usual hydration effect because no markup depends on it — it
+  // without the usual hydration effect because no markup depends on it. It
   // only steers effects and control callbacks. Changing it re-runs the init
   // effect below, which swaps backends in place.
   const [isMockEnabled, setMockState] = useState(isMusicMockEnabled);
@@ -188,7 +188,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const initedRef = useRef(false);
   // Track pending skip so we can force playVideo() on iOS Safari
   const pendingSkipRef = useRef(false);
-  // Offline mock mode (dev / headless verification) — see lib/mock.ts.
+  // Offline mock mode (dev / headless verification); see lib/mock.ts.
   const mockRef = useRef(false);
   const mockIndexRef = useRef(0);
 
@@ -218,14 +218,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   // The container div is rendered by this provider (always mounted), so the
   // player persists across route changes and audio never stops on navigation.
   // Re-runs when `isMockEnabled` flips: the cleanup tears the old backend
-  // down and the next run initializes the other one — a live backend swap.
+  // down and the next run initializes the other one, swapping the backend live.
   useEffect(() => {
     if (!PLAYLIST_ID || initedRef.current) return;
 
     // Reset every cross-backend bit so a swap starts from scratch (all
     // no-ops on first mount). `hasPlayed` matters most: leaving it true
     // would park the Live Activity for a player that never played.
-    // Synchronous setState is deliberate throughout this effect — same
+    // Synchronous setState is deliberate throughout this effect: the same
     // client-only init pattern as the settings load above.
     pendingSkipRef.current = false;
     mockIndexRef.current = 0;
@@ -275,7 +275,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       if (!destroyed && !playerRef.current) setPlayerState("error");
     }, 15_000);
 
-    // getPlaylist() starts returning data some time after cueing — poll
+    // getPlaylist() starts returning data some time after cueing. Poll
     // until it lands, then stop.
     let playlistPoll: ReturnType<typeof setInterval> | null = null;
 
@@ -285,7 +285,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
         const player = new YTApi.Player(container, {
           // The IFrame API requires a viewport of at least 200×200px for the
-          // postMessage handshake to complete — a 0×0 (or display:none) player
+          // postMessage handshake to complete; a 0×0 (or display:none) player
           // never fires onReady. The host div is kept off-screen instead.
           height: 200,
           width: 200,
@@ -390,7 +390,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, [playerState]);
 
   // --- Lazy title resolution ---
-  // Only once the playlist browser is opened (never on plain page load) —
+  // Only once the playlist browser is opened (never on plain page load),
   // resolves missing titles via oEmbed with bounded concurrency, filling
   // rows in progressively. Results are cached in localStorage, so this
   // fires real requests at most once per video ever.
@@ -412,7 +412,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   // --- Controls ---
   const play = useCallback(() => {
     // Mark on the user gesture so the Live Activity can appear while the
-    // player is still buffering — not only after YouTube reports PLAYING.
+    // player is still buffering, not only after YouTube reports PLAYING.
     setHasPlayed(true);
     if (mockRef.current) {
       setPlayerState("playing");
@@ -506,7 +506,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
-      {/* Global YouTube player host — always mounted so playback persists
+      {/* Global YouTube player host: always mounted so playback persists
           across navigation. Pushed off-screen (not collapsed to 0×0 or
           display:none) so the player keeps the ≥200×200 viewport the IFrame
           API needs to fire onReady, while staying invisible. */}

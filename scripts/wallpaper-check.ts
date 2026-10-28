@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // =============================================================================
-// wallpaper-check — verify the committed wallpaper assets.
+// wallpaper-check: verify the committed wallpaper assets.
 //
 //   pnpm wallpapers:check
 //
-// The wallpapers in `public/wallpapers/` are Apple's artwork — the release
-// pairs and the Mac OS X Nature photographs — committed rather than fetched:
+// The wallpapers in `public/wallpapers/` are Apple's artwork (the release
+// pairs and the Mac OS X Nature photographs), committed rather than fetched:
 // the site is static, and a build must never depend on a third-party archive
 // still being up. Provenance for every file lives beside them in
 // `sources.json`.
@@ -57,7 +57,7 @@ const PUBLIC = path.join(process.cwd(), "public");
  *
  * Smooth graphic pairs (Tahoe, Golden Gate) compress to tens of kilobytes.
  * Liquid Glass and the iOS 15 blobs have grain those washes do not, so the
- * pair cap is 320KB — past that something went wrong. Big Sur's dark half is
+ * pair cap is 320KB. Past that, something went wrong. Big Sur's dark half is
  * a grainy illustration: at 5120² / q80 it lands around 1.2MB, so the 2× full
  * cap is 2MB. A photograph of raked sand or river stones is detail all the
  * way down: the Nature set spans tens of kilobytes (Water) to well over a
@@ -280,7 +280,7 @@ async function main() {
   }
   problems.push(...checkPicker());
 
-  // One check per distinct file — a photograph's two halves are the same asset.
+  // One check per distinct file: a photograph's two halves are the same asset.
   // sharp decodes on its own thread pool, so all of them run at once.
   const rows = await Promise.all(
     BUILT_IN_WALLPAPERS.flatMap((w) => {

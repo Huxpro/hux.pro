@@ -1,0 +1,183 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1f2328"/></marker><marker id="a0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1f2328"/></marker></defs>
+<rect width="1200" height="720" fill="#ffffff"/>
+<rect x="20" y="40" width="250" height="430" rx="8" fill="#eef4ff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="34" y="61" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="600" fill="#1f2328" text-anchor="start">app/</text>
+<text x="76" y="61" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">routes</text>
+<rect x="32" y="70" width="226" height="40" rx="8" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="42" y="86" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">layout.tsx</text>
+<text x="42" y="101" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">Providers + every app-level surface</text>
+<rect x="32" y="122" width="226" height="20" rx="4" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="40" y="136" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">page.tsx</text>
+<text x="250" y="136" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="end">/</text>
+<rect x="32" y="146" width="226" height="20" rx="4" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="40" y="160" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">writing/</text>
+<text x="250" y="160" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="end">/writing/&lt;slug&gt;/&lt;lang&gt;</text>
+<rect x="32" y="170" width="226" height="20" rx="4" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="40" y="184" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">works/</text>
+<text x="250" y="184" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="end">/works, /works/&lt;type&gt;</text>
+<rect x="32" y="194" width="226" height="20" rx="4" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="40" y="208" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">prompt/</text>
+<text x="250" y="208" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="end">/prompt</text>
+<rect x="32" y="218" width="226" height="20" rx="4" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="40" y="232" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">about/</text>
+<text x="250" y="232" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="end">/about</text>
+<rect x="32" y="242" width="226" height="20" rx="4" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="40" y="256" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">docs/</text>
+<text x="250" y="256" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="end">/docs/&lt;slug&gt;/&lt;lang&gt;</text>
+<rect x="32" y="266" width="226" height="20" rx="4" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="40" y="280" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">lab/&lt;id&gt;/</text>
+<text x="250" y="280" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="end">/lab/&lt;id&gt;</text>
+<rect x="32" y="300" width="226" height="40" rx="8" fill="#ffffff" stroke="#8c959f" stroke-width="1.2" stroke-dasharray="5 4"/>
+<text x="42" y="316" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">api/log · api/icon · api/og</text>
+<text x="42" y="331" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">dev only: 403 / 404 in production</text>
+<text x="34" y="372" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="600" fill="#1f2328" text-anchor="start">server code in production:</text>
+<rect x="32" y="383" width="226" height="32" rx="8" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="42" y="403" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" font-weight="600" fill="#1f2328" text-anchor="start">api/chat/route.ts</text>
+<text x="250" y="403" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="end">Ask</text>
+<rect x="32" y="423" width="226" height="32" rx="8" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="42" y="443" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" font-weight="600" fill="#1f2328" text-anchor="start">api/voice/route.ts</text>
+<text x="250" y="443" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="end">speech to text</text>
+<rect x="310" y="68" width="520" height="44" rx="8" fill="#fff7e6" stroke="#8c959f" stroke-width="1.2"/>
+<text x="324" y="88" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">shared/providers.tsx</text>
+<text x="324" y="103" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">the provider tree; order and why: react-engineering.md</text>
+<path d="M258,90 L308,90" fill="none" stroke="#1f2328" stroke-width="1.3" marker-end="url(#a)"/>
+<text x="283" y="83" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1f2328" text-anchor="middle">mounts</text>
+<rect x="310" y="132" width="390" height="46" rx="8" fill="#effaf2" stroke="#8c959f" stroke-width="1.2"/>
+<text x="324" y="150" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">services/</text>
+<text x="398" y="150" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">global state, no UI</text>
+<text x="324" y="168" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">theme · locale · visitor · glass · input-capability</text>
+<path d="M435,112 L435,130" fill="none" stroke="#1f2328" stroke-width="1.3" marker-end="url(#a)"/>
+<path d="M740,112 L740,190" fill="none" stroke="#1f2328" stroke-width="1.3" marker-end="url(#a)"/>
+<text x="748" y="158" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1f2328" text-anchor="start">composes</text>
+<rect x="310" y="192" width="520" height="278" rx="8" fill="#f4f0ff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="324" y="212" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">systems/&lt;name&gt;/</text>
+<text x="450" y="212" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#59636e" text-anchor="start">index.ts · provider.tsx · components/ · lib/</text>
+<rect x="322" y="222" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="332" y="237" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">about</text>
+<text x="332" y="250" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">system-about.md</text>
+<rect x="322" y="262" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="332" y="277" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">identity</text>
+<text x="332" y="290" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">system-identity.md</text>
+<rect x="322" y="302" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="332" y="317" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">glow</text>
+<text x="332" y="330" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">system-glow.md</text>
+<rect x="322" y="342" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="332" y="357" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">command</text>
+<text x="332" y="370" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">system-command.md</text>
+<rect x="322" y="382" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="332" y="397" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">ask</text>
+<text x="332" y="410" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">system-ask.md</text>
+<rect x="322" y="422" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="332" y="437" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">voice</text>
+<text x="332" y="450" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">system-glow.md</text>
+<rect x="490" y="222" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="500" y="237" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">surface</text>
+<text x="500" y="250" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">system-surface.md</text>
+<rect x="490" y="262" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="500" y="277" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">dock</text>
+<text x="500" y="290" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">system-dock.md</text>
+<rect x="490" y="302" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="500" y="317" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">windows</text>
+<text x="500" y="330" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">system-windows.md</text>
+<rect x="490" y="342" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="500" y="357" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">theater</text>
+<text x="500" y="370" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">in system-attachments.md</text>
+<rect x="490" y="382" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="500" y="397" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">music</text>
+<text x="500" y="410" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">in system-dock.md</text>
+<rect x="490" y="422" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="500" y="437" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">attachments</text>
+<text x="500" y="450" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">system-attachments.md</text>
+<rect x="658" y="222" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="668" y="237" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">ambient</text>
+<text x="668" y="250" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">system-ambient.md</text>
+<rect x="658" y="262" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="668" y="277" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">devtool</text>
+<text x="668" y="290" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">system-devtool.md</text>
+<rect x="658" y="302" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="668" y="317" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">lab</text>
+<text x="668" y="330" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">system-lab.md</text>
+<rect x="658" y="342" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="668" y="357" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">install</text>
+<text x="668" y="370" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">no doc</text>
+<rect x="658" y="382" width="160" height="34" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="668" y="397" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">draggable</text>
+<text x="668" y="410" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">no doc</text>
+<path d="M258,399 L320,399" fill="none" stroke="#1f2328" stroke-width="1.3" marker-end="url(#a)"/>
+<path d="M258,439 L320,439" fill="none" stroke="#1f2328" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="870" y="40" width="310" height="172" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.2"/>
+<text x="884" y="61" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">components/</text>
+<text x="1000" y="61" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">UI no system owns</text>
+<text x="884" y="81" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">ui/</text>
+<text x="1000" y="81" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">primitives (Base UI)</text>
+<text x="884" y="99" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">home/</text>
+<text x="1000" y="99" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">home widgets</text>
+<text x="884" y="117" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">post/</text>
+<text x="1000" y="117" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">reading pages</text>
+<text x="884" y="135" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">log/</text>
+<text x="1000" y="135" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">works cards</text>
+<text x="884" y="153" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">ai-elements/</text>
+<text x="1000" y="153" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">Ask&#x27;s chat parts</text>
+<text x="884" y="171" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">apps/ · languages/ · prompt/</text>
+<text x="884" y="189" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">magic-link/ · motion-primitives/</text>
+<rect x="870" y="228" width="310" height="150" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.2"/>
+<text x="884" y="249" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">lib/</text>
+<text x="916" y="249" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">no UI</text>
+<text x="884" y="268" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">helpers, a few hooks, query.ts</text>
+<text x="884" y="290" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="600" fill="#1f2328" text-anchor="start">server readers (import fs):</text>
+<text x="884" y="308" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">mdx.ts · log-server.ts</text>
+<text x="884" y="325" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">prompts.ts · og-snapshot.ts</text>
+<text x="884" y="342" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">ask-corpus.ts · ask-prompt.ts</text>
+<text x="884" y="359" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">icon/generate.ts · image-meta.ts</text>
+<rect x="870" y="394" width="310" height="76" rx="8" fill="#f6f8fa" stroke="#8c959f" stroke-width="1.2"/>
+<text x="884" y="415" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">packages/vitre</text>
+<text x="884" y="433" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">the page&#x27;s edge on iOS Safari</text>
+<text x="884" y="451" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">imported as &#x27;vitre&#x27;</text>
+<path d="M832,250 L868,160" fill="none" stroke="#1f2328" stroke-width="1.3" marker-end="url(#a)" marker-start="url(#a0)"/>
+<text x="850" y="272" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1f2328" text-anchor="middle">both</text>
+<path d="M832,300 L868,300" fill="none" stroke="#1f2328" stroke-width="1.3" marker-end="url(#a)"/>
+<path d="M832,432 L868,432" fill="none" stroke="#1f2328" stroke-width="1.3" marker-end="url(#a)"/>
+<path d="M145,40 L145,22 L1025,22 L1025,38" fill="none" stroke="#1f2328" stroke-width="1.3" marker-end="url(#a)"/>
+<text x="560" y="16" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1f2328" text-anchor="middle">pages import components/, lib/, systems/</text>
+<text x="165" y="506" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2328" text-anchor="start">Build time: content in, snapshots out</text>
+<text x="440" y="506" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">(pnpm &lt;script&gt; → scripts/*, run in plain Node via scripts/register-ts.mjs)</text>
+<rect x="20" y="518" width="230" height="170" rx="8" fill="#fffbea" stroke="#8c959f" stroke-width="1.2"/>
+<text x="34" y="539" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">content/</text>
+<text x="102" y="539" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">words and data</text>
+<text x="34" y="560" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">blog/*.{en,zh}.mdx</text>
+<text x="34" y="578" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">about/{en,zh}.mdx</text>
+<text x="34" y="596" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">log.json · prompts.json</text>
+<text x="34" y="614" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">apps.json · icon.json</text>
+<text x="34" y="632" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">badges.json · languages.json</text>
+<text x="34" y="662" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">pages read it through lib/ at build</text>
+<path d="M145,516 L145,472" fill="none" stroke="#1f2328" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="300" y="518" width="270" height="170" rx="8" fill="#eef4ff" stroke="#8c959f" stroke-width="1.2"/>
+<text x="314" y="539" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">scripts/</text>
+<text x="314" y="560" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">og:snapshot · og:sizes · og:fonts</text>
+<text x="314" y="578" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">badges:snapshot · apps:snapshot</text>
+<text x="314" y="596" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">icon:generate</text>
+<text x="314" y="614" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">wallpapers:profile</text>
+<text x="314" y="632" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">ask:index · lynx:shadow-css</text>
+<text x="314" y="662" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start">also: *:check, ask:test, command:test</text>
+<path d="M250,600 L298,600" fill="none" stroke="#1f2328" stroke-width="1.3" marker-end="url(#a)"/>
+<text x="274" y="593" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1f2328" text-anchor="middle">read</text>
+<rect x="620" y="518" width="370" height="170" rx="8" fill="#effaf2" stroke="#8c959f" stroke-width="1.2"/>
+<text x="634" y="539" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">committed snapshots</text>
+<text x="634" y="560" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">content/og-snapshot.json</text>
+<text x="634" y="578" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">content/image-sizes.json</text>
+<text x="634" y="596" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">content/badge-icons.json · app-icons.json</text>
+<text x="634" y="614" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">public/icons/ · app-icons/ · badge-icons/</text>
+<text x="634" y="632" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">lib/og-fonts/</text>
+<text x="634" y="650" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">systems/ambient/lib/wallpaper-profiles.json</text>
+<text x="634" y="668" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">systems/windows/lib/lynx-shadow-css.ts</text>
+<path d="M570,600 L618,600" fill="none" stroke="#1f2328" stroke-width="1.3" marker-end="url(#a)"/>
+<text x="594" y="593" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1f2328" text-anchor="middle">write</text>
+<rect x="1010" y="518" width="180" height="170" rx="8" fill="#fdf1f1" stroke="#8c959f" stroke-width="1.2" stroke-dasharray="5 4"/>
+<text x="1024" y="539" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">generated,</text>
+<text x="1024" y="555" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#1f2328" text-anchor="start">not committed</text>
+<text x="1024" y="578" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">public/ask/index.json</text>
+<text x="1024" y="596" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1f2328" text-anchor="start">public/vitre/</text>
+<path d="M435,688 L435,706 L1100,706 L1100,690" fill="none" stroke="#1f2328" stroke-width="1.3" marker-end="url(#a)"/>
+<text x="800" y="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1f2328" text-anchor="middle">ask:index and the vitre demo (predev, build)</text>
+</svg>

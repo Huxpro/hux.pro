@@ -1,14 +1,14 @@
 "use client";
 
 /**
- * Slides — the cover for an HTML reveal.js deck.
+ * Slides: the cover for an HTML reveal.js deck.
  *
  * A deck plays on the theater's stage, beside the videos (see
  * systems/theater: a `slides` track). The cover hands the click to `onPlay`
- * when the caller routes it — the attachment system does, per viewport — and
+ * when the caller routes it (the attachment system does, per viewport), and
  * otherwise opens the deck itself: in the theater where there is one, in a
  * new tab where there is not (a phone, or a page without the provider). A
- * subtle "Slides" caption keeps the cover distinguishable from video covers
+ * small "Slides" caption keeps the cover distinguishable from video covers
  * when both appear in a rail.
  */
 
@@ -24,7 +24,7 @@ import { MediaMark, SLIDES_MARK } from "./media-mark";
 
 export { isPlayableSlidesUrl, resolveSlidesEmbedUrl } from "@/lib/slides";
 
-/** Open a deck in its own tab — the phone path, and the no-theater path. */
+/** Open a deck in its own tab: the phone path, and the no-theater path. */
 export function openSlidesInNewTab(url: string): void {
   if (typeof window !== "undefined") {
     window.open(url, "_blank", "noopener,noreferrer");
@@ -84,7 +84,7 @@ export function Slides({
       return;
     }
     // Standalone (an MDX `<Media as="slides" />`): a one-deck set through
-    // the attachments policy, so it opens where every other deck does —
+    // the attachments policy, so it opens where every other deck does:
     // the sheet on a phone, the stage elsewhere. Outside the provider, the
     // stage directly, or the deck's own tab when there is none.
     const media: SlidesMedia = { kind: "slides", url, thumbnail, title };

@@ -6,7 +6,7 @@ import { HEADER_BUTTON } from "./sheet";
 import { useWindowDraggable } from "./window";
 
 // =============================================================================
-// SurfaceBody — the title bar, the scroll area and the footer under it.
+// SurfaceBody: the title bar, the scroll area and the footer under it.
 //
 // The one thing every shape puts inside its shell, so a surface reads as the
 // same object whichever direction it arrived from. Separate from both the
@@ -16,7 +16,7 @@ import { useWindowDraggable } from "./window";
 //
 // It asks the window whether it may be dragged rather than being told: in a
 // draggable window the header is the handle, and in a sheet or a panel nothing
-// is — the drawer moves those.
+// is, because the drawer moves those.
 // =============================================================================
 
 export interface SurfaceBodyProps {
@@ -24,6 +24,11 @@ export interface SurfaceBodyProps {
   title: React.ReactNode;
   /** Extra controls in the header, between the title and close. */
   actions?: React.ReactNode;
+  /** A feature-owned handle for a panel that moves between placements. */
+  headerHandle?: {
+    onPointerDown: React.PointerEventHandler<HTMLDivElement>;
+    className?: string;
+  };
   closeLabel: string;
   onClose: () => void;
   /**
@@ -36,12 +41,12 @@ export interface SurfaceBodyProps {
   /** The scroll container, for content that needs to scroll a row into view. */
   scrollRef?: React.RefObject<HTMLDivElement | null>;
   /**
-   * A fixed strip between the header and the scroll area — a way around the
+   * A fixed strip between the header and the scroll area: a way around the
    * content, such as an index of its sections. It does not scroll away.
    */
   toolbar?: React.ReactNode;
   /**
-   * A fixed strip below the scroll area — a status line, a destructive action.
+   * A fixed strip below the scroll area: a status line, a destructive action.
    * It does not scroll away with the content.
    */
   footer?: React.ReactNode;
@@ -51,11 +56,12 @@ export interface SurfaceBodyProps {
 function SurfaceHeader({
   title,
   actions,
+  headerHandle,
   closeLabel,
   onClose,
   draggable,
   titleAs: TitleAs = "div",
-}: Pick<SurfaceBodyProps, "title" | "actions" | "closeLabel" | "onClose"> & {
+}: Pick<SurfaceBodyProps, "title" | "actions" | "headerHandle" | "closeLabel" | "onClose"> & {
   draggable: boolean;
   titleAs?: React.ElementType;
 }) {
@@ -63,8 +69,11 @@ function SurfaceHeader({
     <div
       className={cn(
         "flex shrink-0 items-center justify-between gap-2 px-5 pb-2 pt-3",
-        draggable && "cursor-grab active:cursor-grabbing"
+        draggable && "cursor-grab active:cursor-grabbing",
+        headerHandle?.className,
       )}
+      onPointerDown={headerHandle?.onPointerDown}
+      data-ask-placement-handle={headerHandle ? "" : undefined}
       data-drag-handle={draggable ? "" : undefined}
     >
       <TitleAs className="min-w-0 flex-1 truncate text-xs font-mono text-muted-foreground">
@@ -87,6 +96,7 @@ function SurfaceHeader({
 export function SurfaceBody({
   title,
   actions,
+  headerHandle,
   closeLabel,
   onClose,
   titleAs,
@@ -103,6 +113,7 @@ export function SurfaceBody({
       <SurfaceHeader
         title={title}
         actions={actions}
+        headerHandle={headerHandle}
         closeLabel={closeLabel}
         onClose={onClose}
         draggable={draggable}

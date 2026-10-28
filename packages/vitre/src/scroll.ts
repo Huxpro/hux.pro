@@ -5,7 +5,7 @@ import type { ScrollPageOptions } from "../vitre";
 import { SCROLL_ATTRIBUTE, SCROLL_CONTAINER_ID } from "./constants";
 
 // =============================================================================
-// Scroll — where the page scrolls.
+// Scroll: where the page scrolls.
 //
 // Which mode applies is read from <html> at call time, so every helper is
 // right across a live switch. `onPageScroll` listens on the window AND the

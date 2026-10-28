@@ -12,6 +12,7 @@
  * - ./vimeo.tsx
  */
 
+import { detectVideoPlatform } from "@/lib/media-kind";
 import { cn } from "@/lib/utils";
 import { Play } from "lucide-react";
 import type { VideoMedia, VideoPlatform } from "@/lib/log";
@@ -57,28 +58,8 @@ export interface VideoPropsFromMedia {
 // Platform Detection
 // =============================================================================
 
-/**
- * Detect video platform from URL
- */
-export function detectVideoPlatform(url: string): VideoPlatform | null {
-  try {
-    const hostname = new URL(url).hostname.toLowerCase();
-
-    if (hostname.includes("youtube.com") || hostname.includes("youtu.be")) {
-      return "youtube";
-    }
-    if (hostname.includes("bilibili.com")) {
-      return "bilibili";
-    }
-    if (hostname.includes("vimeo.com")) {
-      return "vimeo";
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
+// Platform detection lives with the other URL readings (lib/media-kind.ts).
+export { detectVideoPlatform };
 
 /**
  * Extract video ID for any supported platform
@@ -97,9 +78,9 @@ export function extractVideoId(url: string, platform: VideoPlatform): string | n
 }
 
 /**
- * The player URL for a video, the one each facade mounts once pressed — so a
+ * The player URL for a video, the one each facade mounts once pressed. A
  * caller that keeps the playing state itself (the feed's inline player, which
- * has a bar to hand playback on to the stage) can mount the same iframe.
+ * has a bar to hand playback on to the stage) can then mount the same iframe.
  */
 export function videoEmbedUrl(url: string, platform: VideoPlatform): string | null {
   switch (platform) {

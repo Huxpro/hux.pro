@@ -11,7 +11,7 @@ import { getBlogLangManifest, type BlogLangManifest } from "@/lib/mdx";
 export type { SnapshotEntry, OGSnapshot };
 
 /**
- * Build-time card snapshot — Node-only loader.
+ * Build-time card snapshot: the Node-only loader.
  *
  * A committed JSON cache of crawled OG metadata, keyed by URL. Link cards
  * (media with `kind:"link", present:"card"`) render from this (or a manual
@@ -38,7 +38,7 @@ export function loadOGSnapshot(): OGSnapshot {
 }
 
 /**
- * Server-side enrichment — convenience wrapper that loads the snapshot from
+ * Server-side enrichment: a convenience wrapper that loads the snapshot from
  * disk by default. Client-side callers should import the pure enrichment
  * from `@/lib/og-enrich` and supply the snapshot themselves.
  */

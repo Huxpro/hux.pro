@@ -11,22 +11,22 @@ import {
 import { t, type Locale } from "@/lib/i18n";
 
 // =============================================================================
-// Glass — the material every floating System UI surface is made of.
+// Glass: the material every floating System UI surface is made of.
 //
 // iOS 26 offers exactly two Liquid Glass materials, and so do we:
 //
 //   tinted (色调)  the default. Fills carry enough of the card colour to read
 //                  as a surface in their own right.
-//   clear  (透明)  a vibrancy-style wash. Whatever is behind the surface — a
-//                  wallpaper, the page — comes through as the colour.
+//   clear  (透明)  a vibrancy-style wash. Whatever is behind the surface (a
+//                  wallpaper, the page) comes through as the colour.
 //
 // And, orthogonal to the material, a tint:
 //
 //   neutral        the baseline. Glass is the card colour; hover and selection
 //                  are ink washes. Grey, by construction.
 //   wallpaper      glass and the accent wash borrow the wallpaper's dominant
-//                  colour — the one the profiler measured, clamped by the
-//                  legibility policy so it colours without shouting. What the
+//                  colour: the one the profiler measured, clamped by the
+//                  legibility policy so the colour stays muted. What the
 //                  Lock Screen clock and iOS 18's tinted icons do.
 //
 // Each choice is one class or attribute on <html>; the fills themselves are
@@ -89,7 +89,7 @@ export function useGlass() {
 
 export function GlassProvider({ children }: { children: React.ReactNode }) {
   // Default on the server and the first client render, then hydrate from
-  // localStorage — the same hydration-safe shape the ambient settings use.
+  // localStorage. It is the same hydration-safe shape the ambient settings use.
   const [material, setMaterialState] = useState<GlassMaterial>("tinted");
   const [tint, setTintState] = useState<GlassTint>("neutral");
 

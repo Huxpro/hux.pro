@@ -1,5 +1,5 @@
 // =============================================================================
-// YouTube IFrame Player API — Singleton loader
+// YouTube IFrame Player API: singleton loader
 // Follows the same pattern as the Twitter SDK loader in
 // components/log/media/twitter.tsx (singleton promise, script injection).
 // =============================================================================
@@ -36,7 +36,7 @@ export function loadYouTubeAPI(): Promise<typeof YT> {
     );
 
     if (existing) {
-      // Script tag exists but API not ready yet — the callback will fire
+      // Script tag exists but API not ready yet; the callback will fire
       return;
     }
 
@@ -55,8 +55,8 @@ export function loadYouTubeAPI(): Promise<typeof YT> {
 
 /**
  * YouTube thumbnail URL from a video ID.
- * `mqdefault` is 320×180 (native 16:9, no letterboxing) — clean for
- * square album-art crops via object-fit:cover without scaling hacks.
+ * `mqdefault` is 320×180 (native 16:9, no letterboxing), which crops
+ * cleanly to square album art via object-fit:cover without scaling hacks.
  */
 export function getYouTubeThumbnail(videoId: string): string {
   return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;

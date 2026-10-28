@@ -3,6 +3,7 @@
 import { PagerDots, useSnapPager } from "@/components/ui/snap-pager";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
+import { useOverAboutZ } from "@/systems/about/provider";
 import {
   ADAPTIVE_PRESENTATION,
   AdaptiveSurface,
@@ -15,13 +16,13 @@ import { useAttachments } from "../provider";
 import { AttachmentPage } from "./attachment-page";
 
 // =============================================================================
-// AttachmentSurface — a commit's attachments, paged.
+// AttachmentSurface: a commit's attachments, paged.
 //
 // One system-wide surface, mounted once in the root layout, that the provider
 // brings up at the item that was tapped. Its shape is the viewport's call
-// (systems/surface): a bottom sheet on a phone, which is the case it exists
-// for — a panel on a tablet and a window on a desktop for the attachments
-// that have no native home there.
+// (systems/surface). It is a bottom sheet on a phone, the case it exists
+// for. On a tablet it is a panel and on a desktop a window, for the
+// attachments that have no native home there.
 //
 // Inside is the widgets' strip (components/ui/snap-pager): one page per
 // attachment, full width, snapping page by page, dots underneath. A commit
@@ -43,6 +44,9 @@ const MAX_HEIGHT = "min(84dvh, 760px)";
 export function AttachmentSurface() {
   const { locale } = useLocale();
   const { session, isOpen, close } = useAttachments();
+  // Opened from the About's copy, it floats over the About rather than
+  // taking its place (systems/about/provider.tsx).
+  const overAboutZ = useOverAboutZ();
 
   return (
     <AdaptiveSurface
@@ -57,6 +61,7 @@ export function AttachmentSurface() {
       windowWidth={WINDOW_WIDTH}
       maxHeight={MAX_HEIGHT}
       fitContent
+      zIndex={overAboutZ}
       // The track bleeds to the surface's edges so a page is exactly the
       // surface wide, and the next one starts past the edge rather than
       // peeking through the padding.
@@ -72,7 +77,7 @@ function Pager({ session }: { session: AttachmentSession }) {
   const count = set.items.length;
   const { scrollRef, index, settled, scrollTo } = useSnapPager(count, initial);
   // In a sheet, a swipe on the track is the track's or the sheet's, never
-  // both — a diagonal one otherwise moves the two together on iOS and the
+  // both. Otherwise a diagonal one moves the two together on iOS and the
   // snap strands between pages (systems/surface/axis-lock.ts).
   const { mode } = useSurfaceContext();
   useSheetAxisLock(scrollRef, mode === "sheet");
@@ -90,8 +95,8 @@ function Pager({ session }: { session: AttachmentSession }) {
         className={cn(
           "flex gap-4 overflow-x-auto px-4 scroll-px-4",
           // X only, the way the talks widget's strip is. An `overflow-x`
-          // scroller scrolls Y too the moment anything pokes out below it —
-          // here the 6px hit areas under the action pills did, by 3px — and
+          // scroller scrolls Y too the moment anything pokes out below it
+          // (here the 6px hit areas under the action pills did, by 3px), and
           // iOS then pans the track in two dimensions and rubber-bands it
           // vertically under a sideways swipe. The bottom padding (given back
           // by the margin) keeps those hit areas whole inside the clip.
@@ -106,10 +111,10 @@ function Pager({ session }: { session: AttachmentSession }) {
             key={`${media.url}-${i}`}
             data-pager-card
             className="w-full shrink-0 snap-center"
-            // Pages off screen are inert to the keyboard and the reader —
-            // from the page the track settled on, not the one passing under
-            // the finger: flipping these mid-snap restyles the pages while
-            // WebKit is animating the snap between them.
+            // Pages off screen are inert to the keyboard and the reader,
+            // counted from the page the track settled on, not the one passing
+            // under the finger. Flipping these mid-snap restyles the pages
+            // while WebKit is animating the snap between them.
             inert={i !== settled || undefined}
             aria-hidden={i !== settled || undefined}
           >

@@ -7,11 +7,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 //
 // The visual half of a touch long-press. dnd-kit's TouchSensor decides *when*
 // a press becomes a drag (its `delay` / `tolerance`), but says nothing while
-// the finger is still down. iOS fills that silence: the pressed widget / icon
+// the finger is still down. iOS fills that gap: the pressed widget / icon
 // grows slowly for the whole hold, so the visitor can see the pickup coming
-// and abort it by lifting or scrolling. This hook tracks that window —
+// and abort it by lifting or scrolling. This hook tracks that window.
 // `holding` is true from touch-down until release, a scroll, or the finger
-// drifting past `tolerance` — and the element paints the grow via
+// drifting past `tolerance`, and the element paints the grow via
 // `.press-hold[data-holding]` (globals.css).
 //
 // Mouse presses are ignored on purpose: on a pointer the drag starts on
@@ -21,7 +21,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 export interface PressHold {
   /** Attach to the pressable element. */
   onPointerDown: (e: React.PointerEvent) => void;
-  /** Props that paint the grow — spread onto the element that should scale. */
+  /** Props that paint the grow. Spread onto the element that should scale. */
   holdProps: {
     className: string;
     "data-holding": "" | undefined;

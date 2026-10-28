@@ -17,7 +17,7 @@ function render(name, svg) {
 
 const S = 512;
 
-// A big rounded plus, centered — the "counter/stepper" motif.
+// A big rounded plus, centered: the "counter/stepper" motif.
 function plus(color, w = 44, len = 150) {
   const c = S / 2;
   return `
@@ -25,7 +25,7 @@ function plus(color, w = 44, len = 150) {
     <rect x="${c - len / 2}" y="${c - w / 2}" width="${len}" height="${w}" rx="${w / 2}" fill="${color}"/>`;
 }
 
-// React-Lynx counter — navy field, cyan plus.
+// React-Lynx counter: navy field, cyan plus.
 render(
   "lynx-react-counter",
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S} ${S}">
@@ -38,7 +38,7 @@ render(
   </svg>`,
 );
 
-// React-Lynx picker — dark field, 2×3 grid of vibe colors.
+// React-Lynx picker: dark field, 2×3 grid of vibe colors.
 const COLORS = ["#ff6b9d", "#6b7bff", "#38d39f", "#ff9f43", "#4dc0ff", "#ffd93d"];
 function dots() {
   let out = "";
@@ -59,7 +59,7 @@ render(
   </svg>`,
 );
 
-// Vue-Lynx counter — green field, green plus (only used if the Vue bundle builds).
+// Vue-Lynx counter: green field, green plus (only used if the Vue bundle builds).
 render(
   "lynx-vue-counter",
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S} ${S}">

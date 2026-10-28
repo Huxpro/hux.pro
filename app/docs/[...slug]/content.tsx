@@ -12,6 +12,9 @@ interface DocContentProps {
   language: PostLanguage;
   readingTime?: string;
   readingTimeZh?: string;
+  /** The colophon: provenance and the page's skill (page.tsx `colophon`). */
+  origin?: string;
+  originZh?: string;
   children: ReactNode;
 }
 
@@ -22,6 +25,8 @@ export function DocContent({
   language,
   readingTime,
   readingTimeZh,
+  origin,
+  originZh,
   children,
 }: DocContentProps) {
   return (
@@ -32,6 +37,8 @@ export function DocContent({
       language={language}
       readingTime={readingTime}
       readingTimeZh={readingTimeZh}
+      origin={origin}
+      originZh={originZh}
       backHref="/docs"
       backLabel="/docs"
     >

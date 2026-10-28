@@ -6,7 +6,7 @@ import { buildSlidesAlbum, buildTalkAlbums } from "../lib/albums";
 import { useTheater } from "../provider";
 
 // ---------------------------------------------------------------------------
-// TheaterRegistrar — registers the curated talk albums, and the Slides
+// TheaterRegistrar registers the curated talk albums, and the Slides
 // library, globally so any entry point (home widget, commit-page videos and
 // decks) can open the player with full playlist context. Rebuilds on locale
 // change. Renders nothing.

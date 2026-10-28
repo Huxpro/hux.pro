@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // =============================================================================
-// wallpaper-encode — rebuild committed wallpaper files from their sources.
+// wallpaper-encode: rebuild committed wallpaper files from their sources.
 //
 //   pnpm wallpapers:encode                  # every catalogued photo and pair
 //   pnpm wallpapers:encode golden-gate …    # only the named ids

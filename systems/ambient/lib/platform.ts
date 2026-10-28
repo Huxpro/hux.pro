@@ -1,6 +1,6 @@
 /**
  * Detect any iOS browser.  All iOS browsers (Safari, Chrome, Firefox, Edge…)
- * use the WebKit engine and share the same limitations — most notably
+ * use the WebKit engine and share the same limitations. Most notably,
  * `background-attachment: fixed` is unsupported.
  */
 export function isIOSBrowser(): boolean {
@@ -24,7 +24,7 @@ export const IOS_EDGE_FADE_DISTANCE_PX = 128;
 /**
  * Larger fade distance for high-contrast scenarios (dark mode + sunrise/sunset).
  * The warm/vivid sun-event gradients against the dark background create a stark
- * edge — pushing the transparent zone further inward softens the transition.
+ * edge. Pushing the transparent zone further inward softens the transition.
  */
 export const IOS_EDGE_FADE_DISTANCE_HIGH_CONTRAST_PX = 256;
 

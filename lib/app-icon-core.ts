@@ -1,19 +1,19 @@
 /**
- * Web-app icon discovery — framework-agnostic core.
+ * Web-app icon discovery: the framework-agnostic core.
  *
  * Given a URL, find the icon that site *itself* declares for home-screen /
  * installed-app use, the way a mobile OS would when you "Add to Home Screen":
  *
- *   1. Web-app manifest icons (`<link rel="manifest">` → `icons[]`) — the
+ *   1. Web-app manifest icons (`<link rel="manifest">` → `icons[]`): the
  *      literal "web app icon" declaration, usually the largest art available.
- *   2. `<link rel="apple-touch-icon">` — designed for exactly this use.
- *   3. `<link rel="icon">` — the ordinary favicon, largest declared size.
+ *   2. `<link rel="apple-touch-icon">`, designed for exactly this use.
+ *   3. `<link rel="icon">`: the ordinary favicon, largest declared size.
  *   4. Undeclared-but-conventional fallbacks: `/apple-touch-icon.png` (Safari
  *      probes this path even when undeclared) and `/favicon.ico`.
  *
  * Like `lib/og-core.ts`, this module is intentionally free of Next.js/React
  * imports so the build-time snapshot script (`scripts/app-icon-snapshot.ts`)
- * can drive it from plain Node. Nothing here touches the filesystem — callers
+ * can drive it from plain Node. Nothing here touches the filesystem; callers
  * decide where bytes land.
  */
 
@@ -32,7 +32,7 @@ export type AppIconSource =
 export interface AppIconCandidate {
   /** Absolute URL of the icon file. */
   url: string;
-  /** Where the declaration came from — drives try-order priority. */
+  /** Where the declaration came from. Drives try-order priority. */
   source: AppIconSource;
   /** Largest declared dimension (px); 0 when the markup doesn't say. */
   declaredSize: number;
@@ -64,7 +64,7 @@ function absolutize(href: string, baseUrl: string): string | null {
 export function parseSizesAttr(sizes: string | undefined): number {
   if (!sizes) return 0;
   const v = sizes.trim().toLowerCase();
-  // "any" is the vector case — treat as large so SVGs rank above tiny rasters.
+  // "any" is the vector case. Treat it as large so SVGs rank above tiny rasters.
   if (v === "any") return 512;
   let max = 0;
   for (const token of v.split(/\s+/)) {
@@ -105,7 +105,7 @@ export function parseIconLinks(html: string, baseUrl: string): ParsedIconLinks {
       continue;
     }
 
-    // mask-icon is a monochrome Safari pinned-tab glyph — never a tile icon.
+    // mask-icon is a monochrome Safari pinned-tab glyph, never a tile icon.
     if (tokens.includes("mask-icon")) continue;
 
     const isAppleTouch = tokens.some((t) =>
@@ -186,13 +186,13 @@ export interface AppIconDiscovery {
   /** True when the page itself was reachable (candidates may still be empty). */
   ok: boolean;
   error?: string;
-  /** Candidates in try-order — includes conventional fallback probes. */
+  /** Candidates in try-order, including conventional fallback probes. */
   candidates: AppIconCandidate[];
 }
 
 /**
  * Fetch a page and produce the ordered icon-candidate list for it.
- * Never throws — failures surface as `ok: false` plus fallback probes only.
+ * Never throws: failures surface as `ok: false` plus fallback probes only.
  */
 export async function discoverAppIcon(url: string): Promise<AppIconDiscovery> {
   // Conventional locations exist even when discovery fails outright.
@@ -300,12 +300,12 @@ export function sniffImage(
 ): SniffedImage | null {
   const buf = bytes;
 
-  // PNG — IHDR width/height at byte 16/20 (big-endian u32).
+  // PNG: IHDR width/height at byte 16/20 (big-endian u32).
   if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
     return { ext: "png", width: readU32BE(buf, 16), height: readU32BE(buf, 20) };
   }
 
-  // ICO — reserved 0, type 1; each 16-byte dir entry stores w/h (0 → 256).
+  // ICO: reserved 0, type 1; each 16-byte dir entry stores w/h (0 → 256).
   if (buf[0] === 0 && buf[1] === 0 && buf[2] === 1 && buf[3] === 0) {
     const count = buf[4] | (buf[5] << 8);
     let width = 0;
@@ -323,7 +323,7 @@ export function sniffImage(
     return { ext: "ico", width: width || undefined, height: height || undefined };
   }
 
-  // GIF — logical screen size at byte 6/8 (little-endian u16).
+  // GIF: logical screen size at byte 6/8 (little-endian u16).
   if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) {
     return {
       ext: "gif",
@@ -332,7 +332,7 @@ export function sniffImage(
     };
   }
 
-  // JPEG / WebP — possible but rare for icons; format is enough (the renderer
+  // JPEG / WebP: possible but rare for icons. The format is enough (the renderer
   // only needs dimensions for the fill-vs-fit call, and falls back to "fit").
   if (buf[0] === 0xff && buf[1] === 0xd8) return { ext: "jpg" };
   if (
@@ -342,7 +342,7 @@ export function sniffImage(
     return { ext: "webp" };
   }
 
-  // SVG — text that parses as markup containing an <svg> root.
+  // SVG: text that parses as markup containing an <svg> root.
   const isSvgType = contentType?.includes("svg") ?? false;
   const head = ascii(buf, 0, Math.min(buf.length, 1024));
   if (isSvgType || (/^\s*(<\?xml|<!doctype|<svg)/i.test(head) && /<svg[\s>]/i.test(head))) {
@@ -368,14 +368,14 @@ function ascii(buf: Uint8Array, start: number, end: number): string {
 
 /**
  * How an app runs inside a chrome window:
- *   - "web"  — an ordinary web page, loaded in an `<iframe>`.
- *   - "lynx" — a Lynx app bundle (`.web.bundle`), rendered by `@lynx-js/web-core`'s
- *              `<lynx-view>` element (a "Lynx Player").
+ *   - "web":  an ordinary web page, loaded in an `<iframe>`.
+ *   - "lynx": a Lynx app bundle (`.web.bundle`), rendered by `@lynx-js/web-core`'s
+ *             `<lynx-view>` element (a "Lynx Player").
  */
 export type AppRuntime = "web" | "lynx";
 
 /**
- * The authoring framework behind a Lynx bundle. Purely cosmetic here — it tints
+ * The authoring framework behind a Lynx bundle. Only cosmetic here: it tints
  * the little Lynx badge on the app icon so React-Lynx and Vue-Lynx apps read
  * apart at a glance. Ignored for `runtime: "web"`.
  */
@@ -383,7 +383,7 @@ export type AppFlavor = "react" | "vue";
 
 /** One app-link as authored in `content/apps.json`. */
 export interface AppLink {
-  /** Stable id — also the icon's filename under /app-icons/. */
+  /** Stable id, also the icon's filename under /app-icons/. */
   id: string;
   /** Display label under the tile (English). */
   title: string;
@@ -400,7 +400,7 @@ export interface AppLink {
    * `"lynx"` opens the Lynx Player pointed at {@link bundleUrl}.
    */
   runtime?: AppRuntime;
-  /** Lynx authoring framework — badge tint only. See {@link AppFlavor}. */
+  /** Lynx authoring framework, for the badge tint only. See {@link AppFlavor}. */
   flavor?: AppFlavor;
   /**
    * For `runtime: "lynx"`: the `.web.bundle` the player loads.
@@ -416,7 +416,7 @@ export interface AppLink {
    */
   size?: "portrait" | "landscape" | "max";
   /**
-   * Manual icon override — the recovery path for sites whose declared icon is
+   * Manual icon override: the recovery path for sites whose declared icon is
    * wrong or unfetchable (same philosophy as og-snapshot's manual `preview`).
    * A site-local `/…` path is used as-is; an `http(s)` URL is downloaded.
    */
@@ -441,7 +441,7 @@ export interface AppIconSnapshotEntry {
   source: AppIconSource;
   /** Remote URL the bytes came from (absent for site-local manual icons). */
   iconUrl?: string;
-  /** Intrinsic pixel size — lets the renderer choose full-bleed vs padded. */
+  /** Intrinsic pixel size. Lets the renderer choose full-bleed vs padded. */
   width?: number;
   height?: number;
 }
@@ -453,12 +453,12 @@ export type AppIconSnapshot = Record<string, AppIconSnapshotEntry>;
 // -----------------------------------------------------------------------------
 
 /**
- * Human runtime label for an app — the one string every surface shows for
+ * Human runtime label for an app: the one string every surface shows for
  * "how it runs" (window menu, ⌘K, the badge's aria-label). Flavour is only a
  * tint elsewhere, but it names the label here so React-Lynx and Vue-Lynx read
  * apart. Single source so the badge, menu, and palette never drift.
  */
-/** Localized tile / window label — `titleZh` when the locale is `zh`. */
+/** Localized tile / window label: `titleZh` when the locale is `zh`. */
 export function appTitle(
   app: Pick<AppLink, "title" | "titleZh">,
   locale?: string,

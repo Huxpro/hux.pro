@@ -7,23 +7,29 @@ import type { BlogPost, Doc, PostLanguage } from "./content";
 const contentDirectory = path.join(process.cwd(), "content");
 
 /**
- * "4 min" for English text, "4 分钟" for Chinese — the estimate is
+ * "4 min" for English text, "4 分钟" for Chinese. The estimate is
  * printed in the language of the text it measures, so a 中文 article's
  * header does not carry the one English phrase on the page.
  */
 function readingTimeText(body: string, lang: "en" | "zh"): string {
-  const minutes = Math.max(1, Math.ceil(readingTime(body).minutes));
+  const minutes = Math.max(1, Math.ceil(readingTime(stripComments(body)).minutes));
   return lang === "zh" ? `${minutes} 分钟` : `${minutes} min`;
 }
 
+/** MDX comments (`{/* … *\/}`): notes to whoever edits the post, not words
+ *  it says. */
+function stripComments(content: string): string {
+  return content.replace(/\{\/\*[\s\S]*?\*\/\}/g, "\n\n");
+}
+
 /**
- * Find the first image URL referenced in the post body — used as the peek
- * preview's cover so the hover surfaces the visual vibe alongside the text.
+ * Find the first image URL referenced in the post body. It is used as the
+ * peek preview's cover, so the hover shows a picture alongside the text.
  *
  * Looks at three shapes, in order of how the codebase usually opens a post:
- *  - `<Figure url="…"`  — the MDX Figure component (most common in this repo)
- *  - `<img src="…"`     — raw HTML
- *  - `![alt](url)`      — markdown image syntax
+ *  - `<Figure url="…"`:  the MDX Figure component (most common in this repo)
+ *  - `<img src="…"`:     raw HTML
+ *  - `![alt](url)`:      markdown image syntax
  *
  * Returns undefined when no image appears in the body.
  */
@@ -37,44 +43,64 @@ function extractFirstImage(content: string): string | undefined {
   return undefined;
 }
 
-/**
- * Strip MDX / markdown to plain text for hover-preview excerpts.
- *
- * Order matters: code fences first (they contain markdown-looking text we
- * shouldn't process), then JSX, then markdown syntax. After flattening we
- * collapse whitespace and truncate at a word boundary when the text is
- * Latin-script — for CJK we hard-truncate since there are no spaces.
- */
-function extractExcerpt(content: string, maxChars = 320): string {
-  const text = content
-    .replace(/```[\s\S]*?```/g, "") // fenced code blocks
+/** Markdown inline syntax flattened to the text a reader sees. */
+function flattenInline(md: string): string {
+  return md
     .replace(/`([^`]+)`/g, "$1") // inline code
-    .replace(/<[^>]+>/g, "") // JSX / HTML tags (including <Figure …/>)
-    .replace(/!\[[^\]]*\]\([^)]+\)/g, "") // image markdown
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // link markdown → text
-    .replace(/^#{1,6}\s+/gm, "") // heading hashes
+    .replace(/<[^>]+>/g, "") // inline JSX / HTML tags
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, "") // images
+    .replace(/\[\^[^\]]+\]/g, "") // footnote references
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links → their text
+    .replace(/\[([^\]]+)\]\[[^\]]*\]/g, "$1") // reference links → their text
     .replace(/(\*\*|__)([^*_]+)\1/g, "$2") // **bold** / __bold__
     .replace(/(\*|_)([^*_]+)\1/g, "$2") // *italic* / _italic_
-    .replace(/^>\s+/gm, "") // blockquote
-    .replace(/^[-*+]\s+/gm, "") // unordered list marker
-    .replace(/^\d+\.\s+/gm, "") // ordered list marker
     .replace(/\s+/g, " ")
     .trim();
+}
 
-  if (text.length <= maxChars) return text;
-  const cut = text.slice(0, maxChars);
-  const lastSpace = cut.lastIndexOf(" ");
-  // Honor word boundaries only when they're close enough to the end —
-  // otherwise we lose too much text on CJK content with rare spaces.
-  const head = lastSpace > maxChars * 0.8 ? cut.slice(0, lastSpace) : cut;
-  return head + "…";
+/**
+ * The post's first paragraph, whole: the text a card of the post quotes
+ * (its peek, its drawer, its tile, its Open Graph description).
+ *
+ * A paragraph is a run of lines between blank lines. What opens a post but
+ * is not its prose is passed over: a heading, a figure or other JSX, an
+ * image, code, an MDX comment, a quotation (an epigraph like "世界那么大，我想去看看"), a
+ * list, a table, a rule, and a paragraph that is only a link ("skip to the
+ * code"), and a Zhihu answer's "谢邀". A paragraph that ends in a colon is
+ * a lead-in ("知乎提问：") and brings the block it introduces with it,
+ * whatever that is. Nothing is cut: a card that quotes a paragraph quotes
+ * all of it, and a surface short of room clamps it visually.
+ */
+function extractLead(content: string): string | undefined {
+  const blocks = stripComments(content)
+    .replace(/```[\s\S]*?```/g, "\n\n")
+    .split(/\n\s*\n/)
+    .map((b) => b.trim())
+    .filter(Boolean);
+  for (let i = 0; i < blocks.length; i++) {
+    const raw = blocks[i];
+    if (/^(#|>|<|!\[|\||-{3,}|\*{3,}|[-*+]\s|\d+\.\s|\[\^)/.test(raw)) continue;
+    if (/^\[[^\]]*\]\([^)]*\)$/.test(raw)) continue;
+    const text = flattenInline(raw);
+    if (!text || /^谢邀[。.!！]?$/.test(text)) continue;
+    if (/[:：]$/.test(text) && blocks[i + 1]) {
+      // The block it introduces, as text: a quotation's or a list's markers
+      // are not what it says.
+      const next = flattenInline(
+        blocks[i + 1].replace(/^>\s?/gm, "").replace(/^([-*+]|\d+\.)\s+/gm, ""),
+      );
+      return next ? `${text} ${next}` : text;
+    }
+    return text;
+  }
+  return undefined;
 }
 
 // BlogPost already has readingTime from Post, just add content fields
 export interface BlogPostWithContent extends BlogPost {
   content: string;
   contentZh?: string;
-  /** Raw parsed frontmatter of each locale's source file, verbatim — the YAML
+  /** Raw parsed frontmatter of each locale's source file, verbatim: the YAML
    *  the author actually wrote (before merge/derivation). Powers the devtool's
    *  frontmatter inspector. `frontmatterZh` is undefined for en-only posts. */
   frontmatter?: Record<string, unknown>;
@@ -175,7 +201,7 @@ export function validateBlogContent(): {
  * enrichment pipeline to swap an internal `/writing/{slug}/{lang}` URL to
  * the version that matches the viewer's locale.
  *
- * Memoized at module scope — blog content is fs-static within a process,
+ * Memoized at module scope. Blog content is fs-static within a process,
  * and this would otherwise re-scan on every `/works` request.
  */
 export type BlogLangManifest = Record<string, PostLanguage>;
@@ -266,7 +292,7 @@ export function getAllBlogPosts(): BlogPost[] {
       if (!post) return null;
 
       // Return just the metadata, not the bodies. `contentZh` is only read on
-      // the article page, never on the list — dropping it here keeps the full
+      // the article page, never on the list. Dropping it here keeps the full
       // Chinese bodies (~the bulk of the payload) out of the list page's
       // client bundle. Frontmatter is kept: it's tiny and powers the devtool
       // hover inspector.
@@ -345,11 +371,11 @@ export function getBlogPostBySlug(slug: string): BlogPostWithContent | null {
   const titleZh = hasZh ? (zhData.title as string) : undefined;
   const descriptionZh = hasZh ? (zhData.description as string) : undefined;
 
-  // Hover-preview extras — derived from the post body. excerpt feeds the
-  // peek's body excerpt; cover supplies the visual vibe. Both are per-locale
+  // Hover-preview extras, derived from the post body. excerpt feeds the
+  // peek's body excerpt; cover supplies the picture. Both are per-locale
   // because bilingual posts have separate bodies.
-  const excerpt = content ? extractExcerpt(content) : undefined;
-  const excerptZh = contentZh ? extractExcerpt(contentZh) : undefined;
+  const excerpt = content ? extractLead(content) : undefined;
+  const excerptZh = contentZh ? extractLead(contentZh) : undefined;
   const cover = content ? extractFirstImage(content) : undefined;
   const coverZh = contentZh ? extractFirstImage(contentZh) : undefined;
 
@@ -459,21 +485,18 @@ function extractTitleFromMarkdown(content: string): string {
  * Extract description from markdown content (first paragraph after title)
  */
 function extractDescriptionFromMarkdown(content: string): string {
-  // Remove the title line and get first non-empty paragraph
+  // The first prose paragraph after the title, all of its lines. A
+  // blockquote (a doc's pointer to its skill), an image, a JSX block or a
+  // code fence is not prose, and is passed over.
   const lines = content.split("\n");
-  let foundTitle = false;
+  const title = lines.findIndex((line) => line.trim().startsWith("# "));
   let description = "";
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("# ")) {
-      foundTitle = true;
-      continue;
-    }
-    if (foundTitle && trimmed && !trimmed.startsWith("#")) {
-      description = trimmed;
-      break;
-    }
+  for (const paragraph of lines.slice(title + 1).join("\n").split(/\n\s*\n/)) {
+    const text = paragraph.trim();
+    if (!text || /^(#|>|!\[|<|```)/.test(text)) continue;
+    description = text.split("\n").map((line) => line.trim()).join(" ");
+    break;
   }
 
   // Truncate if too long
@@ -538,91 +561,58 @@ export function getAllDocs(): Doc[] {
  * Supports both legacy [slug].md and bilingual [slug].[lang].md patterns
  */
 export function getDocBySlug(slug: string): DocWithContent | null {
-  // Check for bilingual files first (prefer .mdx over .md)
-  const enMdxPath = path.join(docsDirectory, `${slug}.en.mdx`);
-  const zhMdxPath = path.join(docsDirectory, `${slug}.zh.mdx`);
-  const enMdPath = path.join(docsDirectory, `${slug}.en.md`);
-  const zhMdPath = path.join(docsDirectory, `${slug}.zh.md`);
-  const legacyFilePath = path.join(docsDirectory, `${slug}.md`);
+  // English is `slug.en.mdx`, `slug.en.md` or a plain `slug.md`; Chinese is
+  // `slug.zh.mdx` or `slug.zh.md` (.mdx preferred). A plain `slug.md` stays the
+  // English page when a Chinese one is added beside it, so a doc's path does
+  // not change for the code, skills and docs that point at it.
+  const pick = (...names: string[]) =>
+    names.map((n) => path.join(docsDirectory, n)).find((p) => fs.existsSync(p));
+  const enFilePath = pick(`${slug}.en.mdx`, `${slug}.en.md`, `${slug}.md`);
+  const zhFilePath = pick(`${slug}.zh.mdx`, `${slug}.zh.md`);
 
-  // Prefer .mdx files over .md files
-  const enFilePath = fs.existsSync(enMdxPath) ? enMdxPath : enMdPath;
-  const zhFilePath = fs.existsSync(zhMdxPath) ? zhMdxPath : zhMdPath;
-
-  const hasEn = fs.existsSync(enFilePath);
-  const hasZh = fs.existsSync(zhFilePath);
-  const hasLegacy = fs.existsSync(legacyFilePath);
-
-  // Must have at least one version
-  if (!hasEn && !hasZh && !hasLegacy) {
+  if (!enFilePath && !zhFilePath) {
     return null;
   }
 
-  // Legacy file (no language suffix) - treat as English only
-  if (hasLegacy && !hasEn && !hasZh) {
-    const fileContents = fs.readFileSync(legacyFilePath, "utf8");
-    const { content } = matter(fileContents);
-    const title = extractTitleFromMarkdown(content);
-    const description = extractDescriptionFromMarkdown(content);
-
+  const read = (filePath: string | undefined, lang: "en" | "zh") => {
+    if (!filePath) return undefined;
+    const { content, data } = matter(fs.readFileSync(filePath, "utf8"));
     return {
-      slug,
-      language: "en",
-      title,
-      description,
       content,
-      readingTime: readingTimeText(content, "en"),
+      data,
+      title: extractTitleFromMarkdown(content),
+      description: extractDescriptionFromMarkdown(content),
+      readingTime: readingTimeText(content, lang),
     };
-  }
+  };
+  const en = read(enFilePath, "en");
+  const zh = read(zhFilePath, "zh");
+  const primary = (en ?? zh)!;
 
-  // Bilingual or single-language with suffix
-  const language: PostLanguage = hasEn && hasZh ? "both" : hasEn ? "en" : "zh";
-
-  // Read English content
-  let content = "";
-  let title = "";
-  let description = "";
-  let readingTimeEn = "";
-  if (hasEn) {
-    const enContents = fs.readFileSync(enFilePath, "utf8");
-    const parsed = matter(enContents);
-    content = parsed.content;
-    title = extractTitleFromMarkdown(content);
-    description = extractDescriptionFromMarkdown(content);
-    readingTimeEn = readingTimeText(content, "en");
-  }
-
-  // Read Chinese content
-  let contentZh: string | undefined;
-  let titleZh: string | undefined;
-  let descriptionZh: string | undefined;
-  let readingTimeZh: string | undefined;
-  if (hasZh) {
-    const zhContents = fs.readFileSync(zhFilePath, "utf8");
-    const parsed = matter(zhContents);
-    contentZh = parsed.content;
-    titleZh = extractTitleFromMarkdown(contentZh);
-    descriptionZh = extractDescriptionFromMarkdown(contentZh);
-    readingTimeZh = readingTimeText(contentZh, "zh");
-  }
-
-  // For Chinese-only docs, use Chinese as primary
-  if (!hasEn && hasZh) {
-    title = titleZh || "";
-    description = descriptionZh || "";
-    content = contentZh || "";
-  }
+  const language: PostLanguage = en && zh ? "both" : en ? "en" : "zh";
+  const skills = asStringList(en?.data.skills ?? zh?.data.skills);
+  const tags = asStringList(en?.data.tags ?? zh?.data.tags);
+  if (skills.length && !tags.includes("skill")) tags.push("skill");
 
   return {
     slug,
     language,
-    title,
-    titleZh,
-    description,
-    descriptionZh,
-    content,
-    contentZh,
-    readingTime: readingTimeEn || readingTimeZh || "",
-    readingTimeZh,
+    title: primary.title,
+    titleZh: zh?.title,
+    description: primary.description,
+    descriptionZh: zh?.description,
+    content: primary.content,
+    contentZh: zh?.content,
+    readingTime: primary.readingTime,
+    readingTimeZh: zh?.readingTime,
+    tags: tags.length ? tags : undefined,
+    skills: skills.length ? skills : undefined,
+    origin: (en?.data.origin as string | undefined) ?? undefined,
+    originZh: (zh?.data.origin as string | undefined) ?? undefined,
   };
+}
+
+function asStringList(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 }

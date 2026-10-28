@@ -12,7 +12,7 @@ export default function PromptPage() {
   const dataEn = getPromptsData("en");
   const dataZh = getPromptsData("zh");
   // The view reads its kind / topic filter off the query string
-  // (`useSearchParams`), which needs a boundary under static export — same
+  // (`useSearchParams`), which needs a boundary under static export, the same
   // as /works, which this page's toolbar comes from.
   return (
     <Suspense>

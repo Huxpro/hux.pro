@@ -8,7 +8,7 @@ import { formatTime } from "../lib/player";
 import { useTheater } from "../provider";
 
 // ---------------------------------------------------------------------------
-// VideoControls — transport controls bound to the global player. Full controls
+// VideoControls: transport controls bound to the global player. Full controls
 // (scrub + play/pause) are only meaningful for YouTube tracks; other platforms
 // keep their native in-iframe controls and expose only track navigation here.
 //
@@ -106,8 +106,8 @@ export function VideoControls({ variant = "theater", className }: VideoControlsP
               )}
             </button>
           ) : (
-            // A deck has no transport of its own here — reveal.js takes the
-            // arrow keys inside the frame — so the slot names what is up.
+            // A deck has no transport of its own here (reveal.js takes the
+            // arrow keys inside the frame), so the slot names what is up.
             <span className="px-2 text-[10px] font-mono text-muted-foreground">
               {track?.kind === "slides" ? "slides" : track?.platform}
             </span>

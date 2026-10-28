@@ -52,7 +52,7 @@ export function relativeLuminance01([r, g, b]: RGB01): number {
 }
 
 /**
- * The page colour of each theme, in sRGB bytes — `--background` in
+ * The page colour of each theme, in sRGB bytes: `--background` in
  * globals.css (white, and #1a1a1a). The one place the number lives outside
  * the stylesheet; everything that composites "over the page" derives from it.
  */

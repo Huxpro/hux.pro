@@ -3,7 +3,8 @@
 import { GLASS_PANEL } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { useInputCapability } from "@/services";
-import React, { useRef, useSyncExternalStore } from "react";
+import React, { useRef } from "react";
+import { useMounted } from "@/components/ui/use-mounted";
 import { createPortal } from "react-dom";
 import { Cursor } from "./cursor";
 
@@ -18,17 +19,26 @@ export interface MagneticPreviewProps {
   panelClassName?: string;
   /** Additional class for the wrapper div. */
   className?: string;
+  /**
+   * The wrapper's element. `span` for a peek inside a sentence (a magic
+   * link, components/magic-link): a `<div>` cannot sit in a `<p>`, and an
+   * inline host lets a two-word link wrap across lines like any other.
+   */
+  as?: "div" | "span";
+  /** Paint layer of the panel, for a peek over a surface above `z-50` (the
+   *  About's magic links). */
+  zIndex?: number;
   children: React.ReactNode;
 }
 
-// Peeks sit at the `raised` elevation — the same low lift as the FAB and the
+// Peeks sit at the `raised` elevation: the same low lift as the FAB and the
 // Live Activity pill, one level below the `overlay` surfaces (command palette,
 // Live Activity expanded). Surfaces just use the `shadow-raised` utility
 // directly (see the elevation spec in globals.css); there's no separate peek
 // shadow token.
 
 /**
- * Unified content width for every hover-peek surface — link card, video /
+ * Unified content width for every hover-peek surface: link card, video /
  * image poster, writing card, details fallback, and the stacked deck. A
  * cursor-following preview wants to read clearly without feeling like a
  * modal: 24rem / 384px fits a 16:9 poster (384×216) and a comfortable text
@@ -36,9 +46,6 @@ export interface MagneticPreviewProps {
  * like one system. (Matches the `sm` step of the media size scale.)
  */
 export const PEEK_W = "w-96"; // 24rem · 384px
-
-/** A store that never changes: hydration is the only event. */
-const subscribeNever = () => () => {};
 
 const defaultVariants = {
   initial: { opacity: 0, scale: 0.9, y: 8 },
@@ -62,27 +69,30 @@ export function MagneticPreview({
   hideNativeCursor = false,
   panelClassName,
   className,
+  as: Host = "div",
+  zIndex,
   children,
 }: MagneticPreviewProps) {
   const { magneticPreviewEnabled } = useInputCapability();
   // Cursor follows the live pointer position, so it cannot match the SSR
   // HTML on hydration: the server snapshot says "not yet", the client's
   // says "now", and React reconciles the two without an effect or a state
-  // update — a hundred instances on a page used to schedule a hundred.
-  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
+  // update. A hundred instances on a page used to schedule a hundred.
+  const hydrated = useMounted();
   const showPreview = hydrated && enabled && magneticPreviewEnabled;
-  const hostRef = useRef<HTMLDivElement>(null);
+  const hostRef = useRef<HTMLElement>(null);
 
   const panel = showPreview ? (
     <Cursor
       attachToParent
       attachHost={hostRef}
+      zIndex={zIndex}
       variants={defaultVariants}
       transition={defaultTransition}
       springConfig={defaultSpringConfig}
       // Intentionally NOT clipped. This wrapper used to carry
       // `overflow-hidden rounded-lg`, which sheared the panel's soft
-      // shadow off at the rounded edge — that's why every peek but the
+      // shadow off at the rounded edge. That's why every peek but the
       // stacked deck looked flat. Each peek surface rounds its OWN
       // content (the panel/card carry their own `overflow-hidden`), so
       // the wrapper doesn't need to; leaving it unclipped lets the
@@ -94,7 +104,7 @@ export function MagneticPreview({
           // shadow belongs to whatever is the *visible* surface.
           // Panel-as-card peeks (writing / details) add `shadow-raised`
           // themselves; peeks that strip this chrome (deck / single card /
-          // video) let their inner card/thumb cast the shadow — so the
+          // video) let their inner card/thumb cast the shadow, so the
           // deck, an irregular rotated stack, never gets a rectangular
           // container shadow around it.
           GLASS_PANEL,
@@ -110,8 +120,8 @@ export function MagneticPreview({
   ) : null;
 
   return (
-    <div
-      ref={hostRef}
+    <Host
+      ref={hostRef as React.RefObject<HTMLDivElement & HTMLSpanElement>}
       className={cn(
         showPreview && hideNativeCursor && "[&:hover]:cursor-none",
         className,
@@ -127,6 +137,6 @@ export function MagneticPreview({
         wrapper (`attachHost`); the panel is `pointer-events-none`.
       */}
       {panel && createPortal(panel, document.body)}
-    </div>
+    </Host>
   );
 }

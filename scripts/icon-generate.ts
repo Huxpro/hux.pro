@@ -9,7 +9,7 @@
  * the dev save route uses, so the CLI output equals what the editor produced.
  *
  * `--check` re-renders into memory and diffs against the committed files,
- * exiting non-zero on drift — mirrors `og-snapshot --check`. Note: font
+ * exiting non-zero on drift, like `og-snapshot --check`. Note: font
  * embedding is network-dependent, so `--check` tolerates a font-only difference
  * (it compares the structural SVG with the `<style>` block stripped).
  */

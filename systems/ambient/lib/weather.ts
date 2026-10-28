@@ -63,7 +63,7 @@ export type NormalizedWeather = {
   visibilityM?: number;
   /** Dew point at 2 m, °C. With the temperature, how close the air is to haze. */
   dewPointC?: number;
-  /** Convective available potential energy, J/kg — how violently air can rise. */
+  /** Convective available potential energy, J/kg: how violently air can rise. */
   capeJkg?: number;
   /** Liquid precipitation rate, mm/h (rain + showers). */
   rainMmH?: number;
@@ -86,14 +86,14 @@ export type NormalizedWeather = {
   sunsetMs?: number;
   /** Start of the model interval the `current` block describes (epoch ms). */
   observedAtMs?: number;
-  /** Length of that interval, seconds — 900 where Open-Meteo has 15-minutely data. */
+  /** Length of that interval, seconds. 900 where Open-Meteo has 15-minutely data. */
   intervalS?: number;
   updatedAt: number;
 };
 
 // Requested with `timeformat=unixtime`: every time is epoch seconds. The ISO
 // default is the *location's* wall clock with no offset, which `new Date()`
-// reads in the *browser's* zone — so a visitor whose IP lands a timezone away
+// reads in the *browser's* zone. So a visitor whose IP lands a timezone away
 // got a sunrise hours off, and a sky, phase and greeting to match.
 type OpenMeteoResponse = {
   current?: {
@@ -126,7 +126,7 @@ type OpenMeteoResponse = {
 };
 
 // The six conditions are deliberately coarse (they name the *mood*); the
-// finer WMO distinctions — mainly clear vs overcast, drizzle vs downpour —
+// finer WMO distinctions (mainly clear vs overcast, drizzle vs downpour)
 // survive as cloud cover and precipitation intensity, which is what the
 // wallpaper actually renders.
 export function normalizeWeatherCode(code: number): WeatherCondition {
@@ -198,7 +198,7 @@ const MEASURED_PRECIP_MIN_MMH = 0.1;
  *
  * The code keeps the last word in two places. A code that *says* rain or snow
  * is believed even when the last 15-minute bucket read zero (showers are
- * patchy). And only a "cloudy" code is upgraded by a measurement — not
+ * patchy). And only a "cloudy" code is upgraded by a measurement. Not
  * "clear", where it would be a model disagreeing with itself, and not "fog",
  * whose drizzle is the fog itself (and a fog scene carrying precipitation would
  * arm the rain's gust egg alongside the fog's wipe; see lib/wipe.ts).

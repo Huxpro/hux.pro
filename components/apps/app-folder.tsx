@@ -66,7 +66,7 @@ import { createPortal } from "react-dom";
 
 const STORAGE_KEY = "hux_app_order_v2";
 
-// iOS grows a held icon a touch more than a held widget — it's smaller, so the
+// iOS grows a held icon a touch more than a held widget. It's smaller, so the
 // same absolute lift needs a larger ratio to register. The lifted clone pops
 // from the held size to the lift size, so the two must agree.
 const ICON_HOLD_SCALE = 1.08;
@@ -337,7 +337,7 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
   if (FEATURED_APPS.length === 0) return null;
 
   const needsPages = pageCount > 1;
-  // Single page: natural grid height (no forced empty rows — `repeat(rows)`
+  // Single page: natural grid height (no forced empty rows; `repeat(rows)`
   // plus row-gap was leaving a phantom gap under a short catalog).
   // Multi page: lock row count so every snap page shares one footprint
   // (8 / 12 / 16 icons → pages of `columns × rows`, last page may be short).
@@ -364,7 +364,7 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
             "relative rounded-2xl border",
             "transition-colors duration-300",
             // At rest the labels have nothing behind them but the wallpaper,
-            // so the folder is a bare zone whose ink may flip — on the
+            // so the folder is a bare zone whose ink may flip on the
             // picture's middle band, where it sits (see
             // docs/system-legibility.md). Editing puts glass under it, and
             // glass carries the card colour, so the zone stops being bare;
@@ -378,7 +378,7 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
           <div
             ref={scrollerRef}
             className={cn(
-              // Hide scrollbars — page dots are the affordance; snap does the rest.
+              // Hide scrollbars. Page dots are the affordance; snap does the rest.
               "no-scrollbar",
               // Hover scale (105%) + the corner badge hang a few px off the
               // 64px tile. Keep that overflow visible on a single page so the
@@ -404,7 +404,7 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
                 className={cn(
                   "grid gap-x-2 gap-y-5",
                   // The folder is chrome-less at rest, so its own edges are
-                  // where the tiles sit, not a card border — keep this snug
+                  // where the tiles sit, not a card border. Keep this snug
                   // (rather than the ~20px card padding elsewhere) so icons
                   // read flush with sibling widgets' top/left/right edges.
                   // The remaining sliver is just clipping headroom for the
@@ -465,5 +465,5 @@ export function AppFolder({ layout: layoutOverride, className }: AppFolderProps)
   );
 }
 
-/** @deprecated Prefer {@link AppFolder} — kept as a stable export alias. */
+/** @deprecated Prefer {@link AppFolder}. Kept as a stable export alias. */
 export const AppShelf = AppFolder;

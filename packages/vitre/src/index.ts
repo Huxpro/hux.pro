@@ -1,4 +1,4 @@
-// Vitre — implementation entry. The contract is ../vitre.d.ts.
+// Vitre implementation entry. The contract is ../vitre.d.ts.
 
 export { Vitre, BEZEL_INSET, useVitre } from "./vitre";
 export { vitreBootScript, readVitreBoot } from "./boot";

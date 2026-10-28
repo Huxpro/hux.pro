@@ -9,25 +9,33 @@ import {
   useInputCapability,
   useLocale,
   useTheme,
+  type ThemePreference,
 } from "@/services";
-import { useLocation, useSolarTheme, useWallpaper } from "@/systems/ambient";
-import { getWallpaperPlayName, getWeatherWallpaperName } from "@/systems/ambient/lib/wallpaper";
+import { useAbout } from "@/systems/about";
+import { askStrings } from "@/systems/ask/strings";
+import { useLocation, useWallpaper } from "@/systems/ambient";
+import { getWallpaperPlayName, getWeatherWallpaperName, type WeatherStyle } from "@/systems/ambient/lib/wallpaper";
 import { useDevtool } from "@/systems/devtool";
 import { installTarget, useInstall } from "@/systems/install";
 import { useMusic } from "@/systems/music";
+import { isVoiceSupported } from "@/systems/voice";
 import {
   Bug,
+  Compass,
   FileText,
+  FlaskConical,
   GitCommit,
   Home,
   Image as ImageIcon,
   Layers2,
   Languages,
+  Mic,
   MapPin,
   Monitor,
   MonitorDown,
   Moon,
   Music,
+  Orbit,
   Sparkles,
   SquarePlus,
   Sun,
@@ -42,9 +50,10 @@ import {
   useState,
 } from "react";
 import { useCommand } from "./provider";
+import { commandDefinition, type CommandId } from "./catalog";
 
 // =============================================================================
-// Command actions — the one list behind search results, the slash list and
+// Command actions: the one list behind search results, the slash list and
 // the slash letter shortcuts.
 //
 // A command is a thing the palette can do; how it is reached (typed, tapped,
@@ -61,28 +70,58 @@ import { useCommand } from "./provider";
  *             closes, the phone sheet stays behind it as a stack.
  *   toggle    flips a setting; chosen from search the palette stays open so
  *             the new value can be read back, from the slash list it closes.
+ *   stay      changes what the palette itself is doing (voice: back to the
+ *             field, listening); the palette stays exactly where it is.
  */
-export type CommandKind = "navigate" | "surface" | "toggle";
+export type CommandKind = "navigate" | "surface" | "toggle" | "stay";
 
 export interface CommandAction {
   /** cmdk value and React key. */
-  id: string;
+  id: CommandId;
   /** Slash letter, when it has one. */
   key?: string;
   kind: CommandKind;
-  section: "navigation" | "settings";
-  /** Search / slash row text. Keyboard-only commands (docs, editor) have none. */
+  /**
+   *   navigation  goes somewhere
+   *   actions     does one thing, now (install, speak, play)
+   *   settings    a value that stays, read back in its row
+   */
+  section: "navigation" | "actions" | "settings";
+  /** In the slash list only, never a search result: a command whose control
+   *  is already on screen (voice: the field's microphone). */
+  slashOnly?: boolean;
+  /** Found, never offered: a search result once the query matches it, but
+   *  not in the list the palette opens on, nor in the slash list. A public
+   *  corner of the site that is not a destination most visitors came for
+   *  (the labs). Its slash letter, if it has one, still runs it. */
+  searchOnly?: boolean;
+  /** Search / slash row text. Keyboard-only commands (docs) have none. */
   label?: string;
   icon?: React.ReactNode;
   /** cmdk search terms, both languages. */
   keywords: string[];
-  run: () => void | Promise<void>;
+  /** `key`: the slash letter that ran it, when a key did. A command that
+   *  can be held (voice) reads it to follow the key's release. */
+  run: (ctx?: { key?: string; value?: string }) => void | Promise<void>;
 }
 
 const ROW_ICON = "h-4 w-4";
 
+const APPEARANCE_LABEL = {
+  sun: "themeSun",
+  light: "themeLight",
+  dark: "themeDark",
+  system: "themeSystem",
+} as const satisfies Record<ThemePreference, string>;
+const APPEARANCE_ICON: Record<ThemePreference, typeof Sun> = {
+  sun: Sunrise,
+  light: Sun,
+  dark: Moon,
+  system: Monitor,
+};
+
 export function useCommandActions(): CommandAction[] {
-  const { theme, preference, setThemePreference } = useTheme();
+  const { preference, cycleThemePreference, setThemePreference } = useTheme();
   const { locale, setLocale } = useLocale();
   const {
     usingGps: locationAccurate,
@@ -97,14 +136,16 @@ export function useCommandActions(): CommandAction[] {
     play: wallpaperPlay,
     playAlbum: wallpaperPlayAlbum,
     openPicker: openWallpaperPicker,
+    selectWeather,
+    openSkyOffer,
   } = useWallpaper();
   const {
     material: glassMaterial,
     toggle: toggleGlass,
+    setMaterial: setGlassMaterial,
     tint: glassTint,
     setTint: setGlassTint,
   } = useGlass();
-  const { followSun, setFollowSun } = useSolarTheme();
   const { isShowing: isDevtoolShowing, toggleShowing: toggleDevtool } =
     useDevtool();
   const {
@@ -112,6 +153,9 @@ export function useCommandActions(): CommandAction[] {
     play: musicPlay,
     pause: musicPause,
   } = useMusic();
+  const { open: openAbout } = useAbout();
+  const AppearanceIcon = APPEARANCE_ICON[preference];
+  const { requestVoice, openAsk } = useCommand();
   const { guide: installGuide, open: openInstall } = useInstall();
   const router = useTransitionRouter();
 
@@ -125,15 +169,6 @@ export function useCommandActions(): CommandAction[] {
         ? `${getWallpaperPlayName(locale, wallpaperPlay, wallpaperPlayAlbum)} · ${wallpaper.name}`
         : wallpaper.name
       : getWeatherWallpaperName(locale, weatherStyle);
-
-  const themeLabel =
-    preference === "system"
-      ? t(locale, "themeSystem")
-      : theme === "light"
-      ? t(locale, "themeLight")
-      : t(locale, "themeDark");
-  const ThemeIcon =
-    preference === "system" ? Monitor : theme === "light" ? Sun : Moon;
 
   return [
     {
@@ -207,6 +242,63 @@ export function useCommandActions(): CommandAction[] {
       ],
       run: () => router.push("/prompt"),
     },
+    {
+      // The About: who made this and what it is. `/` `O` is its only
+      // shortcut; there is no bare `O` on the page (systems/about).
+      id: "about",
+      key: "o",
+      // `navigate`, not `surface`: the phone sheet must not stay behind the
+      // About as a stack, because it would show through the veil.
+      kind: "navigate",
+      section: "navigation",
+      label: t(locale, "aboutTitle"),
+      icon: <Orbit className={ROW_ICON} />,
+      keywords: [
+        "about",
+        "hux",
+        "who",
+        "bio",
+        "os",
+        "credits",
+        "关于",
+        "黄玄",
+        "简介",
+        "致谢",
+      ],
+      run: () => openAbout(),
+    },
+    // Speak instead of type: back to the field, listening (systems/voice).
+    // Only where the browser can recognise speech.
+    ...(isVoiceSupported()
+      ? [
+          {
+            id: "voice",
+            key: "v",
+            kind: "stay" as const,
+            section: "actions" as const,
+            slashOnly: true,
+            label: t(locale, "voiceSearch"),
+            icon: <Mic className={ROW_ICON} />,
+            keywords: ["voice", "speak", "dictate", "microphone", "mic", "语音", "说话", "麦克风"],
+            // Tap `/` `V` to start; hold it to talk, and let go to send.
+            run: (ctx?: { key?: string }) => requestVoice(ctx?.key),
+          } satisfies CommandAction,
+        ]
+      : []),
+    {
+      // Ask (systems/ask), with nothing typed yet: the slash list's way in,
+      // and the global K's (systems/command/provider.tsx). From search, the
+      // Ask row already carries the query, so this one is slash-only.
+      id: "ask",
+      key: "k",
+      kind: "stay" as const,
+      section: "actions" as const,
+      slashOnly: true,
+      label: askStrings(locale).askRow,
+      icon: <Sparkles className={ROW_ICON} />,
+      keywords: ["ask", "ai", "chat", "question", "问", "聊天", "提问"],
+      run: () => openAsk(undefined, "palette"),
+    },
     // Keyboard-only: reachable by letter from the slash list, never listed.
     {
       id: "docs",
@@ -217,32 +309,60 @@ export function useCommandActions(): CommandAction[] {
       run: () => router.push("/docs"),
     },
     {
-      id: "editor",
+      // The labs are public, but a study of the site's insides rather than
+      // a place most visitors came for: found by name, never offered. `/`
+      // `E` (for experiments, since `L` is Language) still opens the index.
+      id: "lab",
       key: "e",
       kind: "navigate",
       section: "navigation",
-      // Keyboard-only, same as docs. `e` opens log.json. The other
-      // labs stay on the editor dropdown; the palette does not list them.
-      keywords: [],
-      run: () => router.push("/editor"),
+      searchOnly: true,
+      label: t(locale, "labTitle"),
+      icon: <FlaskConical className={ROW_ICON} />,
+      keywords: [
+        "lab",
+        "labs",
+        "laboratory",
+        "experiments",
+        "under the hood",
+        "design system",
+        "internals",
+        "实验室",
+        "实验",
+        "实现",
+        "设计系统",
+      ],
+      run: () => router.push("/lab"),
     },
     {
       id: "theme",
       key: "a",
       kind: "toggle",
       section: "settings",
-      label: `${t(locale, "appearance")}: ${themeLabel}`,
-      icon: <ThemeIcon className={ROW_ICON} />,
-      keywords: ["theme", "dark", "light", "mode", "主题", "深色", "浅色"],
-      run: () => {
-        setThemePreference(
-          preference === "system"
-            ? "dark"
-            : preference === "dark"
-            ? "light"
-            : "system"
-        );
-      },
+      label: `${t(locale, "appearance")}: ${t(locale, APPEARANCE_LABEL[preference])}`,
+      icon: <AppearanceIcon className={ROW_ICON} />,
+      keywords: [
+        "theme",
+        "dark",
+        "light",
+        "mode",
+        "system",
+        "sun",
+        "sunrise",
+        "sunset",
+        "follow the sun",
+        "auto theme",
+        "day night",
+        "主题",
+        "深色",
+        "浅色",
+        "系统",
+        "日出",
+        "日落",
+        "太阳",
+        "自动切换",
+      ],
+      run: (ctx) => ctx?.value ? setThemePreference(ctx.value as ThemePreference) : cycleThemePreference(),
     },
     {
       id: "language",
@@ -252,11 +372,12 @@ export function useCommandActions(): CommandAction[] {
       label: `${t(locale, "languageLabel")}: ${localeNames[locale]}`,
       icon: <Languages className={ROW_ICON} />,
       keywords: ["language", "english", "chinese", "语言", "中文", "英文"],
-      run: () => setLocale(locale === "en" ? "zh" : "en"),
+      run: (ctx) => setLocale(ctx?.value === "en" || ctx?.value === "zh" ? ctx.value : locale === "en" ? "zh" : "en"),
     },
     {
       id: "location",
-      key: "o",
+      // `o` went to the About; `c` for coordinates.
+      key: "c",
       kind: "toggle",
       section: "settings",
       label: `${t(locale, "settingsGeolocation")}: ${
@@ -275,8 +396,8 @@ export function useCommandActions(): CommandAction[] {
         "位置",
         "精确",
       ],
-      run: async () => {
-        if (!locationAccurate) {
+      run: async (ctx) => {
+        if (ctx?.value === "gps" || (!ctx?.value && !locationAccurate)) {
           // Choosing Accurate here is the explanation, so the prompt comes
           // straight away. A refusal would otherwise leave the row silently
           // back on IP: the primer says why, and where to undo it.
@@ -311,7 +432,20 @@ export function useCommandActions(): CommandAction[] {
         "随机",
         "循环",
       ],
-      run: () => openWallpaperPicker(),
+      run: (ctx) => ctx?.value && ctx.value !== "picker" ? selectWeather(ctx.value as WeatherStyle) : openWallpaperPicker(),
+    },
+    {
+      id: "sky-window",
+      kind: "surface",
+      section: "actions",
+      searchOnly: true,
+      label: commandDefinition("sky-window").title[locale],
+      icon: <Compass className={ROW_ICON} />,
+      keywords: ["sky window", "open sky", "sun", "moon", "look around", "天空之窗", "太阳", "月亮", "陀螺仪"],
+      run: () => {
+        selectWeather("sky");
+        openSkyOffer();
+      },
     },
     {
       id: "glass",
@@ -332,7 +466,7 @@ export function useCommandActions(): CommandAction[] {
         "透明",
         "色调",
       ],
-      run: () => toggleGlass(),
+      run: (ctx) => ctx?.value === "clear" || ctx?.value === "tinted" ? setGlassMaterial(ctx.value) : toggleGlass(),
     },
     {
       id: "tint",
@@ -357,37 +491,14 @@ export function useCommandActions(): CommandAction[] {
         "强调色",
         "中性",
       ],
-      run: () =>
-        setGlassTint(glassTint === "wallpaper" ? "neutral" : "wallpaper"),
-    },
-    {
-      id: "follow-the-sun",
-      key: "s",
-      kind: "toggle",
-      section: "settings",
-      label: `${t(locale, "settingsSolarTheme")}: ${
-        followSun ? t(locale, "stateOn") : t(locale, "stateOff")
-      }`,
-      icon: <Sunrise className={ROW_ICON} />,
-      keywords: [
-        "sun",
-        "sunrise",
-        "sunset",
-        "follow the sun",
-        "auto theme",
-        "day night",
-        "日出",
-        "日落",
-        "太阳",
-        "自动切换",
-      ],
-      run: () => setFollowSun(!followSun),
+      run: (ctx) =>
+        setGlassTint(ctx?.value === "wallpaper" || ctx?.value === "neutral" ? ctx.value : glassTint === "wallpaper" ? "neutral" : "wallpaper"),
     },
     {
       id: "music",
       key: "m",
       kind: "toggle",
-      section: "settings",
+      section: "actions",
       label: `${t(locale, "settingsMusic")}: ${
         musicPlayerState === "playing"
           ? t(locale, "musicPause")
@@ -404,8 +515,8 @@ export function useCommandActions(): CommandAction[] {
         "歌曲",
         "播放",
       ],
-      run: () => {
-        if (musicPlayerState === "playing") {
+      run: (ctx) => {
+        if (ctx?.value === "pause" || (!ctx?.value && musicPlayerState === "playing")) {
           musicPause();
         } else {
           musicPlay();
@@ -421,7 +532,7 @@ export function useCommandActions(): CommandAction[] {
             // Opens the directions, not the install: that press is the
             // browser's (see systems/install).
             kind: "surface",
-            section: "settings",
+            section: "actions",
             label: t(
               locale,
               installDestination === "dock"
@@ -458,7 +569,7 @@ export function useCommandActions(): CommandAction[] {
     {
       id: "debug-panel",
       key: "d",
-      // On and off are about what is ON SCREEN, not about `isEnabled` — as a
+      // On and off are about what is ON SCREEN, not about `isEnabled`. As a
       // drawer, swiping it away is off, and turning it back on must not take
       // two presses. The devtool works that out (`isShowing`); this row just
       // reports it. Its kind follows what the press will actually do: on opens
@@ -485,7 +596,7 @@ export function useCommandActions(): CommandAction[] {
 }
 
 // =============================================================================
-// Shell context — how the palette leaves once a command has run.
+// Shell context: how the palette leaves once a command has run.
 // The popover closes; the sheet closes too, except after a `surface` command,
 // when it stays behind the sheet it opened (see CommandKind, and sheet.tsx).
 // =============================================================================
@@ -507,7 +618,7 @@ export function useCommandShell(): CommandShell {
   return ctx;
 }
 
-/** Where a command was chosen from — it decides whether the palette stays. */
+/** Where a command was chosen from. It decides whether the palette stays. */
 export type CommandOrigin = "search" | "slash";
 
 /**
@@ -516,8 +627,9 @@ export type CommandOrigin = "search" | "slash";
  */
 export function useRunCommand() {
   const { leave } = useCommandShell();
-  return async (action: CommandAction, origin: CommandOrigin) => {
-    await action.run();
+  return async (action: CommandAction, origin: CommandOrigin, key?: string) => {
+    await action.run({ key });
+    if (action.kind === "stay") return;
     if (origin === "search" && action.kind === "toggle") return;
     leave(action.kind);
   };
@@ -526,7 +638,7 @@ export function useRunCommand() {
 /**
  * Slash-mode letter shortcuts: a single key runs the command that owns it,
  * Backspace returns to search. Renders nothing; mounted by either shell while
- * it is open — a phone with a hardware keyboard gets the letters too.
+ * it is open, so a phone with a hardware keyboard gets the letters too.
  */
 export function SlashShortcuts({ actions }: { actions: CommandAction[] }) {
   const { isOpen, isSlashCommandsMode, isLoadBundleMode, setSlashCommandsMode } =
@@ -546,7 +658,7 @@ export function SlashShortcuts({ actions }: { actions: CommandAction[] }) {
       return;
     }
     const action = actions.find((a) => a.key === e.key.toLowerCase());
-    if (action) void run(action, "slash");
+    if (action) void run(action, "slash", e.key);
   });
 
   useEffect(() => {
@@ -560,7 +672,7 @@ export function SlashShortcuts({ actions }: { actions: CommandAction[] }) {
 }
 
 /**
- * Whether to show keyboard hints — slash letters, `esc`, the footer's arrows.
+ * Whether to show keyboard hints (slash letters, `esc`, the footer's arrows).
  * Not a question of shell or viewport but of input: a fine hover pointer
  * means a desktop, or an iPad with a trackpad and so a keyboard; its absence
  * means a phone, or a bare iPad, whichever shell the palette is in. The

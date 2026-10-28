@@ -8,10 +8,10 @@ import { createPortal } from "react-dom";
 import { SHELL } from "./sheet";
 
 // =============================================================================
-// SurfaceWindow — the floating shell every desktop surface is made of.
+// SurfaceWindow: the floating shell every desktop surface is made of.
 //
 // The sibling of <SurfaceSheet>: one is a surface docked to an edge, this one
-// is a surface that floats free. Not a drawer — it springs in the way
+// is a surface that floats free. It is not a drawer. It springs in the way
 // `systems/windows` opens an app from its shelf icon, and drags by its header
 // through the shared `useDraggable` hook, so it inherits the devtool's
 // per-instance drag settings like every other draggable thing on the site.
@@ -60,6 +60,10 @@ export interface SurfaceWindowProps {
    * `top-right` is for a surface that must not sit over the thing it is about.
    */
   placement?: "center" | "top-right";
+  /** Paint layer; 60 by default, level with the other secondary surfaces.
+   *  Raised for a surface that must come up over a higher layer (the
+   *  devtool over the About). */
+  zIndex?: number;
   className?: string;
   children: React.ReactNode;
 }
@@ -71,6 +75,7 @@ export function SurfaceWindow({
   width,
   maxHeight,
   placement = "center",
+  zIndex,
   className,
   children,
 }: SurfaceWindowProps) {
@@ -113,6 +118,7 @@ export function SurfaceWindow({
               ? "justify-end p-4"
               : "justify-center pt-[12vh]"
           )}
+          style={zIndex !== undefined ? { zIndex } : undefined}
         >
           <motion.div
             ref={contentRef as React.RefObject<HTMLDivElement>}
@@ -123,8 +129,8 @@ export function SurfaceWindow({
             dragMomentum={false}
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
-            // Releasing a header drag over the content must not activate it —
-            // the same guard the command palette uses.
+            // Releasing a header drag over the content must not activate it.
+            // This is the same guard the command palette uses.
             onClickCapture={preventClickAfterDrag}
             onPointerDown={
               isDraggable

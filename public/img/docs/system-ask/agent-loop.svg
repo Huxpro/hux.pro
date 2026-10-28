@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 640" width="1080" height="640" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#444"/>
+    </marker>
+  </defs>
+  <rect width="1080" height="640" fill="#ffffff"/>
+
+  <text x="20" y="28" font-size="15" font-weight="600" fill="#111">One question, one turn: the tools run in the page, the route decides when the model must answer</text>
+
+  <!-- Browser column -->
+  <rect x="20" y="50" width="340" height="570" rx="12" fill="#f3f6fb" stroke="#9db0cc"/>
+  <text x="36" y="74" font-size="13" font-weight="600" fill="#1d3557">Browser · systems/ask/lib/chat.ts</text>
+
+  <rect x="56" y="88" width="290" height="64" rx="8" fill="#fff" stroke="#9db0cc"/>
+  <text x="68" y="108" font-weight="600" fill="#111">chat.sendMessage(question, data-context)</text>
+  <text x="68" y="126" fill="#333">DefaultChatTransport body(): model,</text>
+  <text x="68" y="142" fill="#333">effort, finalize, commands (available ids)</text>
+
+  <rect x="56" y="196" width="290" height="214" rx="8" fill="#fff" stroke="#9db0cc"/>
+  <text x="68" y="216" font-weight="600" fill="#111">onToolCall, per call</text>
+  <text x="68" y="238" fill="#333">search_site, read → search.ts (MiniSearch)</text>
+  <text x="80" y="254" fill="#555">over public/ask/index.json, fetched once</text>
+  <text x="68" y="276" fill="#333">present → site.docsOf(ids), drawn as cards</text>
+  <text x="68" y="298" fill="#333">open_page, play → the AskActions host,</text>
+  <text x="80" y="314" fill="#555">only if asked for, current and visible</text>
+  <text x="68" y="336" fill="#333">command_&lt;id&gt; → executeAskCommand</text>
+  <text x="80" y="352" fill="#555">offer, or apply under the catalog policy</text>
+  <text x="68" y="374" fill="#333">list_commands → commandsToPresent</text>
+  <text x="68" y="398" font-weight="600" fill="#1d3557">→ chat.addToolOutput(result)</text>
+
+  <rect x="56" y="446" width="290" height="160" rx="8" fill="#fff" stroke="#9db0cc"/>
+  <text x="68" y="466" font-weight="600" fill="#111">sendAutomaticallyWhen</text>
+  <text x="68" y="488" fill="#333">every call answered and tool parts</text>
+  <text x="80" y="504" fill="#333">&lt; MAX_TOOL_CALLS (10) → resubmit</text>
+  <text x="68" y="526" fill="#333">a step with no text and no call →</text>
+  <text x="80" y="542" fill="#333">resubmit once with finalize: true</text>
+  <text x="68" y="564" fill="#333">otherwise stop; onFinish saves the</text>
+  <text x="80" y="580" fill="#333">conversation (history.ts)</text>
+
+  <!-- browser internal arrows -->
+  <line x1="201" y1="410" x2="201" y2="444" stroke="#444" stroke-width="1.4" marker-end="url(#a)"/>
+  <path d="M56,526 H36 V120 H54" fill="none" stroke="#1d6fd8" stroke-width="1.6" marker-end="url(#a)"/>
+  <text x="31" y="330" fill="#1d6fd8" font-weight="600" transform="rotate(-90 31 330)" text-anchor="middle">resubmit: the next step</text>
+
+  <!-- Route column -->
+  <rect x="460" y="50" width="320" height="570" rx="12" fill="#f6f4fb" stroke="#ad9dcc"/>
+  <text x="476" y="74" font-size="13" font-weight="600" fill="#3d2a63">Server · app/api/chat/route.ts</text>
+
+  <rect x="476" y="88" width="288" height="60" rx="8" fill="#fff" stroke="#ad9dcc"/>
+  <text x="488" y="108" font-weight="600" fill="#111">sanitize()</text>
+  <text x="488" y="124" fill="#333">last 24 messages, 4000 chars a question,</text>
+  <text x="488" y="140" fill="#333">≤ 3 contexts (MAX_CONTEXTS)</text>
+
+  <rect x="476" y="164" width="288" height="104" rx="8" fill="#fff" stroke="#ad9dcc"/>
+  <text x="488" y="184" font-weight="600" fill="#111">resolveModel(askModelOf(body.model))</text>
+  <text x="488" y="204" fill="#333">VERCEL / AI_GATEWAY_API_KEY /</text>
+  <text x="500" y="220" fill="#333">VERCEL_OIDC_TOKEN → gateway(id)</text>
+  <text x="488" y="240" fill="#333">ANTHROPIC_ / OPENAI_API_KEY → direct</text>
+  <text x="488" y="258" fill="#555">neither → standIn(), below</text>
+
+  <rect x="476" y="286" width="288" height="56" rx="8" fill="#fff" stroke="#ad9dcc"/>
+  <text x="488" y="306" font-weight="600" fill="#111">answerNow = finalize ||</text>
+  <text x="488" y="326" fill="#333">toolCallsInTurn(messages) ≥ TOOL_BUDGET (6)</text>
+
+  <rect x="476" y="360" width="288" height="120" rx="8" fill="#fff" stroke="#ad9dcc"/>
+  <text x="488" y="380" font-weight="600" fill="#111">streamText</text>
+  <text x="488" y="400" fill="#333">askSystemPrompt() (+ ASK_ANSWER_NOW)</text>
+  <text x="488" y="418" fill="#333">tools: askTools, no execute; activeTools</text>
+  <text x="488" y="436" fill="#333">toolChoice: answerNow ? "none" : "auto"</text>
+  <text x="488" y="454" fill="#333">reasoning: effort (low / medium / high)</text>
+  <text x="488" y="472" fill="#333">maxOutputTokens 4000</text>
+
+  <rect x="476" y="500" width="288" height="106" rx="8" fill="#fff" stroke="#ad9dcc" stroke-dasharray="5 4"/>
+  <text x="488" y="520" font-weight="600" fill="#111">standIn(): no key, no model</text>
+  <text x="488" y="540" fill="#333">1. search_site, the question as typed</text>
+  <text x="488" y="556" fill="#333">2. present, the first three docs found</text>
+  <text x="488" y="572" fill="#333">3. a text answer listing the links</text>
+  <text x="488" y="594" fill="#555">"open …" / "play …" / commands: scripted</text>
+
+  <!-- route internal arrows -->
+  <line x1="620" y1="148" x2="620" y2="162" stroke="#444" stroke-width="1.4" marker-end="url(#a)"/>
+  <line x1="620" y1="268" x2="620" y2="284" stroke="#444" stroke-width="1.4" marker-end="url(#a)"/>
+  <line x1="620" y1="342" x2="620" y2="358" stroke="#444" stroke-width="1.4" marker-end="url(#a)"/>
+
+  <!-- Model -->
+  <rect x="860" y="360" width="200" height="120" rx="12" fill="#f4faf5" stroke="#8fbf98"/>
+  <text x="874" y="384" font-size="13" font-weight="600" fill="#1f5130">Model</text>
+  <text x="874" y="406" fill="#333">systems/ask/lib/models.ts</text>
+  <text x="874" y="426" fill="#333">alibaba/qwen3.5-flash</text>
+  <text x="874" y="442" fill="#555">(default)</text>
+  <text x="874" y="462" fill="#333">google/gemini-2.5-flash</text>
+
+  <!-- cross arrows -->
+  <line x1="346" y1="116" x2="474" y2="116" stroke="#444" stroke-width="1.6" marker-end="url(#a)"/>
+  <text x="410" y="108" text-anchor="middle" fill="#111" font-weight="600">POST /api/chat</text>
+  <text x="410" y="134" text-anchor="middle" fill="#555">messages</text>
+
+  <line x1="764" y1="404" x2="858" y2="404" stroke="#444" stroke-width="1.6" marker-end="url(#a)"/>
+  <text x="811" y="396" text-anchor="middle" fill="#555">step</text>
+  <line x1="858" y1="440" x2="766" y2="440" stroke="#444" stroke-width="1.6" marker-end="url(#a)"/>
+  <text x="811" y="458" text-anchor="middle" fill="#555">stream</text>
+
+  <line x1="476" y1="398" x2="348" y2="398" stroke="#444" stroke-width="1.6" marker-end="url(#a)"/>
+  <text x="410" y="368" text-anchor="middle" fill="#111" font-weight="600">UI message</text>
+  <text x="410" y="384" text-anchor="middle" fill="#111" font-weight="600">stream</text>
+  <text x="410" y="418" text-anchor="middle" fill="#555">text, reasoning,</text>
+  <text x="410" y="433" text-anchor="middle" fill="#555">tool calls with</text>
+  <text x="410" y="448" text-anchor="middle" fill="#555">no output</text>
+</svg>

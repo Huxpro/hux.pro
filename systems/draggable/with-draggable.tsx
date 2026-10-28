@@ -11,8 +11,8 @@ import {
 import { useCallback, useEffect, useRef, type ComponentType } from "react";
 
 // =============================================================================
-// withDraggable — Higher-Order Component
-// useDraggable  — Hook for inline drag behavior
+// withDraggable: Higher-Order Component
+// useDraggable:  Hook for inline drag behavior
 //
 // Reads per-instance config (draggable, persist) from the DevtoolProvider.
 // =============================================================================
@@ -132,7 +132,7 @@ export function useDraggable(id: string) {
     if (saved) {
       x.set(saved.x);
       y.set(saved.y);
-      // Validate after layout — screen size may have changed
+      // Validate after layout: screen size may have changed
       requestAnimationFrame(() => {
         if (!contentRef.current) return;
         animateToClampedPosition(contentRef.current, x, y, (clamped) =>
@@ -225,7 +225,7 @@ export function useDraggable(id: string) {
   const startDrag = useCallback(
     (e: React.PointerEvent, filter?: string, handle?: string) => {
       const target = e.target as HTMLElement;
-      // With a handle, only pointer-downs inside it start a drag — everything
+      // With a handle, only pointer-downs inside it start a drag. Everything
       // else (sliders, inputs, scrollable content) keeps its own gestures.
       if (handle && !target.closest(handle)) return;
       if (filter && target.closest(filter)) return;

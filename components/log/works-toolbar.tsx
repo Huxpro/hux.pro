@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * WorksToolbar — the one line under the /works title.
+ * WorksToolbar: the one line under the /works title.
  *
  *   ⎇ main │ ▣ Projects 8  ◔ Talks 12  ◌ Social 3  ▤ Roles 2  ⨯ │ ≡ ▤ ▦
  *   └ ref    └───────────────── pathspec ──────────────────────┘   └ form
@@ -9,13 +9,13 @@
  * Three controls, one row, because the row is the budget: this sits in the
  * header zone above a sticky timeline, and anything that wraps to a second
  * line pushes the first commit off the fold on a phone. So every control is
- * icon-first and earns its width — labels appear at `sm` and up, where there
- * is room for them, and the whole bar fits a 375px viewport without.
+ * icon-first. Labels appear at `sm` and up, where there is room for them,
+ * and the whole bar fits a 375px viewport without them.
  *
  * "Fits" is not something this component gets to assume, though: the chip row
  * is derived from the data, so a type nobody has filed anything under yet
  * would add a chip the day it does. The ref and the form control are
- * pinned and the chips take the squeeze — they scroll inside their own group
+ * pinned and the chips take the squeeze: they scroll inside their own group
  * rather than pushing the page sideways. On any real phone it never comes up.
  *
  * The filter is multi-select with a quiet rest state. Nothing selected is
@@ -23,10 +23,10 @@
  * default page is not shouting a control at you. The first tap flips the bar
  * into filtering mode: selected chips fill, unselected ones drop to the
  * quaternary rung, and a clear button appears. Tapping the last selected chip
- * off returns to rest — the way out is the same gesture as the way in.
+ * off returns to rest, so leaving uses the same gesture as entering.
  *
- * The form control is the page's real answer to "everything at once" vs.
- * "see the work" — see `lib/log-view.ts` for what the three stops print. It
+ * The form control is how the page handles "everything at once" vs.
+ * "see the work". See `lib/log-view.ts` for what the three stops print. It
  * replaces the old expand/collapse toggle, whose two states were exactly the
  * two extremes this is trying to sit between.
  *
@@ -35,8 +35,8 @@
  * filter you have to scroll back for is a filter you stop using. Pinned, it
  * takes over the chapter marker's job too. The ref slot is where `git log`
  * names where you are, so as each chapter's marker scrolls up under the
- * slot the slot wears it — `main` becomes `HEAD`, `HEAD` becomes the era
- * below — and the markers in the log are dividers that hand their pill up
+ * slot the slot wears it (`main` becomes `HEAD`, `HEAD` becomes the era
+ * below), and the markers in the log are dividers that hand their pill up
  * rather than a second sticky layer. Tapping the pill goes back to where its
  * chapter starts.
  *
@@ -46,7 +46,7 @@
  *
  * Off its rest the row travels over the fading title and then over the
  * log, and needs a ground to stay legible, so a capsule of glass grows in
- * behind it — the Live Activity material (docs/system-glass.md), because
+ * behind it. It is the Live Activity material (docs/system-glass.md), because
  * this is the same kind of thing: a small, live summary of where you are
  * that floats over what you are doing. It grows with the scroll that lifts
  * the row, over the first few pixels, the way a large title hands over to
@@ -64,6 +64,7 @@ import {
 } from "motion/react";
 import { GalleryVertical, GitBranch, LayoutList, List, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { GLASS_CAPSULE } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { Segmented } from "@/components/ui/controls";
 import { t, type Locale } from "@/lib/i18n";
@@ -74,6 +75,8 @@ import {
 import { LOG_FORMS, type LogForm } from "@/lib/log-view";
 import { pageScrollTop, scrollPageTo } from "vitre";
 import { usePageLift } from "@/components/ui/use-page-lift";
+import { useNoticeYield } from "@/components/ui/use-notice-yield";
+import { BAND_RESERVE } from "@/components/ui/pinned-slot";
 import { useScrollEdges } from "@/components/ui/use-scroll-edges";
 import { CommitIcon } from "./icons";
 import { CHAPTER_PILL } from "./log-timeline";
@@ -85,9 +88,9 @@ export interface TypeFacet {
   count: number;
   /**
    * The `icon` override every row of this type is wearing, when they all
-   * wear the same one — so the chip carries the mark you will actually see
+   * wear the same one, so the chip carries the mark you will actually see
    * in the list. Today every visible `role` is an education entry flagged
-   * `graduation-cap`, and a briefcase on that chip would be a small lie.
+   * `graduation-cap`, and a briefcase on that chip would be wrong.
    * Unset the moment the rows disagree, and the type's own icon returns.
    */
   iconOverride?: string;
@@ -103,6 +106,9 @@ interface WorksToolbarProps {
   onToggleType: (type: FilterableCommitType) => void;
   onClearTypes: () => void;
   form: LogForm;
+  /** The forms on offer, in order. A form can be held back (the feed, behind
+   *  a DevTool switch); the control only offers these. */
+  forms?: readonly LogForm[];
   onFormChange: (form: LogForm) => void;
   /** The chapters on the page, in order, with the marker each wears. */
   chapters: readonly { id: string; label: string }[];
@@ -111,7 +117,7 @@ interface WorksToolbarProps {
 /**
  * What each form wears and what it is called. One table rather than one per
  * attribute, so a fifth form is one row here; what each form *prints* is
- * `ROW_FORM` in `lib/log-view.ts` — that module is deliberately React-free,
+ * `ROW_FORM` in `lib/log-view.ts`. That module is deliberately React-free,
  * and an icon is a component.
  */
 const FORM_CHIP: Record<
@@ -129,15 +135,16 @@ const FORM_CHIP: Record<
 };
 
 /**
- * The ground the pinned row stands on: a Dock Live Activity pill's own
- * recipe (systems/dock/components/live-activity.tsx), blur included on a
+ * The ground the pinned row stands on: the capsule a Dock Live Activity
+ * pill is made of (`GLASS_CAPSULE`, lib/glass.ts), blur included on a
  * phone. The two float one over the other, and a capsule that is more
- * see-through than the pill above it reads as a lesser thing — measured on
+ * see-through than the pill above it reads as a lesser thing. Measured on
  * iOS without the blur, the log's text showed through between the counts.
  */
 const PANEL = cn(
-  "pointer-events-none absolute -inset-x-2.5 -inset-y-1.5 -z-10 rounded-full",
-  "border border-border/50 bg-glass backdrop-blur-xl shadow-raised",
+  GLASS_CAPSULE,
+  // `--pin-outset` (globals.css): PageLayout pins the bar by its glass.
+  "pointer-events-none absolute -inset-x-2.5 inset-y-[calc(var(--pin-outset)*-1)] -z-10",
 );
 
 /** How much scroll it takes the capsule to grow in: the row has left its
@@ -154,6 +161,7 @@ export function WorksToolbar({
   onToggleType,
   onClearTypes,
   form,
+  forms = LOG_FORMS,
   onFormChange,
   chapters,
 }: WorksToolbarProps) {
@@ -170,6 +178,12 @@ export function WorksToolbar({
   const motionOf = reduced ? { duration: 0 } : SETTLE;
   const lift = usePageLift(LIFT_PX);
   const panelScale = useTransform(lift, [0, 1], [0.94, 1]);
+  // Steps aside for a Dock notice it would sit under (use-notice-yield).
+  // The fade goes on the capsule and on the row, never on the box holding
+  // the capsule; the box takes only the transform and the pointer.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const { away, rowStyle, rootStyle } = useNoticeYield(rootRef);
+  const panelOpacity = useTransform(() => lift.get() * (1 - away.get()));
 
   /** Back to where the chapter starts: its marker lined up under the slot,
    *  the frame where the slot takes it over. */
@@ -190,17 +204,26 @@ export function WorksToolbar({
     // `isolate` so the panel's `-z-10` sits behind this row and not behind
     // the page. `w-max`, bounded by the column: the capsule hugs what it
     // holds rather than spanning a row that is mostly empty on a desk.
-    <div className="relative isolate w-max max-w-full">
+    <motion.div
+      ref={rootRef}
+      // `--band-reserve` (PinnedSlot): what the bar gives up at its end for
+      // the Dock when they share the top band; it narrows as that eases in.
+      className={cn("relative isolate w-max origin-top", BAND_RESERVE)}
+      style={rootStyle}
+    >
       <motion.div
         aria-hidden
         className={PANEL}
         // Grows out from the row it is catching, as far as the page has
         // lifted it.
-        style={{ opacity: lift, scale: panelScale }}
+        style={{ opacity: panelOpacity, scale: panelScale }}
       />
 
-      <div className="flex items-center gap-2 sm:gap-3 font-mono text-xs text-tertiary-foreground">
-        {/* The ref we are reading — `main` above the first chapter, the
+      <motion.div
+        style={rowStyle}
+        className="flex items-center gap-2 sm:gap-3 font-mono text-xs text-tertiary-foreground"
+      >
+        {/* The ref we are reading: `main` above the first chapter, the
             chapter once its marker reaches here. Not a control at rest: the
             anchor the rest of the row hangs off, and the reason the page
             reads as a git log. */}
@@ -224,7 +247,7 @@ export function WorksToolbar({
                 transition={motionOf}
                 onClick={() => toChapterStart(chapter.id)}
                 title={t(locale, "logChapterStart")}
-                aria-label={`${chapter.label} — ${t(locale, "logChapterStart")}`}
+                aria-label={`${chapter.label}: ${t(locale, "logChapterStart")}`}
                 className={cn(
                   CHAPTER_PILL,
                   "pressable border-border transition-colors hover:border-foreground/30",
@@ -262,6 +285,7 @@ export function WorksToolbar({
           {/* Pathspec: what is in this reading of the log. */}
           <div
             ref={chipsRef}
+            data-bar-give
             role="group"
             aria-label={t(locale, "logFilterLabel")}
             className={cn(
@@ -339,7 +363,7 @@ export function WorksToolbar({
             label={t(locale, "logFormLabel")}
             value={form}
             onChange={onFormChange}
-            options={LOG_FORMS.map((f) => {
+            options={forms.map((f) => {
               const { icon: Icon, labelKey } = FORM_CHIP[f];
               const name = t(locale, labelKey);
               return {
@@ -351,15 +375,15 @@ export function WorksToolbar({
             })}
           />
         </motion.div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
 /**
  * How one ref hands over to the next: the incoming one arrives from the
- * side the page is moving from — from below reading on, as the marker came
- * up from below — and the outgoing one leaves the other way.
+ * side the page is moving from (from below when reading on, as the marker
+ * came up from below), and the outgoing one leaves the other way.
  */
 const HANDOVER = {
   enter: (dir: 1 | -1) => ({ opacity: 0, y: 8 * dir }),
@@ -367,7 +391,7 @@ const HANDOVER = {
   leave: (dir: 1 | -1) => ({ opacity: 0, y: -8 * dir }),
 };
 
-/** Hairline between control groups — quaternary, because it carries nothing. */
+/** Hairline between control groups. Quaternary, because it carries nothing. */
 function Divider() {
   return <span aria-hidden className="h-3 w-px shrink-0 bg-border" />;
 }

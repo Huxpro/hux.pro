@@ -1,21 +1,21 @@
 #!/usr/bin/env node
 // =============================================================================
-// wallpaper-profile — measure every wallpaper once, statically.
+// wallpaper-profile: measure every wallpaper once, statically.
 //
 //   pnpm wallpapers:profile          # write systems/ambient/lib/wallpaper-profiles.json
 //   pnpm wallpapers:profile:check    # CI: regenerate, diff, exit 1 on drift
 //
 // The legibility system (docs/system-legibility.md) never looks at a pixel at
-// runtime. Everything it needs to know about a wallpaper — how bright it is
-// where the text sits, how busy it is, what colour it leans — is measured here
+// runtime. Everything it needs to know about a wallpaper (how bright it is
+// where the text sits, how busy it is, what colour it leans) is measured here
 // and committed as a small JSON table. At runtime the policy in
 // `systems/ambient/lib/legibility.ts` turns a profile into a handful of CSS
 // variables: a few multiplies, no canvas, no image decode.
 //
 // Pictures are sampled through sharp. The Classic weather palettes have no
 // pixels, but they are built from three authored colours
-// (`getWeatherPaletteColors`), so they get a profile computed from those —
-// same shape, same table. The Sky and the Gradient are derived live from the
+// (`getWeatherPaletteColors`), so they get a profile computed from those,
+// with the same shape, in the same table. The Sky and the Gradient are derived live from the
 // scene and profiled at runtime by `profileFromScene` (lib/legibility.ts);
 // they have no entry here.
 //
@@ -23,21 +23,21 @@
 // blue sky and a grey rock):
 //
 //   lum       mean lightness of the whole frame, 0..1
-//   zones     mean lightness of the top / middle / bottom thirds — the home
+//   zones     mean lightness of the top / middle / bottom thirds. The home
 //             screen's identifier and greeting sit in the top third, and that
 //             is the band that decides whether bare text flips to light ink
 //   mean      mean colour, for the lab's contrast estimate
-//   contrast  standard deviation of lightness — how much the picture varies
-//   edges     mean local gradient of lightness — how much fine detail there is.
+//   contrast  standard deviation of lightness: how much the picture varies
+//   edges     mean local gradient of lightness: how much fine detail there is.
 //             A soft gradient scores ~0, raked sand scores high. This is what
 //             "busy" means downstream.
-//   chroma    mean OKLab chroma — how colourful the picture is at all
+//   chroma    mean OKLab chroma: how colourful the picture is at all
 //   tint      the dominant chromatic colour as OKLCH, or null when the picture
 //             is effectively grey. Picked by a chroma-weighted hue histogram,
-//             so a grey rock with one red leaf still says "red", quietly.
+//             so a grey rock with one red leaf still says "red", at low chroma.
 //
 // Nothing here is a design decision; the numbers are facts about the files.
-// The decisions — how much relief a busy wallpaper earns, when text flips —
+// The decisions (how much relief a busy wallpaper earns, when text flips)
 // live in the policy, where the lab can tune them live.
 // =============================================================================
 
@@ -70,7 +70,7 @@ function publicPath(webPath: string): string {
   return path.join(PUBLIC, webPath.replace(/^\//, ""));
 }
 
-/** Sample grid. 96×60 is the 16:10 desktop at 1/26 scale — enough to see a
+/** Sample grid. 96×60 is the 16:10 desktop at 1/26 scale: enough to see a
  *  horizon and a subject, cheap enough to run over 40 files in a second. */
 const GRID = { width: 96, height: 60 };
 
@@ -84,7 +84,7 @@ const WEATHER_CONDITIONS: WeatherCondition[] = [
 ];
 
 // -----------------------------------------------------------------------------
-// Colour maths — shared with the runtime policy (systems/ambient/lib/color.ts),
+// Colour maths, shared with the runtime policy (systems/ambient/lib/color.ts),
 // so a profile measured here and one read off the live sky agree.
 // -----------------------------------------------------------------------------
 
@@ -114,7 +114,7 @@ const round = (n: number, places = 3) => Number(n.toFixed(places));
  * Profile a grid of OKLab samples laid out row-major at GRID size.
  *
  * The same reducer serves pictures (sampled) and gradients (synthesised), so a
- * weather profile is comparable to a photograph's — "top third lightness" means
+ * weather profile is comparable to a photograph's: "top third lightness" means
  * the same thing for both.
  */
 function profileSamples(samples: Lab[], width: number, height: number): WallpaperProfile {
@@ -163,7 +163,7 @@ function profileSamples(samples: Lab[], width: number, height: number): Wallpape
 
   // Dominant chromatic colour: a chroma-weighted hue histogram, peak bin plus
   // its neighbours, then the weighted mean of those samples. Near-grey pixels
-  // (chroma under 0.03 — the paper white of a snowfield, the grey of a rock)
+  // (chroma under 0.03: the paper white of a snowfield, the grey of a rock)
   // vote for nothing, so they cannot pull the hue toward brown.
   const BINS = 24;
   const bins = new Array<number>(BINS).fill(0);

@@ -1,0 +1,891 @@
+{
+  "axes": {
+    "x": {
+      "key": "i13s",
+      "name": {
+        "en": "interestingness",
+        "zh": "有趣度"
+      },
+      "ticks": [
+        {
+          "at": 0,
+          "emoji": "🥱",
+          "label": {
+            "en": "boring",
+            "zh": "无聊"
+          }
+        },
+        {
+          "at": 3,
+          "emoji": "😎",
+          "label": {
+            "en": "cool",
+            "zh": "挺酷"
+          }
+        },
+        {
+          "at": 6,
+          "emoji": "🤓",
+          "label": {
+            "en": "nerdy / love it",
+            "zh": "着迷 / 喜欢"
+          }
+        },
+        {
+          "at": 9,
+          "emoji": "🤯",
+          "label": {
+            "en": "mind-blown / obsessive",
+            "zh": "上头 / 沉迷"
+          }
+        }
+      ]
+    },
+    "y": {
+      "key": "exp",
+      "name": {
+        "en": "experience",
+        "zh": "经验"
+      },
+      "ticks": [
+        {
+          "at": 0,
+          "emoji": "🤦‍♂️",
+          "label": {
+            "en": "little",
+            "zh": "略知"
+          }
+        },
+        {
+          "at": 3,
+          "emoji": "🙇‍♂️",
+          "label": {
+            "en": "school-level",
+            "zh": "课堂"
+          }
+        },
+        {
+          "at": 6,
+          "emoji": "👨‍💻",
+          "label": {
+            "en": "industry-capable",
+            "zh": "工业级"
+          }
+        },
+        {
+          "at": 9,
+          "emoji": "👨‍🎓",
+          "label": {
+            "en": "language lawyer",
+            "zh": "语言律师"
+          }
+        }
+      ]
+    },
+    "abs": {
+      "key": "abs",
+      "name": {
+        "en": "abstraction",
+        "zh": "抽象层级"
+      },
+      "low": {
+        "en": "machine",
+        "zh": "机器"
+      },
+      "high": {
+        "en": "math",
+        "zh": "数学"
+      },
+      "whole": {
+        "en": "the whole scale",
+        "zh": "整条刻度"
+      },
+      "tiers": [
+        {
+          "level": 0,
+          "label": {
+            "en": "bare metal",
+            "zh": "裸机"
+          }
+        },
+        {
+          "level": 1,
+          "label": {
+            "en": "intermediate representation",
+            "zh": "中间表示"
+          }
+        },
+        {
+          "level": 2,
+          "label": {
+            "en": "closer to hardware",
+            "zh": "贴近硬件"
+          }
+        },
+        {
+          "level": 3,
+          "label": {
+            "en": "system",
+            "zh": "系统级"
+          }
+        },
+        {
+          "level": 4,
+          "label": {
+            "en": "mainstream, statically typed",
+            "zh": "主流 · 静态类型"
+          }
+        },
+        {
+          "level": 5,
+          "label": {
+            "en": "mainstream, dynamically typed",
+            "zh": "主流 · 动态类型"
+          }
+        },
+        {
+          "level": 6,
+          "label": {
+            "en": "multi-paradigm",
+            "zh": "多范式"
+          }
+        },
+        {
+          "level": 7,
+          "label": {
+            "en": "pure, side-effectable",
+            "zh": "纯 · 可有副作用"
+          }
+        },
+        {
+          "level": 8,
+          "label": {
+            "en": "pure, but not total",
+            "zh": "纯 · 非全函数"
+          }
+        },
+        {
+          "level": 9,
+          "label": {
+            "en": "pure",
+            "zh": "纯"
+          }
+        }
+      ]
+    }
+  },
+  "languages": [
+    {
+      "id": "natural-language",
+      "name": {
+        "en": "Natural Language",
+        "zh": "自然语言"
+      },
+      "emoji": "💬",
+      "title": {
+        "en": "[Natural Language](https://en.wikipedia.org/wiki/Natural_language)",
+        "zh": "[自然语言](https://en.wikipedia.org/wiki/Natural_language)"
+      },
+      "abs": null,
+      "i13s": 9,
+      "exp": 9,
+      "added": "2026",
+      "notes": {
+        "en": [
+          "Andrej Karpathy said it in 2023: \"the hottest new programming language is English\". In February 2025 he named what programming in it feels like, [vibe coding](https://en.wikipedia.org/wiki/Vibe_coding); a year later, what that had grown into, [agentic engineering](https://x.com/karpathy/status/2019137879310836075). In that one year it took over the world.",
+          "So it goes in the top right corner. No language gets more practice than a mother tongue, and none has been more interesting to program in. Nor does it sit at any one level of abstraction: it spans the whole scale, as low and as high as people go. It is the most fluid medium there is. Whatever people can imagine, human language can reach, and that includes the machines and the mathematics people invented. A model compiles it into any of the languages below."
+        ],
+        "zh": [
+          "Andrej Karpathy 在 2023 年就说过：“最热门的新编程语言是英语”。2025 年 2 月，他给用它编程的感觉起了个名字，[vibe coding](https://en.wikipedia.org/wiki/Vibe_coding)；一年后，又给它长成的样子起了个名字，[agentic engineering](https://x.com/karpathy/status/2019137879310836075)。就在这一年里，它接管了世界。",
+          "所以它在右上角：没有哪门语言比母语练得更多，也没有哪门语言比它更有意思。它也不落在哪一级抽象上：它是全人类的上下区间，是最流动的载体。只要是人能想象出来的，人类语言就够得到，当然也包括人类发明的机器与数学。模型会把它编译成下面的任何一门语言。"
+        ]
+      }
+    },
+    {
+      "id": "plt",
+      "name": "λ Λ Π Σ",
+      "emoji": "📜",
+      "title": {
+        "en": "[Programming Language Theory](https://en.wikipedia.org/wiki/Programming_language_theory)",
+        "zh": "[编程语言理论](https://en.wikipedia.org/wiki/Programming_language_theory)"
+      },
+      "abs": 9,
+      "i13s": 9,
+      "exp": 6,
+      "notes": {
+        "en": [
+          "This could be in one level higher. But I'd prefer to treat theorem-proving-capable PLs as [mechanizied](https://en.wikipedia.org/wiki/POPLmark_challenge) forms that leverage machine-checkable formal proofs."
+        ],
+        "zh": [
+          "这里其实可以再高一级。但我更愿意把能做定理证明的编程语言看作一种[机械化](https://en.wikipedia.org/wiki/POPLmark_challenge)的形式：借助机器可检验的形式化证明。"
+        ]
+      }
+    },
+    {
+      "id": "coq",
+      "name": "Coq",
+      "emoji": "🐓",
+      "title": {
+        "en": "[The Coq Proof Assistant](https://coq.inria.fr/)",
+        "zh": "[Coq 证明助手](https://coq.inria.fr/)"
+      },
+      "abs": 9,
+      "i13s": 9,
+      "exp": 5,
+      "notes": {
+        "en": [
+          "My favorite and most experienced [dependently-typed](https://en.wikipedia.org/wiki/Dependent_type) PL and [theorem prover](https://en.wikipedia.org/wiki/Proof_assistant).",
+          "It was both challenging and fun learning through [*Software Foundations*](https://softwarefoundations.cis.upenn.edu/) and exploring [*WasmCert*](https://github.com/Huxpro/WasmCert), an in-development Coq mechanization of the WebAssembly specification."
+        ],
+        "zh": [
+          "我最喜欢、也最有经验的[依赖类型](https://en.wikipedia.org/wiki/Dependent_type)编程语言和[定理证明器](https://en.wikipedia.org/wiki/Proof_assistant)。",
+          "跟着 [*Software Foundations*](https://softwarefoundations.cis.upenn.edu/) 学它，再折腾 [*WasmCert*](https://github.com/Huxpro/WasmCert)（一个仍在开发中、用 Coq 机械化 WebAssembly 规范的项目），既有挑战又很好玩。"
+        ]
+      }
+    },
+    {
+      "id": "agda-idris",
+      "name": "Agda/Idris",
+      "emoji": "🐔",
+      "title": {
+        "en": "[Agda](https://github.com/agda/agda) & [Idris](https://www.idris-lang.org/)",
+        "zh": "[Agda](https://github.com/agda/agda) 与 [Idris](https://www.idris-lang.org/)"
+      },
+      "abs": 9,
+      "i13s": 8,
+      "exp": 1,
+      "notes": {
+        "en": [
+          "Two other interesting [dependently-typed](https://en.wikipedia.org/wiki/Dependent_type) PLs and [theorem provers](https://en.wikipedia.org/wiki/Proof_assistant) closer to Haskell. I'm looking forward to read [PLFA](https://plfa.github.io/) and [Type-Driven Development with Idris](https://www.manning.com/books/type-driven-development-with-idris) in the future."
+        ],
+        "zh": [
+          "另外两门有意思的[依赖类型](https://en.wikipedia.org/wiki/Dependent_type)编程语言兼[定理证明器](https://en.wikipedia.org/wiki/Proof_assistant)，更接近 Haskell。很期待以后读一读 [PLFA](https://plfa.github.io/) 和 [Type-Driven Development with Idris](https://www.manning.com/books/type-driven-development-with-idris)。"
+        ]
+      }
+    },
+    {
+      "id": "haskell",
+      "name": "Haskell",
+      "emoji": "🌯",
+      "title": {
+        "en": "[Haskell](https://www.haskell.org/)",
+        "zh": "[Haskell](https://www.haskell.org/)"
+      },
+      "abs": 8,
+      "i13s": 7,
+      "exp": 5,
+      "notes": {
+        "en": [
+          "Wondering the story behind this emoji? This is where I learnt [Monads are burritos](https://chrisdone.com/posts/monads-are-burritos/) and how to appreciate it (as well as [type classes](https://en.wikipedia.org/wiki/Type_class) but not quite with [laziness](https://en.wikipedia.org/wiki/Lazy_evaluation)). I haven't done any things substantial except a toy interpreter for [System F](https://en.wikipedia.org/wiki/System_F)."
+        ],
+        "zh": [
+          "好奇这个 emoji 背后的故事？我就是在这里学到了 [Monads are burritos](https://chrisdone.com/posts/monads-are-burritos/)（单子是墨西哥卷饼），并学会了欣赏它（还有[类型类](https://en.wikipedia.org/wiki/Type_class)，[惰性求值](https://en.wikipedia.org/wiki/Lazy_evaluation)就不太行了）。除了一个 [System F](https://en.wikipedia.org/wiki/System_F) 的玩具解释器，我没用它做过什么像样的东西。"
+        ]
+      }
+    },
+    {
+      "id": "prolog",
+      "name": "Prolog",
+      "emoji": "📣",
+      "title": {
+        "en": "[Prolog](https://en.wikipedia.org/wiki/Prolog)",
+        "zh": "[Prolog](https://en.wikipedia.org/wiki/Prolog)"
+      },
+      "abs": 8,
+      "i13s": 2,
+      "exp": 0,
+      "notes": {
+        "en": [
+          "Representatives of [Logic Programming](https://en.wikipedia.org/wiki/Logic_programming) and Logic-based AI (part of [Symbolic AI](https://en.wikipedia.org/wiki/Artificial_intelligence#Symbolic)). The emoji came from how it's implemented: [Horn clauses](https://en.wikipedia.org/wiki/Horn_clause).",
+          "It's included here merely because I think it deserves a place in any PL charts, though I don't have spare times and further interests into it."
+        ],
+        "zh": [
+          "[逻辑编程](https://en.wikipedia.org/wiki/Logic_programming)与基于逻辑的 AI（[符号主义 AI](https://en.wikipedia.org/wiki/Artificial_intelligence#Symbolic) 的一支）的代表。这个 emoji 来自它的实现方式：[Horn 子句](https://en.wikipedia.org/wiki/Horn_clause)（horn，号角）。",
+          "放进来只是因为我觉得任何一张 PL 图表都该有它一席之地，尽管我既没有闲暇，也没有更多兴趣去深入。"
+        ]
+      }
+    },
+    {
+      "id": "ocaml",
+      "name": "OCaml",
+      "emoji": "🐫",
+      "title": {
+        "en": "[OCaml](https://ocaml.org/)",
+        "zh": "[OCaml](https://ocaml.org/)"
+      },
+      "abs": 7,
+      "i13s": 7,
+      "exp": 6,
+      "notes": {
+        "en": [
+          "TBD (The ML family is a sweet spot in the language-design space: strict, side-effectable and Hindley-Milner type-inferred.)",
+          "TBD (Multicore OCaml, Algebraic Effect, Modular Implicit)"
+        ],
+        "zh": [
+          "TBD（ML 家族是语言设计空间里的一个甜点：严格求值、允许副作用、Hindley-Milner 类型推导。）",
+          "TBD（Multicore OCaml、代数效应、Modular Implicits）"
+        ]
+      }
+    },
+    {
+      "id": "reason",
+      "name": "Reason",
+      "emoji": "🟥",
+      "title": {
+        "en": "[ReasonML](https://reasonml.org) & 🦺 [BuckleScript](https://bucklescript.github.io/en/)",
+        "zh": "[ReasonML](https://reasonml.org) 与 🦺 [BuckleScript](https://bucklescript.github.io/en/)"
+      },
+      "abs": 7,
+      "i13s": 6,
+      "exp": 7,
+      "notes": {
+        "en": [
+          "TBD (Pragmatism, Web/JS focused, Comparison with Typed JS, Reason Native)",
+          "[ReasonReact](https://reasonml.github.io/reason-react/) (with React's new functional APIs, it has reduced into a thin layer of typing like `d.ts`)",
+          "When comparing with typed JS, I tend to think it more like an \"AND\" instead \"OR\". It's just nice to have one such PL that has proper FP, sound typing, and even ability to run cross Web and Native, within anyone's toolbox."
+        ],
+        "zh": [
+          "TBD（实用主义、专注 Web/JS、与带类型的 JS 的比较、Reason Native）",
+          "[ReasonReact](https://reasonml.github.io/reason-react/)（有了 React 新的函数式 API 之后，它已经薄得像 `d.ts` 那样只剩一层类型）",
+          "和带类型的 JS 相比，我更倾向于把它们看作“与”而不是“或”。任何人的工具箱里有这么一门语言都挺好：像样的函数式编程、可靠（sound）的类型，甚至还能同时跑在 Web 和 Native 上。"
+        ]
+      }
+    },
+    {
+      "id": "sml",
+      "name": "SML",
+      "emoji": "📒",
+      "title": {
+        "en": "[Standard ML](https://en.wikipedia.org/wiki/Standard_ML)",
+        "zh": "[Standard ML](https://en.wikipedia.org/wiki/Standard_ML)"
+      },
+      "abs": 7,
+      "i13s": 5,
+      "exp": 6,
+      "notes": {
+        "en": [
+          "Standard ML is one of the few languages (if not the only one among widely used high-level PLs) that has a full formal specification of its typing rules and operational semantics: [The Definition of Standard ML](https://www.amazon.com/Definition-Standard-ML-Revised/dp/0262631814), a heavy yellow book as this emoji.",
+          "I used it quite heavily during my education writing FP algorithms, interpreters and compilers. The main reason that I'm less interested in it is its slow evolution (if not stopped) and lack of tools and a active community."
+        ],
+        "zh": [
+          "Standard ML 是少数几门（如果不是被广泛使用的高级语言里唯一一门的话）拥有完整形式化规范的语言，类型规则和操作语义都有严格定义：[The Definition of Standard ML](https://www.amazon.com/Definition-Standard-ML-Revised/dp/0262631814)，一本厚重的黄皮书，就像这个 emoji。",
+          "求学期间我用得相当多，写函数式算法、解释器和编译器。我对它兴趣不大，主要是因为它演进缓慢（如果不是已经停滞的话），也缺乏工具和活跃的社区。"
+        ]
+      }
+    },
+    {
+      "id": "scala",
+      "name": "Scala",
+      "emoji": "🪑",
+      "title": {
+        "en": "[Scala](https://www.scala-lang.org/)",
+        "zh": "[Scala](https://www.scala-lang.org/)"
+      },
+      "abs": 6,
+      "absRange": [4, 7],
+      "i13s": 6,
+      "exp": 5,
+      "notes": {
+        "en": [
+          "(I wanted to use emoji [\"ladder\"](https://emojipedia.org/ladder/) but it hasn't landed yet. So a chair for now.)",
+          "Don't know the story? Check out [#Hascalator](https://twitter.com/hashtag/hascalator) on twitter. Scala is a true hybrid of [FP](https://en.wikipedia.org/wiki/Functional_programming) and [OOP](https://en.wikipedia.org/wiki/Object-oriented_programming) (contrast: OCaml). Although people often complain it being overly flexible and expressive, I personally appreciate it and think all its syntax and semantics are very well blended (Oh I love `[A]` for Λ).",
+          "I'm also very excited about Scala 3, or [Dotty](https://dotty.epfl.ch/), and happy to see Scala winning the [2019 SIGPLAN software award](https://www.sigplan.org/Awards/Software/).",
+          "Oh I almost forget to mention my exp: I was part of a team writing compilers using Scala at Facebook."
+        ],
+        "zh": [
+          "（本想用 [“梯子”](https://emojipedia.org/ladder/) emoji，但它还没上线，所以先用把椅子。）",
+          "不知道这个梗？去推特上看看 [#Hascalator](https://twitter.com/hashtag/hascalator)。Scala 是[函数式编程](https://en.wikipedia.org/wiki/Functional_programming)和[面向对象](https://en.wikipedia.org/wiki/Object-oriented_programming)真正的混血（对比：OCaml）。虽然大家常抱怨它过于灵活、表达力过强，我个人倒很欣赏，觉得它的语法和语义都融合得很好（噢，我爱用 `[A]` 表示 Λ）。",
+          "我也很期待 Scala 3，也就是 [Dotty](https://dotty.epfl.ch/)，也很高兴看到 Scala 拿到 [2019 年 SIGPLAN 软件奖](https://www.sigplan.org/Awards/Software/)。",
+          "差点忘了说我的经验：我曾在 Facebook 参与一个用 Scala 写编译器的团队。"
+        ]
+      }
+    },
+    {
+      "id": "js",
+      "name": "JS",
+      "emoji": "🟨",
+      "title": {
+        "en": "[JavaScript (Pre ES2015)](https://en.wikipedia.org/wiki/JavaScript)",
+        "zh": "[JavaScript（ES2015 之前）](https://en.wikipedia.org/wiki/JavaScript)"
+      },
+      "abs": 5,
+      "i13s": 4,
+      "exp": 9,
+      "notes": {
+        "en": [
+          "I was so hesitated writing about you, JavaScript. Why? I love and hate it at the same time (well someone might point out that's how \"true love\" looks like).",
+          "TBD (...)"
+        ],
+        "zh": [
+          "JavaScript，写你的时候我犹豫了很久。为什么？因为我对你又爱又恨（也许有人会说，“真爱”就是这个样子）。",
+          "TBD（……）"
+        ]
+      }
+    },
+    {
+      "id": "es6",
+      "name": "ES6",
+      "emoji": "🟧",
+      "title": {
+        "en": "[ECMAScript (Post ES2015)](https://en.wikipedia.org/wiki/ECMAScript)",
+        "zh": "[ECMAScript（ES2015 之后）](https://en.wikipedia.org/wiki/ECMAScript)"
+      },
+      "abs": 5,
+      "i13s": 5,
+      "exp": 9,
+      "notes": {
+        "en": [
+          "Don't get me wrong, I knew the relation of ES and JS well.",
+          "TBD (To many...)"
+        ],
+        "zh": [
+          "别误会，ES 和 JS 的关系我很清楚。",
+          "TBD（太多了……）"
+        ]
+      }
+    },
+    {
+      "id": "typed-js",
+      "name": "JS:Ty",
+      "emoji": "⚠️",
+      "title": {
+        "en": "[Flow](https://flow.org) & 🎡 [TypeScript](https://www.typescriptlang.org/)",
+        "zh": "[Flow](https://flow.org) 与 🎡 [TypeScript](https://www.typescriptlang.org/)"
+      },
+      "abs": 6,
+      "absRange": [5, 6],
+      "i13s": 6,
+      "exp": 9,
+      "notes": {
+        "en": [
+          "TBD (Gradual typing, Soundness)"
+        ],
+        "zh": [
+          "TBD（渐进类型、可靠性）"
+        ]
+      }
+    },
+    {
+      "id": "php",
+      "name": "PHP",
+      "emoji": "🐘",
+      "title": {
+        "en": "[PHP](https://www.php.net/)",
+        "zh": "[PHP](https://www.php.net/)"
+      },
+      "abs": 5,
+      "i13s": 0,
+      "exp": 1,
+      "notes": {
+        "en": [
+          "I dunno if it's a world-wide meme but it's extremely popular [among Chinese community](https://www.zhihu.com/question/26498147): [\"PHP is the best language in the world\"](https://php-is-the-best-language-in-the-world.com/).",
+          "Many people knew that PHP stands for *Hypertext Preprocessor* but originally it stood for *Personal Home Page*. It had numerous [heritages](https://eev.ee/blog/2012/04/09/php-a-fractal-of-bad-design/) from that time until further refinements.",
+          "But anyways, I guesstimate [Zuck](https://en.wikipedia.org/wiki/Mark_Zuckerberg) did not regret starting Facebook with PHP, and I should add [Hack](https://hacklang.org/) into this chart soon."
+        ],
+        "zh": [
+          "不知道这是不是全世界通用的梗，但它在[中文社区](https://www.zhihu.com/question/26498147)极其流行：[“PHP 是世界上最好的语言”](https://php-is-the-best-language-in-the-world.com/)。",
+          "很多人知道 PHP 代表 *Hypertext Preprocessor*，但它最初其实是 *Personal Home Page* 的缩写。那个时代给它留下了大量[历史包袱](https://eev.ee/blog/2012/04/09/php-a-fractal-of-bad-design/)，直到后来才逐步改进。",
+          "不过话说回来，我估摸着[扎克伯格](https://en.wikipedia.org/wiki/Mark_Zuckerberg)并不后悔用 PHP 起家做 Facebook；我也该尽快把 [Hack](https://hacklang.org/) 加进这张图了。"
+        ]
+      }
+    },
+    {
+      "id": "python",
+      "name": "Python",
+      "emoji": "🐍",
+      "title": {
+        "en": "[Python](https://en.wikipedia.org/wiki/Python_(programming_language))",
+        "zh": "[Python](https://en.wikipedia.org/wiki/Python_(programming_language))"
+      },
+      "abs": 5,
+      "i13s": 3,
+      "exp": 4,
+      "notes": {
+        "en": [
+          "Python pioneered simplicity, explicitness, and readability (so-called [pythonic](https://en.wikipedia.org/wiki/Zen_of_Python)). Its friendliness made it widely-used in both industry and education. Unfortunately, I haven't used it for anything beyond courses (e.g. Algorithms, Data Structures, AI, Networking), and I would forget the entire language as soon as I completed the course.",
+          "It's falling into this bucket mostly because it loses the battle of my \"king of mainstream [dynamically-typed](https://wiki.c2.com/?DynamicTyping) PL\" against JavaScript: It has no standardized specification effort; It has no good FP support; It's definitely much less \"full-stack\"; The gradual typing systems targeting it are less mature (though there are many efforts going on) and not popularized (yet); The *status quo* of its implementations, [CPython](https://en.wikipedia.org/wiki/CPython), uses a much less advanced GC and runs significantly slower than any JS engines that is JIT-ing, while JIT compilers for Python (e.g. PyPy) is not only challenging but also less appreciated due to Python's heavy heritages on C extensions for CPU-sensitive jobs. (N.B. JS engine chosen to not JIT are doing it for good purposes e.g. TTI, memory, embedded system, and it's not because they couldn't.)"
+        ],
+        "zh": [
+          "Python 率先推崇简洁、明确和可读（也就是所谓的 [pythonic](https://en.wikipedia.org/wiki/Zen_of_Python)）。它的友好让它在工业界和教育界都被广泛使用。遗憾的是，我除了上课（算法、数据结构、AI、网络之类）以外没用它做过什么，而且每门课一结束我就会把整门语言忘光。",
+          "它落在这个位置，主要是因为在我心中“主流[动态类型](https://wiki.c2.com/?DynamicTyping)语言之王”的较量里输给了 JavaScript：它没有标准化的规范工作；没有像样的函数式编程支持；显然远没那么“全栈”；面向它的渐进类型系统还不够成熟（尽管有很多努力在进行），也还没普及；它的实现现状 [CPython](https://en.wikipedia.org/wiki/CPython) 用的 GC 落后得多，跑得也明显比任何做 JIT 的 JS 引擎慢；而 Python 的 JIT 编译器（比如 PyPy）不仅难做，还因为 Python 在 CPU 密集任务上重度依赖 C 扩展的历史包袱而不太受重视。（注：选择不做 JIT 的 JS 引擎都有正当理由，比如 TTI、内存、嵌入式系统，并不是做不到。）"
+        ]
+      }
+    },
+    {
+      "id": "lisp",
+      "name": "Lisp*",
+      "emoji": "🌜",
+      "title": {
+        "en": "[Lisp Family](https://en.wikipedia.org/wiki/Lisp_(programming_language))",
+        "zh": "[Lisp 家族](https://en.wikipedia.org/wiki/Lisp_(programming_language))"
+      },
+      "abs": 5,
+      "absRange": [5, 7],
+      "i13s": 3,
+      "exp": 3,
+      "notes": {
+        "en": [
+          "Why a moon here? It's an open parenthesis!",
+          "TBD (Scheme, Clojure, Racket)"
+        ],
+        "zh": [
+          "为什么这里是个月亮？因为它是一个左括号！",
+          "TBD（Scheme、Clojure、Racket）"
+        ]
+      }
+    },
+    {
+      "id": "java",
+      "name": "Java",
+      "emoji": "☕️",
+      "title": {
+        "en": "[Java](https://en.wikipedia.org/wiki/Java_(programming_language))",
+        "zh": "[Java](https://en.wikipedia.org/wiki/Java_(programming_language))"
+      },
+      "abs": 4,
+      "i13s": 3,
+      "exp": 5,
+      "notes": {
+        "en": [
+          "Despite the fact that Java enjoyed many [criticism](https://en.wikipedia.org/wiki/Criticism_of_Java) and [dislikes](https://www.cs.utexas.edu/users/EWD/transcriptions/OtherDocs/Haskell.html), and contributed to nowadays misnomering of [OOP](https://en.wikipedia.org/wiki/Object-oriented_programming) together with C++ and others, Java has a remarkable place in PL history regarding its huge impact on both academia and industry.",
+          "My Java experience is mostly in ivory tower, where the most substantial one is an extended [MiniJava](https://www.cs.princeton.edu/~appel/modern/java/) compiler targeting JVM.",
+          "I'm not too interested in Java language itself because there is nothing too interesting after the effort of [adding generics in Java 1.5](https://en.wikipedia.org/wiki/Generics_in_Java) (thanks to [Generic Java](https://homepages.inf.ed.ac.uk/wadler/gj/) and [Pizza](https://en.wikipedia.org/wiki/Pizza_(programming_language)) from Wadler, Martin et.al.). There are some additions onto it (notably [Java8](https://en.wikipedia.org/wiki/Java_version_history#Java_SE_8)) but they're not as ground-breaking as ES6 or C++0x did to theirs. It seems like the true answer of \"better Java\" (which is a non-goal of Scala) is [Kotlin](https://kotlinlang.org/), but I haven't had enough experiences to place it in my chart.",
+          "JVM, however, is much more appealing. Tons of research efforts (funding) on managed language runtime (notably GC and JIT) were spent on it. So I separate it out."
+        ],
+        "zh": [
+          "尽管 Java 饱受[批评](https://en.wikipedia.org/wiki/Criticism_of_Java)和[嫌弃](https://www.cs.utexas.edu/users/EWD/transcriptions/OtherDocs/Haskell.html)，还和 C++ 等语言一起让[面向对象](https://en.wikipedia.org/wiki/Object-oriented_programming)成了今天这个被误用的名字，但就它对学术界和工业界的巨大影响而言，Java 在编程语言史上仍有重要地位。",
+          "我的 Java 经验大多在象牙塔里，最像样的一次是写一个面向 JVM 的扩展版 [MiniJava](https://www.cs.princeton.edu/~appel/modern/java/) 编译器。",
+          "我对 Java 语言本身兴趣不大，因为在 [Java 1.5 加入泛型](https://en.wikipedia.org/wiki/Generics_in_Java)（多亏了 Wadler、Martin 等人的 [Generic Java](https://homepages.inf.ed.ac.uk/wadler/gj/) 和 [Pizza](https://en.wikipedia.org/wiki/Pizza_(programming_language))）之后，就没什么特别有意思的东西了。之后也有一些补充（尤其是 [Java 8](https://en.wikipedia.org/wiki/Java_version_history#Java_SE_8)），但都不像 ES6、C++0x 之于各自的语言那样具有突破性。“更好的 Java”（这并不是 Scala 的目标）的真正答案似乎是 [Kotlin](https://kotlinlang.org/)，但我的经验还不够把它放进这张图。",
+          "不过 JVM 要吸引人得多。大量研究精力（和经费）花在了它的托管语言运行时上（尤其是 GC 和 JIT）。所以我把它单独拎了出来。"
+        ]
+      }
+    },
+    {
+      "id": "dart",
+      "name": "Dart",
+      "emoji": "🎯",
+      "title": {
+        "en": "[Dart](https://en.wikipedia.org/wiki/Dart_(programming_language))",
+        "zh": "[Dart](https://en.wikipedia.org/wiki/Dart_(programming_language))"
+      },
+      "abs": 4,
+      "i13s": 3,
+      "exp": 1,
+      "notes": {
+        "en": [
+          "A \"JS-er Java\" or \"JSer's Java\"? IMHO, its mix-and-match approach combining (a weird, modified subset of) the JS syntax with (a boring, inexpressive subset of) the Java semantics is a regression of both.",
+          "PL aside, its AOT-and-JIT-capable VM and its vendor lock-in on [Flutter](https://flutter.dev/) made it (eventually) on par with others' interestingness."
+        ],
+        "zh": [
+          "“JS 化的 Java”，还是“JSer 的 Java”？恕我直言，它把（一个奇怪的、改过的子集的）JS 语法和（一个无聊的、缺乏表达力的子集的）Java 语义拼在一起，是两边的倒退。",
+          "语言之外，它既能 AOT 又能 JIT 的虚拟机，以及和 [Flutter](https://flutter.dev/) 的深度绑定，让它（最终）在有趣程度上和其他语言打了个平手。"
+        ]
+      }
+    },
+    {
+      "id": "actionscript",
+      "name": "AS",
+      "emoji": "⚡️",
+      "title": {
+        "en": "[ActionScript](https://en.wikipedia.org/wiki/ActionScript)",
+        "zh": "[ActionScript](https://en.wikipedia.org/wiki/ActionScript)"
+      },
+      "abs": 4,
+      "i13s": 2,
+      "exp": 2,
+      "notes": {
+        "en": [
+          "My second PL. I hope you still remember [*Adobe Flash*](https://en.wikipedia.org/wiki/Adobe_Flash), the most successful [rich internet application](https://en.wikipedia.org/wiki/Rich_web_application) platform before Apple's mobile revolution and (what so called) HTML5.",
+          "I taught myself AS 2.0 when I was into the Flash development in middle school times. It was that sense of accomplishment developing little interactive games and GUIs made me a programmer nowadays.",
+          "AS 3.0 is also my first [OOP](https://en.wikipedia.org/wiki/Object-oriented_programming) language and I always felt sorry about its [ECMAScript 4 abandon](https://en.wikipedia.org/wiki/ECMAScript#4th_Edition_(abandoned)) story."
+        ],
+        "zh": [
+          "我的第二门编程语言。希望你还记得 [*Adobe Flash*](https://en.wikipedia.org/wiki/Adobe_Flash)：在苹果的移动革命和（所谓的）HTML5 之前，最成功的[富互联网应用](https://en.wikipedia.org/wiki/Rich_web_application)平台。",
+          "中学时我迷上 Flash 开发，自学了 AS 2.0。正是开发小游戏和交互界面带来的那种成就感，让我成了今天的程序员。",
+          "AS 3.0 也是我的第一门[面向对象](https://en.wikipedia.org/wiki/Object-oriented_programming)语言，我一直为它 [ECMAScript 4 被放弃](https://en.wikipedia.org/wiki/ECMAScript#4th_Edition_(abandoned))的故事感到惋惜。"
+        ]
+      }
+    },
+    {
+      "id": "swift",
+      "name": "Swift",
+      "emoji": "🐦",
+      "title": {
+        "en": "[Swift](https://swift.org/)",
+        "zh": "[Swift](https://swift.org/)"
+      },
+      "abs": 4,
+      "absRange": [3, 6],
+      "i13s": 6,
+      "exp": 2,
+      "notes": {
+        "en": [
+          "Having tried with iOS development in ObjC, I very much appreciate Swift. I also believe it played an important role on pushing many mainstream PLs onboard with [optional chaining](https://docs.swift.org/swift-book/LanguageGuide/OptionalChaining.html).",
+          "Despite the fact that I have only developed one silly todo app in it, its uses of [ARC](https://en.wikipedia.org/wiki/Automatic_Reference_Counting), [LLVM](https://llvm.org/), and the latest [SwiftUI](https://developer.apple.com/xcode/swiftui/) made it very appealing to me."
+        ],
+        "zh": [
+          "用 ObjC 做过 iOS 开发之后，我非常欣赏 Swift。我也相信它在推动许多主流语言引入[可选链](https://docs.swift.org/swift-book/LanguageGuide/OptionalChaining.html)上起了重要作用。",
+          "虽然我只用它写过一个傻傻的待办应用，但它对 [ARC](https://en.wikipedia.org/wiki/Automatic_Reference_Counting)、[LLVM](https://llvm.org/) 的运用，以及最新的 [SwiftUI](https://developer.apple.com/xcode/swiftui/)，都让我觉得很有吸引力。"
+        ]
+      }
+    },
+    {
+      "id": "shell",
+      "name": "Shell",
+      "emoji": "🐚",
+      "title": {
+        "en": "[Shell Script](https://en.wikipedia.org/wiki/Shell_script)",
+        "zh": "[Shell 脚本](https://en.wikipedia.org/wiki/Shell_script)"
+      },
+      "abs": 4,
+      "i13s": 1,
+      "exp": 5,
+      "notes": {
+        "en": [
+          "They are probably the worst PLs to use in 99% of cases, nonetheless they can be extremely helpful. Although I had to Google/SOF all the time, I found myself writing a substantial amount of them in my projects, Ironically.",
+          "Why a 4 rather than the untyped 5? Its design fits the operating system too closely (processes, files, bytes, exit codes), and Unix itself fits the hardware a little too closely."
+        ],
+        "zh": [
+          "在 99% 的场景里它们大概是最糟糕的编程语言，但它们又可能极其有用。尽管我每次都得 Google / 查 Stack Overflow，讽刺的是，我发现自己在项目里写了相当多。",
+          "为什么是 4，而不是无类型语言的 5？因为它的设计太贴合操作系统了：进程、文件、字节、退出码；而 Unix 本身又有点太贴合硬件。"
+        ]
+      }
+    },
+    {
+      "id": "cpp0x",
+      "name": "C++0x",
+      "emoji": "✖️",
+      "title": {
+        "en": "[C++ (Post C++0x)](https://en.wikipedia.org/wiki/C%2B%2B)",
+        "zh": "[C++（C++0x 之后）](https://en.wikipedia.org/wiki/C%2B%2B)"
+      },
+      "abs": 3,
+      "absRange": [2, 5],
+      "i13s": 6,
+      "exp": 4,
+      "notes": {
+        "en": [
+          "This multiplication stands for the \"x\" in \"0x\"",
+          "TBD (Smart pointer, Ownership, Type deduction, Lambda, Rvalue Ref, Concepts)"
+        ],
+        "zh": [
+          "这个乘号代表“0x”里的那个“x”",
+          "TBD（智能指针、所有权、类型推导、Lambda、右值引用、Concepts）"
+        ]
+      }
+    },
+    {
+      "id": "cpp",
+      "name": "C++",
+      "emoji": "➕",
+      "title": {
+        "en": "[C++ (Pre C++0x)](https://en.wikipedia.org/wiki/C%2B%2B)",
+        "zh": "[C++（C++0x 之前）](https://en.wikipedia.org/wiki/C%2B%2B)"
+      },
+      "abs": 3,
+      "absRange": [2, 4],
+      "i13s": 4,
+      "exp": 4,
+      "notes": {
+        "en": [
+          "I still remembered seeing Sci & Eng students struggling with learning C++98 in a poor [VC6](https://en.wikipedia.org/wiki/Microsoft_Visual_C%2B%2B) to pass exams (I was an fine art student, luckily). It's too often to hear people complaining it being too complicated, although I'm aware of its importance even back then.",
+          "Placing it here is pretty much an after-thought to appreciate the original design of combining C's efficiency (\"simple and direct mapping to hardware\") with [Simula](https://en.wikipedia.org/wiki/Simula)'s program organizations (objects, classes, inheritance and subclasses, etc.). This idea has grown way beyond just \"C with Classes\" to what we now known as [\"zero-overhead abstractions\"](http://www.stroustrup.com/ETAPS-corrected-draft.pdf). See how far I put C++0x is?",
+          "That being said, I did not appreciate C++ (and later Java) [\"colonized\"](https://www.quora.com/What-did-Alan-Kay-mean-by-I-made-up-the-term-object-oriented-and-I-can-tell-you-I-did-not-have-C++-in-mind) the term [OOP](https://en.wikipedia.org/wiki/Object-oriented_programming) to what it is nowadays, despite Alan Kay's [original idea (messaging, localized state)](http://userpage.fu-berlin.de/~ram/pub/pub_jf47ht81Ht/doc_kay_oop_en) should probably better described as [\"Server-oriented\"](https://www.quora.com/What-is-Alan-Kays-definition-of-Object-Oriented) ([like](https://www.infoq.com/interviews/johnson-armstrong-oop/) [Erlang](https://en.wikipedia.org/wiki/Erlang_(programming_language))'s [Actor model](https://en.wikipedia.org/wiki/Actor_model)). The results of abusing the metaphors of \"objects\" leads to [misconceptions of object data hiding](https://www.quora.com/Why-are-objects-able-to-access-private-members-of-other-objects-of-the-same-class), [bad patterns](https://www.quora.com/In-object-oriented-programming-why-is-it-bad-practice-to-make-data-members-public-when-the-get-set-public-members-modify-it-anyway), mis-associations with [class-basing](https://en.wikipedia.org/wiki/Class-based_programming) and abstract data type, and finally, unhealthy [contention with FP.](https://www.quora.com/Why-is-functional-programming-seen-as-the-opposite-of-OOP-rather-than-an-addition-to-it)"
+        ],
+        "zh": [
+          "我还记得看着理工科同学在简陋的 [VC6](https://en.wikipedia.org/wiki/Microsoft_Visual_C%2B%2B) 里苦学 C++98 应付考试（幸好我是学美术的）。常听人抱怨它太复杂，不过即便在那时我也知道它的重要性。",
+          "把它放在这里，很大程度上是事后才想到要致敬它最初的设计：把 C 的效率（“简单而直接地映射到硬件”）和 [Simula](https://en.wikipedia.org/wiki/Simula) 的程序组织方式（对象、类、继承与子类等）结合起来。这个想法早已远远超出了“带类的 C”，发展成了我们今天所说的[“零开销抽象”](http://www.stroustrup.com/ETAPS-corrected-draft.pdf)。看到我把 C++0x 放得有多远了吗？",
+          "话虽如此，我并不认同 C++（以及后来的 Java）把[面向对象](https://en.wikipedia.org/wiki/Object-oriented_programming)这个词[“殖民”](https://www.quora.com/What-did-Alan-Kay-mean-by-I-made-up-the-term-object-oriented-and-I-can-tell-you-I-did-not-have-C++-in-mind)成了今天的样子；Alan Kay 的[原始想法（消息传递、局部状态）](http://userpage.fu-berlin.de/~ram/pub/pub_jf47ht81Ht/doc_kay_oop_en)或许更应该叫作[“面向服务器”](https://www.quora.com/What-is-Alan-Kays-definition-of-Object-Oriented)（[就像](https://www.infoq.com/interviews/johnson-armstrong-oop/) [Erlang](https://en.wikipedia.org/wiki/Erlang_(programming_language)) 的 [Actor 模型](https://en.wikipedia.org/wiki/Actor_model)）。滥用“对象”这个隐喻的后果，是[对对象数据隐藏的误解](https://www.quora.com/Why-are-objects-able-to-access-private-members-of-other-objects-of-the-same-class)、[糟糕的模式](https://www.quora.com/In-object-oriented-programming-why-is-it-bad-practice-to-make-data-members-public-when-the-get-set-public-members-modify-it-anyway)、与[基于类](https://en.wikipedia.org/wiki/Class-based_programming)和抽象数据类型的错误关联，以及最终与函数式编程之间[不健康的对立](https://www.quora.com/Why-is-functional-programming-seen-as-the-opposite-of-OOP-rather-than-an-addition-to-it)。"
+        ]
+      }
+    },
+    {
+      "id": "objc",
+      "name": "ObjC",
+      "emoji": "🍎",
+      "title": {
+        "en": "[Objective C](https://en.wikipedia.org/wiki/Objective-C)",
+        "zh": "[Objective-C](https://en.wikipedia.org/wiki/Objective-C)"
+      },
+      "abs": 3,
+      "absRange": [2, 4],
+      "i13s": 1,
+      "exp": 1,
+      "notes": {
+        "en": [
+          "TBD: (Connections with Apple and Smalltalk)"
+        ],
+        "zh": [
+          "TBD：（与 Apple 和 Smalltalk 的渊源）"
+        ]
+      }
+    },
+    {
+      "id": "rust",
+      "name": "Rust",
+      "emoji": "🦀",
+      "title": {
+        "en": "[Rust](https://en.wikipedia.org/wiki/Rust_(programming_language))",
+        "zh": "[Rust](https://en.wikipedia.org/wiki/Rust_(programming_language))"
+      },
+      "abs": 3,
+      "absRange": [2, 7],
+      "i13s": 5,
+      "exp": 3,
+      "notes": {
+        "en": [
+          "TBD: (Connections with ML and C++, Lifetimes, Ownership and Borrow Checker)"
+        ],
+        "zh": [
+          "TBD：（与 ML 和 C++ 的渊源、生命周期、所有权与借用检查器）"
+        ]
+      }
+    },
+    {
+      "id": "c",
+      "name": "C",
+      "emoji": "☝️",
+      "title": {
+        "en": "[C](https://en.wikipedia.org/wiki/C_(programming_language))",
+        "zh": "[C](https://en.wikipedia.org/wiki/C_(programming_language))"
+      },
+      "abs": 2,
+      "i13s": 4,
+      "exp": 5,
+      "notes": {
+        "en": [
+          "If you asked me one single most important PL, I would not hesitate and answer C. It serves as the footstone of nowadays world. It's just so fundamental, irreplaceable, and influential that no programmer could ignore.",
+          "The header emoji points to the beloved [pointer](https://en.wikipedia.org/wiki/Pointer_(computer_programming))! I don't blame its unsafety because it's designed to directly manipulate memory. I wasn't clicked the usefulness of pointer arithmetics until I wrote my first PL VM and implemented several GC algorithms with it."
+        ],
+        "zh": [
+          "如果你问我最重要的一门编程语言是什么，我会毫不犹豫地回答 C。它是当今世界的基石：如此基础、不可替代、影响深远，没有哪个程序员可以忽视。",
+          "标题的 emoji 指向我们心爱的[指针](https://en.wikipedia.org/wiki/Pointer_(computer_programming))！我不怪它不安全，因为它本来就是为直接操作内存而设计的。直到我写了第一个编程语言虚拟机，并用它实现了几种 GC 算法，才真正体会到指针运算的用处。"
+        ]
+      }
+    },
+    {
+      "id": "basic",
+      "name": "BASIC",
+      "emoji": "🧱",
+      "title": {
+        "en": "[BASIC](https://en.wikipedia.org/wiki/BASIC)",
+        "zh": "[BASIC](https://en.wikipedia.org/wiki/BASIC)"
+      },
+      "abs": 2,
+      "i13s": 1,
+      "exp": 0,
+      "notes": {
+        "en": [
+          "My very first PL taught by my father in my childhood. It always have a special place in my heart (though I have totally forgotten everything I learned). It marked the start of my life as a programmer."
+        ],
+        "zh": [
+          "我的第一门编程语言，小时候父亲教的。它在我心里永远有特殊的位置（尽管学过的东西我已经忘得一干二净）。它标志着我程序员生涯的开始。"
+        ]
+      }
+    },
+    {
+      "id": "llvm",
+      "name": "LLVM",
+      "emoji": "🐉",
+      "title": {
+        "en": "[Low Level Virtual Machine](https://en.wikipedia.org/wiki/LLVM)",
+        "zh": "[LLVM（Low Level Virtual Machine）](https://en.wikipedia.org/wiki/LLVM)"
+      },
+      "abs": 1,
+      "i13s": 7,
+      "exp": 2,
+      "notes": {
+        "en": [
+          "Here comes the dragon!",
+          "TBD (Intermediate Representation, SSA, Optimizing)"
+        ],
+        "zh": [
+          "龙来了！",
+          "TBD（中间表示、SSA、优化）"
+        ]
+      }
+    },
+    {
+      "id": "jvm",
+      "name": "JVM",
+      "emoji": "🥤",
+      "title": {
+        "en": "[Java Virtual Machine](https://en.wikipedia.org/wiki/Java_virtual_machine)",
+        "zh": "[Java 虚拟机](https://en.wikipedia.org/wiki/Java_virtual_machine)"
+      },
+      "abs": 1,
+      "i13s": 5,
+      "exp": 2,
+      "notes": {
+        "en": [
+          "TBD (IR, Bytecode, JIT, GC)"
+        ],
+        "zh": [
+          "TBD（IR、字节码、JIT、GC）"
+        ]
+      }
+    },
+    {
+      "id": "wasm",
+      "name": "Wasm",
+      "emoji": "🟦",
+      "title": {
+        "en": "[Web Assembly](https://en.wikipedia.org/wiki/WebAssembly)",
+        "zh": "[WebAssembly](https://en.wikipedia.org/wiki/WebAssembly)"
+      },
+      "abs": 1,
+      "i13s": 7,
+      "exp": 4,
+      "notes": {
+        "en": [
+          "TBD (Formal semantics, VM, Type system, Structured control flow)"
+        ],
+        "zh": [
+          "TBD（形式语义、虚拟机、类型系统、结构化控制流）"
+        ]
+      }
+    },
+    {
+      "id": "asm",
+      "name": "Asm",
+      "emoji": "0️⃣",
+      "title": {
+        "en": "[Assembly Language](https://en.wikipedia.org/wiki/Assembly_language)",
+        "zh": "[汇编语言](https://en.wikipedia.org/wiki/Assembly_language)"
+      },
+      "abs": 0,
+      "i13s": 4,
+      "exp": 2,
+      "notes": {
+        "en": [
+          "TBD (Compiler geek)"
+        ],
+        "zh": [
+          "TBD（编译器极客）"
+        ]
+      }
+    }
+  ],
+  "drafts": [
+    {
+      "id": "hack",
+      "name": "Hack",
+      "emoji": "🧭",
+      "title": {
+        "en": "[Hack](https://hacklang.org/)",
+        "zh": "[Hack](https://hacklang.org/)"
+      },
+      "abs": 5,
+      "i13s": 0,
+      "exp": 1,
+      "notes": {
+        "en": [
+          "Hack's logo looks like a compass to me"
+        ],
+        "zh": [
+          "Hack 的 logo 在我看来像个指南针"
+        ]
+      }
+    }
+  ]
+}

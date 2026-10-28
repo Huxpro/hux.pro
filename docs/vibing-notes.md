@@ -1,5 +1,7 @@
 # Vibing with Engineering
 
+Working notes for a talk on vibe coding and engineering. Not documentation of this codebase.
+
 Hi, i'm Xuan. 
 Not gonna talk about any of those today. 
 

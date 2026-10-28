@@ -19,18 +19,18 @@ import { type NormalizedWeather, fetchCurrentWeather } from "./weather";
 //
 // The provider is mounted once and lives as long as the tab, and the cache is
 // persisted, so staleTime alone refreshes nothing: something has to *ask*.
-// What asks is the world changing — the tab coming back (React Query's focus
+// What asks is the world changing: the tab coming back (React Query's focus
 // manager listens to visibilitychange), the network coming back, and for the
 // weather, the model's next interval landing. The global default turns focus
 // refetching off; these two queries turn it back on, and staleTime keeps that
 // to at most one request per window.
 // -----------------------------------------------------------------------------
 
-// An IP location moves when the network does — a new Wi-Fi, a phone leaving
-// it — so it is worth asking again after half an hour, not a day. A day was
+// An IP location moves when the network does (a new Wi-Fi, a phone leaving
+// it), so it is worth asking again after half an hour, not a day. A day was
 // long enough for a misplaced answer to stick through every reload.
 const IP_LOCATION_STALE_TIME = 30 * 60 * 1000;
-// A GPS fix is re-taken on the same half-hour — on focus too, but only while
+// A GPS fix is re-taken on the same half-hour. On focus too, but only while
 // the permission is known to be granted, so a refetch can never be what raises
 // the prompt.
 const ACCURATE_LOCATION_STALE_TIME = 30 * 60 * 1000;
@@ -38,8 +38,8 @@ const ACCURATE_LOCATION_STALE_TIME = 30 * 60 * 1000;
 /**
  * The live geolocation permission; null until the browser has answered. A
  * grant or a revocation made in the site settings arrives here too, without a
- * reload. `onChange` hears only changes *during* the visit — never the first
- * answer — with the answer before it.
+ * reload. `onChange` hears only changes *during* the visit (never the first
+ * answer), with the answer before it.
  */
 export function useGeolocationPermission(
   onChange?: (next: GeolocationPermission, previous: GeolocationPermission) => void
@@ -72,8 +72,8 @@ export const GRANT_MEMORY_MS = 24 * 60 * 60 * 1000;
 /**
  * May a fix be taken now without it being what raises the prompt?
  *
- * "granted" — yes. "unknown" (no Permissions API) — yes, the old behaviour.
- * "denied" or not answered yet — no. "prompt" — only within a day of the
+ * "granted": yes. "unknown" (no Permissions API): yes, the old behaviour.
+ * "denied" or not answered yet: no. "prompt": only within a day of the
  * visitor saying yes to it here: that is iOS Safari, whose default "Ask" site
  * setting keeps reading "prompt" after an Allow, and without this the switch to
  * Accurate never took. (A visitor who sets Safari's site setting to Allow reads

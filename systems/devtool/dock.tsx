@@ -15,6 +15,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { Bug, PanelBottom } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { DEVTOOL_OVER_ABOUT_Z, useOverAboutZ } from "@/systems/about/provider";
 import {
   DevtoolFooter,
   DevtoolModules,
@@ -25,7 +26,7 @@ import {
 import { useDevtool } from "./provider";
 
 // =============================================================================
-// Devtool dock — where the devtool is, and the gestures that move it.
+// Devtool dock: where the devtool is, and the gestures that move it.
 //
 // The devtool is ONE object with two dockings, not a button that opens a panel.
 // It is either docked to the bottom edge, or floating free; and it is either
@@ -35,10 +36,10 @@ import { useDevtool } from "./provider";
 //                 │ docked (an edge to hug)     │ floating
 //   ──────────────┼─────────────────────────────┼──────────────────────────
 //   open          │ SurfaceSheet, bottom edge   │ SurfaceWindow, top right
-//   closed        │ nothing — `D` or ⌘K summons │ the pill
+//   closed        │ nothing; `D` or ⌘K summons  │ the pill
 //
-// A desktop has no bottom edge worth docking to — a full-height devtool against
-// an edge would cover the page it is about — so it reads as floating whatever
+// A desktop has no bottom edge worth docking to: a full-height devtool against
+// an edge would cover the page it is about. So it reads as floating whatever
 // the setting says. That is the pill ⇄ window pair it has always had; the phone
 // is what gains a second docking.
 //
@@ -51,9 +52,9 @@ import { useDevtool } from "./provider";
 //         Holding is the decision, not arriving: a pill is a thing you can put
 //         anywhere, so dropping straight through the pad just leaves it there.
 //
-// Both say the same thing in the same language — where this belongs is
-// something you move it to — so neither has to be learnt separately, and the
-// pad appearing under a dragged pill is what teaches the pair. The window's
+// Both work the same way: you move the devtool to where it belongs. So neither
+// has to be learnt separately, and the pad appearing under a dragged pill is
+// what teaches the pair. The window's
 // header keeps a dock button too, because a window is not draggable to an edge
 // on a touch screen without covering the screen in the process.
 //
@@ -75,26 +76,32 @@ const WINDOW_WIDTH = "min(calc(100vw - 2rem), 420px)";
 const PAD_HEIGHT = 84;
 /**
  * How long the pill must be HELD over the pad before a release docks it.
- * Being over the pad is not the decision — staying there is. Drop straight
- * through and the pill just lands there, which is what a pill is for.
+ * Passing over the pad does not count; the pill has to stay there. Drop
+ * straight through and the pill just lands there, which is what a pill is for.
  */
 const DWELL_MS = 550;
 
 /**
  * The pill's z. Kept at what `withDraggable`'s wrapper used to give it, so the
- * pill still rides over the secondary surfaces (z 60/61) it can sit beside —
- * a picker opened from the palette while the devtool is collapsed.
+ * pill still rides over the secondary surfaces (z 60/61) it can sit beside,
+ * such as a picker opened from the palette while the devtool is collapsed.
  */
 const PILL_Z = 9999;
+
+/** The devtool's z for the moment: raised over the About while it shows
+ *  (DEVTOOL_OVER_ABOUT_Z), so the About's own knobs can be turned. */
+function useDevtoolZ(base: number | undefined) {
+  return useOverAboutZ(DEVTOOL_OVER_ABOUT_Z) ?? base;
+}
 
 /**
  * Where a release would put the sheet back. Only up while a pill is in hand.
  *
  * Three states, because there are three things to say: the pad is here, you
  * are over it, and holding is what commits. The dwell is drawn as the grabber
- * growing into the sheet's own — a bar filling to full width, on the clock
- * that is actually running — so the wait is legible rather than mysterious,
- * and leaving early visibly gives it back.
+ * growing into the sheet's own: a bar filling to full width, on the clock that
+ * is actually running. So the wait is visible, and leaving early visibly gives
+ * it back.
  */
 function DockPad({ state }: { state: PadState }) {
   const over = state !== "idle";
@@ -138,6 +145,7 @@ type PadState = "idle" | "over" | "armed";
 function DevtoolPill() {
   const { locale } = useLocale();
   const { open, canDock, dock } = useDevtool();
+  const z = useDevtoolZ(PILL_Z);
   // Destructured up front: reading `drag.*` inside the JSX trips the
   // react-hooks/refs rule, since the same object also carries `contentRef`.
   const {
@@ -155,8 +163,8 @@ function DevtoolPill() {
   // hand, so hoisting it to the dock only bought a prop and a second state.
   const [pad, setPad] = useState<PadState | null>(null);
   // Gesture state stays in refs. It is read synchronously inside the pointer
-  // handlers, and framer hands those handlers to the element once per render —
-  // a state read there could be one render stale and restart the dwell.
+  // handlers, and framer hands those handlers to the element once per render.
+  // A state read there could be one render stale and restart the dwell.
   const overRef = useRef(false);
   const armedRef = useRef(false);
   const dwellRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -227,7 +235,7 @@ function DevtoolPill() {
   return (
     <>
       {/* The box is not the button: only the pill itself takes pointers, so
-          the top-right corner belongs to whatever surface is up there — a
+          the top-right corner belongs to whatever surface is up there. A
           full-height picker's close button sits exactly here.
 
           It springs in from its own corner on the same curve the window opens
@@ -254,7 +262,7 @@ function DevtoolPill() {
       animate={{ opacity: 1, scale: 1 }}
       // The window's own curve: the pill is that window collapsed.
       transition={WINDOW_SPRING}
-      style={{ ...(isDraggable ? motionStyle : {}), zIndex: PILL_Z }}
+      style={{ ...(isDraggable ? motionStyle : {}), zIndex: z }}
       className="system-chrome pointer-events-none fixed top-4 right-4 origin-top-right"
     >
       <button
@@ -288,6 +296,7 @@ export function DevtoolFAB() {
   // the same pair, and two places deciding it is two places to drift apart.
   const { isEnabled, isOpen, canDock, isFloating, close, detach, dock } =
     useDevtool();
+  const z = useDevtoolZ(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   if (!isEnabled) return null;
@@ -335,6 +344,7 @@ export function DevtoolFAB() {
           // Where the devtool has always lived, and where it must stay:
           // centred, it would cover the page it is there to watch.
           placement="top-right"
+          zIndex={z}
         >
           {body}
         </SurfaceWindow>
@@ -351,6 +361,7 @@ export function DevtoolFAB() {
       snapPoints={SHEET_DETENTS}
       // Past the top edge and let go: the devtool comes off the bottom edge.
       onPullPastTop={detach}
+      zIndex={z}
     >
       {body}
     </SurfaceSheet>

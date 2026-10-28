@@ -4,12 +4,12 @@
  * `buildIconSvg(config)` is a *total, deterministic* function: the same config
  * always yields the same SVG string, with no React, DOM, or Next.js. That makes
  * it usable identically by the live editor preview, the dev save route, and the
- * build-time generator — the same "one implementation" discipline as og-core.
+ * build-time generator. It is the same "one implementation" discipline as og-core.
  *
  * Fonts: the SVG references font *family names* (e.g. "Newsreader"). When the
  * markup is rendered on a page that already loads those families (the editor)
  * it is WYSIWYG for free. For a *standalone* asset (the committed favicon) the
- * caller passes `fontFaceCss` — an `@font-face` block with the glyphs inlined —
+ * caller passes `fontFaceCss` (an `@font-face` block with the glyphs inlined),
  * so the file is self-contained. See `lib/icon/fonts.ts`.
  */
 
@@ -28,14 +28,14 @@ export interface BuildIconOptions {
    */
   fontFaceCss?: string;
   /**
-   * Force the baked corner radius regardless of config — used for the rounded
+   * Force the baked corner radius regardless of config. Used for the rounded
    * "app tile" preview. When omitted, `config.cornerRadius` is used.
    */
   cornerRadiusOverride?: number;
   /**
    * Prefix for internal element ids (clip/pattern/gradient/filter). Required
-   * to be unique when multiple icons are inlined into the *same* document — as
-   * the editor does — so their `url(#…)` references don't cross-wire. Defaults
+   * to be unique when multiple icons are inlined into the *same* document (as
+   * the editor does), so their `url(#…)` references don't cross-wire. Defaults
    * to "icon" (fine for a standalone file).
    */
   idPrefix?: string;
@@ -43,7 +43,7 @@ export interface BuildIconOptions {
    * Override the wordmark `font-family`. Defaults to the embeddable mono stack
    * (`'JetBrains Mono', …`) used by the standalone asset. The editor passes
    * `var(--font-mono)` so its on-page preview uses the *exact* JetBrains Mono
-   * instance `next/font` loaded site-wide — same typeface, guaranteed WYSIWYG.
+   * instance `next/font` loaded site-wide: same typeface, guaranteed WYSIWYG.
    */
   fontFamily?: string;
 }

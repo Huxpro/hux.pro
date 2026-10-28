@@ -1,5 +1,5 @@
 // =============================================================================
-// Track Metadata — lazy title/author resolution for playlist entries.
+// Track Metadata: lazy title/author resolution for playlist entries.
 //
 // The YouTube IFrame API exposes playlist *video IDs* only (`getPlaylist()`),
 // never titles. Titles are resolved client-side from the public oEmbed
@@ -82,7 +82,7 @@ async function fetchOEmbed(endpoint: string): Promise<TrackMeta | null> {
 /**
  * Resolve one video's title/author. Tries YouTube's oEmbed first, then
  * noembed.com (a CORS-friendly oEmbed proxy) as fallback. Returns null on
- * failure — callers render a positional fallback label instead.
+ * failure; callers render a positional fallback label instead.
  */
 export async function fetchTrackMeta(videoId: string): Promise<TrackMeta | null> {
   const cached = getCachedTrackMeta(videoId);
@@ -104,7 +104,7 @@ export async function fetchTrackMeta(videoId: string): Promise<TrackMeta | null>
         return meta;
       }
     } catch {
-      // Network/CORS failure — try the next endpoint.
+      // Network/CORS failure: try the next endpoint.
     }
   }
   return null;

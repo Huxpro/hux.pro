@@ -3,7 +3,7 @@
 import { useEffect, type RefObject } from "react";
 
 // =============================================================================
-// useSheetAxisLock — a sideways scroller inside a bottom sheet, with one owner
+// useSheetAxisLock: a sideways scroller inside a bottom sheet, with one owner
 // per gesture.
 //
 // A finger on a horizontal track in a sheet is claimed twice: the browser pans
@@ -27,7 +27,7 @@ import { useEffect, type RefObject } from "react";
 //              track (a sheet taller than its content allows), the drag is left
 //              to that scroller, which Base UI already arbitrates on its own.
 //
-// Only for a sheet — a drawer that travels down. A panel travels sideways,
+// Only for a sheet, a drawer that travels down. A panel travels sideways,
 // and there the track and the drawer share an axis.
 // =============================================================================
 

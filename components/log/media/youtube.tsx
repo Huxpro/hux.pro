@@ -28,8 +28,8 @@ export interface YouTubeEmbedProps {
   /** Additional CSS classes */
   className?: string;
   /**
-   * When provided, clicking the cover invokes this instead of playing inline —
-   * used to hand off playback to the immersive theater / PiP player.
+   * When provided, clicking the cover invokes this instead of playing inline.
+   * Used to hand off playback to the immersive theater / PiP player.
    */
   onPlay?: () => void;
 }
@@ -157,7 +157,7 @@ export function YouTubeEmbed({
           className="absolute inset-0 w-full h-full object-cover"
         />
 
-        {/* The cover wears its chip — the platform — the way every cover on the
+        {/* The cover wears its chip (the platform), the way every cover on the
             site does (media-mark.tsx). COVER_WASH is the iOS press affordance. */}
         <div className={COVER_WASH_TINTED} />
         <MediaMark mark={videoMark("youtube")} />

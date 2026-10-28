@@ -12,8 +12,9 @@ import {
   VisitorProvider,
 } from "@/services";
 
-import { SystemSonner } from "@/components/ui/system-sonner";
+import { AboutProvider } from "@/systems/about";
 import { AmbientProvider } from "@/systems/ambient";
+import { GlowPaletteBridge } from "@/systems/glow";
 import { AttachmentProvider } from "@/systems/attachments";
 import { IdentityCardProvider } from "@/systems/identity";
 import { InstallProvider } from "@/systems/install";
@@ -31,7 +32,12 @@ import { WindowProvider } from "@/systems/windows";
 function AmbientWrapper({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
 
-  return <AmbientProvider theme={theme}>{children}</AmbientProvider>;
+  return (
+    <AmbientProvider theme={theme}>
+      <GlowPaletteBridge />
+      {children}
+    </AmbientProvider>
+  );
 }
 
 function DevtoolWrapper({ children }: { children: React.ReactNode }) {
@@ -69,8 +75,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
                           <AttachmentProvider>
                             <IdentityCardProvider>
                               <InstallProvider>
-                                {children}
-                                <SystemSonner />
+                                <AboutProvider>
+                                  {children}
+                                </AboutProvider>
                               </InstallProvider>
                             </IdentityCardProvider>
                           </AttachmentProvider>

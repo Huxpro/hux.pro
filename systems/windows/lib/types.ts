@@ -2,7 +2,7 @@ import type { AppLink } from "@/lib/app-icon-core";
 import type { SizePreset } from "./geometry";
 
 // =============================================================================
-// Window system — shared types
+// Window system: shared types
 // =============================================================================
 
 /** Position + size of a window, in viewport (client) pixels. */
@@ -17,15 +17,15 @@ export interface Rect {
  * Whether a window is on the desktop or tucked into the dock. Size (including
  * the maximized/"max" state) is tracked separately via {@link SizePreset}, so
  * this is just the presence axis.
- *   - "normal"    — floating on the desktop at its {@link WindowInstance.rect}.
- *   - "minimized" — genied into the dock; still mounted (state preserved),
- *                   reachable by tapping its pill / icon.
+ *   - "normal":    floating on the desktop at its {@link WindowInstance.rect}.
+ *   - "minimized": genied into the dock; still mounted (state preserved),
+ *                  reachable by tapping its pill / icon.
  */
 export type WindowMode = "normal" | "minimized";
 
 /** One open app window. Identified by the app id (one window per app). */
 export interface WindowInstance {
-  /** Same as the app id — one live window per app, tapping again just focuses. */
+  /** Same as the app id: one live window per app; tapping again just focuses. */
   id: string;
   app: AppLink;
   rect: Rect;
@@ -35,7 +35,7 @@ export interface WindowInstance {
   /** Stacking order; the focused window holds the highest value. */
   z: number;
   /**
-   * Bumped by `reload` — the app frame keys off it, so a reload is a remount:
+   * Bumped by `reload`. The app frame keys off it, so a reload is a remount:
    * the only way to restart a cross-origin iframe or a Lynx runtime from here.
    */
   generation: number;

@@ -49,8 +49,8 @@ function resolveItems(locale: Locale): PromptItem[] {
   // A conviction quoted from someone keeps their voice; one in my own words
   // reads as a statement. Same split as the /prompt page.
   //
-  // A conviction can hold a chorus — the same belief as several traditions
-  // say it — and the card shows the head of it. The other voices are worth
+  // A conviction can hold a chorus (the same belief as several traditions
+  // say it), and the card shows the head of it. The other voices are worth
   // rotating through too, but a card that changed its mind mid-belief would
   // just read as two cards.
   for (const c of promptsRaw.convictions) {

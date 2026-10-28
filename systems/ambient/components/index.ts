@@ -14,4 +14,3 @@ export { WeatherLine } from "./weather-line";
 export { WeatherNow, useDisplayWeather } from "./weather-now";
 export { AmbientPhaseActivity } from "./phase-activity";
 export { SolarThemeSync } from "./solar-theme";
-export { SolarThemeToast } from "./solar-theme-toast";

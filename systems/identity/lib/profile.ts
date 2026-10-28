@@ -1,4 +1,5 @@
 import type { Locale } from "@/lib/i18n";
+import { plainInline } from "@/lib/inline-links";
 import {
   computeCommitHash,
   formatCommitDate,
@@ -22,13 +23,13 @@ import {
 export const DEFAULT_AVATAR = "https://avatars.githubusercontent.com/u/5563315?v=4";
 
 // =============================================================================
-// Identity profile — everything the identity card prints, derived once.
+// Identity profile: everything the identity card prints, derived once.
 //
 // An identity is "who I was when I committed this": a handle, a company, and
 // the role instances under it. The card is that identity's profile page in
-// miniature — the way a GitHub profile is a photo, a handle, a bio and a
-// contribution count — read from the same log the timeline renders, so it
-// cannot say anything the log does not.
+// miniature, the way a GitHub profile is a photo, a handle, a bio and a
+// contribution count. It is read from the same log the timeline renders, so
+// it cannot say anything the log does not.
 // =============================================================================
 
 export interface ProfileRole {
@@ -50,6 +51,17 @@ export interface ProfileCount {
   count: number;
 }
 
+/** A commit signed as the identity, as the card lists it. */
+export interface ProfileCommit {
+  id: string;
+  type: CommitType;
+  title: string;
+  /** `Oct 2021`: the row's own date. */
+  date: string;
+  /** Its row on /works. */
+  href: string;
+}
+
 export interface IdentityProfile {
   id: string;
   handle: string;
@@ -66,12 +78,17 @@ export interface IdentityProfile {
   /** Commits signed as this identity, by type, most numerous first. */
   counts: ProfileCount[];
   total: number;
-  /** The address of the latest commit signed as this identity. */
-  latestHref?: string;
+  /** The role's own row on /works. */
+  roleHref: string;
+  /** The commits signed as this identity (what `counts` counts), latest
+   *  first, for the card to list under its count. */
+  commits: ProfileCommit[];
 }
 
 function toProfileRole(role: RoleCommit, locale: Locale): ProfileRole {
-  const description = localize(role.description, locale);
+  // A role's prose may link names inline (lib/inline-links.ts); the card
+  // prints the words.
+  const description = plainInline(localize(role.description, locale));
   return {
     id: role.id,
     title: localize(role.title, locale),
@@ -103,7 +120,7 @@ export function buildIdentityProfile(
 
   const era = log.tags.find((t) => t.id === role.tagId);
 
-  // Everything signed as this identity — the same resolution the bylines
+  // Everything signed as this identity, by the same resolution the bylines
   // use, over the commits this locale lists.
   const signed = sortCommitsByDate(
     log.commits.filter(
@@ -114,13 +131,20 @@ export function buildIdentityProfile(
         resolveIdentity(c, log.commits)?.identityId === identityId,
     ),
   );
+  const commits: ProfileCommit[] = signed.map((c) => ({
+    id: c.id,
+    type: c.type,
+    title: localize(c.title, locale),
+    date: formatCommitDate(c, locale),
+    href: `/works#${computeCommitHash(c.id)}`,
+  }));
   const byType = new Map<CommitType, number>();
   for (const c of signed) byType.set(c.type, (byType.get(c.type) ?? 0) + 1);
   const counts: ProfileCount[] = [...byType.entries()]
     .sort((a, b) => b[1] - a[1])
     .map(([type, count]) => ({
       type,
-      // `1 talk`, `3 talks` — the row's own type label, singular or plural.
+      // `1 talk`, `3 talks`: the row's own type label, singular or plural.
       label:
         count === 1
           ? getCommitTypeLabel(type, locale)
@@ -143,6 +167,7 @@ export function buildIdentityProfile(
       : undefined,
     counts,
     total: signed.length,
-    latestHref: signed[0] ? `/works#${computeCommitHash(signed[0].id)}` : undefined,
+    roleHref: `/works#${computeCommitHash(role.id)}`,
+    commits,
   };
 }

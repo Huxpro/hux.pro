@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 470" width="980" height="470" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#222">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#555"/>
+    </marker>
+    <style>
+      .box{fill:#fff;stroke:#888;stroke-width:1.2}
+      .src{fill:#f3f3f3;stroke:#555;stroke-width:1.4}
+      .gen{fill:#f7f7f7;stroke:#aaa;stroke-width:1;stroke-dasharray:0}
+      .out{fill:#fff;stroke:#555;stroke-width:1.2}
+      .chk{fill:#fff;stroke:#555;stroke-width:1.2;stroke-dasharray:5 4}
+      .m{font-family:ui-monospace,'JetBrains Mono',Menlo,Consolas,monospace}
+      .b{font-weight:600}
+      .s{fill:#666;font-size:11px}
+      .ln{stroke:#555;stroke-width:1.3;fill:none}
+      .dl{stroke:#555;stroke-width:1.3;fill:none;stroke-dasharray:5 4}
+    </style>
+  </defs>
+  <rect width="980" height="470" fill="#ffffff"/>
+
+  <!-- Column A: writers and the source -->
+  <rect class="box" x="20" y="24" width="220" height="70" rx="8"/>
+  <text x="34" y="46" class="m b">/lab/icon</text>
+  <text x="34" y="64" class="s">Save (lg and up) → <tspan class="m">POST /api/icon</tspan></text>
+  <text x="34" y="80" class="s">next dev only; 403 in production</text>
+
+  <rect class="src" x="20" y="150" width="220" height="56" rx="8"/>
+  <text x="34" y="173" class="m b">content/icon.json</text>
+  <text x="34" y="191" class="s">the source of truth</text>
+
+  <rect class="box" x="20" y="262" width="220" height="56" rx="8"/>
+  <text x="34" y="285" class="m b">pnpm icon:generate</text>
+  <text x="34" y="303" class="s m">scripts/icon-generate.ts</text>
+
+  <path class="ln" d="M130 94 V146" marker-end="url(#a)"/>
+  <text x="138" y="125" class="s m">writeIconConfig</text>
+  <path class="ln" d="M130 206 V258" marker-end="url(#a)"/>
+  <text x="138" y="237" class="s m">readIconConfig</text>
+
+  <!-- Column B: the generator -->
+  <rect class="gen" x="290" y="14" width="330" height="328" rx="10"/>
+  <text x="304" y="36" class="m b">generateIconAssets</text>
+  <text x="440" y="36" class="s m">lib/icon/generate.ts</text>
+
+  <rect class="box" x="304" y="50" width="302" height="46" rx="6"/>
+  <text x="316" y="70" class="m">normalizeIconConfig</text>
+  <text x="316" y="86" class="s">lib/icon/config.ts · clamp, fill gaps from defaults</text>
+
+  <rect class="box" x="304" y="118" width="302" height="80" rx="6"/>
+  <text x="316" y="138" class="m">buildIconSvg(config, size 512)</text>
+  <text x="316" y="155" class="s">lib/icon/render.ts · pure, deterministic</text>
+  <text x="316" y="172" class="s">+ <tspan class="m">fetchEmbeddedFontFace</tspan>: woff2 subset,</text>
+  <text x="316" y="185" class="s">inlined as an @font-face data URI</text>
+
+  <rect class="box" x="304" y="220" width="302" height="108" rx="6"/>
+  <text x="316" y="240" class="m">rasterizeSvgToPng</text>
+  <text x="316" y="257" class="s">lib/icon/raster.ts · resvg (devDependency)</text>
+  <text x="316" y="274" class="s">+ <tspan class="m">fetchFontBuffer</tspan>: TTF subset, staged</text>
+  <text x="316" y="288" class="s">to a temp file, matched by its real family</text>
+  <text x="316" y="305" class="s">PNG 180 / 192 / 512; ICO 16 / 32 / 48</text>
+  <text x="316" y="319" class="s">via <tspan class="m">encodeIco</tspan></text>
+
+  <path class="ln" d="M455 96 V114" marker-end="url(#a)"/>
+  <path class="ln" d="M455 198 V216" marker-end="url(#a)"/>
+
+  <path class="ln" d="M240 59 C265 59 265 73 300 73" marker-end="url(#a)"/>
+  <path class="ln" d="M240 290 C268 290 268 73 300 73" marker-end="url(#a)"/>
+
+  <!-- Column C: outputs and who reads them -->
+  <rect class="out" x="670" y="24" width="290" height="56" rx="8"/>
+  <text x="684" y="46" class="m b">public/icons/icon.svg</text>
+  <text x="684" y="64" class="s">tab icon · <tspan class="m">metadata.icons.icon</tspan> (layout.tsx)</text>
+
+  <rect class="out" x="670" y="100" width="290" height="56" rx="8"/>
+  <text x="684" y="122" class="m b">public/icons/apple-icon.png</text>
+  <text x="684" y="140" class="s">180 · iOS · <tspan class="m">metadata.icons.apple</tspan></text>
+
+  <rect class="out" x="670" y="176" width="290" height="70" rx="8"/>
+  <text x="684" y="198" class="m b">public/icons/icon-192.png</text>
+  <text x="684" y="214" class="m b">public/icons/icon-512.png</text>
+  <text x="684" y="233" class="s"><tspan class="m">app/manifest.ts</tspan>; the 512 also as maskable</text>
+
+  <rect class="out" x="670" y="266" width="290" height="56" rx="8"/>
+  <text x="684" y="288" class="m b">app/favicon.ico</text>
+  <text x="684" y="306" class="s">16 / 32 / 48 · <tspan class="m">/favicon.ico</tspan> by Next convention</text>
+
+  <path class="ln" d="M606 154 C640 154 640 52 666 52" marker-end="url(#a)"/>
+  <path class="ln" d="M606 258 C640 258 640 128 666 128" marker-end="url(#a)"/>
+  <path class="ln" d="M606 268 C645 268 645 211 666 211" marker-end="url(#a)"/>
+  <path class="ln" d="M606 278 C645 278 645 294 666 294" marker-end="url(#a)"/>
+
+  <!-- Bottom: the check -->
+  <rect class="chk" x="290" y="378" width="460" height="74" rx="8"/>
+  <text x="304" y="400" class="m b">pnpm icon:check</text>
+  <text x="430" y="400" class="s">same script with --check · not run in CI</text>
+  <text x="304" y="419" class="s">re-renders icon.svg in memory, strips the &lt;style&gt; (font) block from both,</text>
+  <text x="304" y="436" class="s">and fails if they differ. The PNGs and the ICO are not compared.</text>
+
+  <path class="dl" d="M130 318 V415 H286" marker-end="url(#a)"/>
+  <text x="138" y="408" class="s">reads the config</text>
+  <path class="dl" d="M960 52 H972 V415 H754" marker-end="url(#a)"/>
+  <text x="782" y="408" class="s">the committed icon.svg</text>
+</svg>

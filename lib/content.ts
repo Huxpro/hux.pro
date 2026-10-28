@@ -10,8 +10,8 @@ export type PostLanguage = "en" | "zh" | "both";
  *
  * Lives here (framework-agnostic content layer) rather than in the client
  * component, so `lib/*` and the node snapshot script can reference it without
- * reaching across the framework boundary — the same reason `SocialEmbedPlatform`
- * lives in `lib/og-core`. `PeekCover` imports these back from here.
+ * reaching across the framework boundary. `SocialEmbedPlatform` lives in
+ * `lib/og-core` for the same reason. `PeekCover` imports these back from here.
  */
 export type CoverFit = "cover" | "natural";
 
@@ -48,18 +48,18 @@ export interface BlogPost extends Post {
   tags?: string[];
   origin?: string; // Markdown string describing provenance (from en file or zh-only)
   originZh?: string; // Chinese version's origin (from zh file)
-  /** Plain-text excerpt extracted from the post body for hover previews —
+  /** The post's first paragraph, whole, as plain text (lib/mdx `extractLead`):
    *  markdown / MDX components stripped, whitespace collapsed, truncated. */
   excerpt?: string;
   excerptZh?: string;
-  /** First image URL referenced in the post body — used as the peek cover. */
+  /** First image URL referenced in the post body, used as the peek cover. */
   cover?: string;
   coverZh?: string;
   /**
    * How the peek cover fills its slot (frontmatter `coverFit`):
    *  - `"cover"` (default): fixed-aspect slot, image cropped to fill.
-   *  - `"natural"`: slot matches the cover's intrinsic aspect (no crop) —
-   *    use for portrait screenshots / framing-sensitive covers.
+   *  - `"natural"`: slot matches the cover's intrinsic aspect (no crop).
+   *    Use for portrait screenshots / framing-sensitive covers.
    * Applies to both locales' covers. See {@link CoverFit} / PeekCover.
    */
   coverFit?: CoverFit;
@@ -70,16 +70,16 @@ export interface BlogPost extends Post {
    */
   coverAspect?: string;
   /**
-   * Frontmatter `featured: true` — curated onto the home writing widget
+   * Frontmatter `featured: true`: curated onto the home writing widget
    * alongside the latest posts. Mirrored in `lib/data.ts` for the client.
    */
   featured?: boolean;
 }
 
 /**
- * Format a post date the way every writing surface prints it — the list,
- * the article header and the home widget: `"apr 2021"` (lowercase short
- * month + year, always en-US so it reads as a quiet mono caption in both
+ * Format a post date the way every writing surface prints it (the list,
+ * the article header and the home widget): `"apr 2021"` (lowercase short
+ * month + year, always en-US so it reads as a plain mono caption in both
  * locales).
  */
 export function formatPostDate(dateStr: string): string {
@@ -89,7 +89,7 @@ export function formatPostDate(dateStr: string): string {
 }
 
 /**
- * The row-level slice of a blog post — what list-like client surfaces (the
+ * The row-level slice of a blog post: what list-like client surfaces (the
  * home writing widget) need, without excerpts, covers or raw frontmatter.
  * Built server-side from `getAllBlogPosts()` so the client payload stays
  * small and the data is the real frontmatter, not a hand-kept mirror.
@@ -113,8 +113,19 @@ export function toBlogPostSummaries(posts: BlogPost[]): BlogPostSummary[] {
   );
 }
 
-// Docs don't have extra fields beyond Post
-export type Doc = Post;
+/**
+ * A page of developer documentation (`docs/`). Frontmatter is optional:
+ *   skills   the `.claude/skills/<name>` this page is the long form of; the
+ *            page closes with a footnote linking each, and is tagged `skill`
+ *   origin   provenance, as on a post: a translated version says so
+ *            ("AI-translated from the original")
+ */
+export interface Doc extends Post {
+  tags?: string[];
+  skills?: string[];
+  origin?: string;
+  originZh?: string;
+}
 
 export interface Note extends Post {
   date: string;
@@ -168,12 +179,12 @@ export function shouldShowPost<T extends LocalizedContent>(
 // -----------------------------------------------------------------------------
 // Every tag is an ordinary tag; nothing here is a special kind of data. By
 // default a tag is visible in every locale. This table is the single source of
-// truth for the exceptions — exactly the way a post's own locale visibility
+// truth for the exceptions, the same way a post's own locale visibility
 // lives in `shouldShowPost` above, rather than being special-cased ad-hoc at
 // each render site. A tag listed here is shown ONLY in the locales given:
 //   "译"   the piece is a translation   → zh only
 //   "知乎" originally answered on Zhihu  → zh only
-// The mechanism is fully general — scope ANY tag to ANY locale by adding a row
+// The mechanism is fully general: scope ANY tag to ANY locale by adding a row
 // (e.g. `Foo: ["en"]` for en-only, `Bar: []` to hide everywhere). A tag not
 // listed stays visible in every locale.
 // =============================================================================
@@ -203,14 +214,16 @@ export function getVisibleTags(tags: string[], locale: Locale): string[] {
 // -----------------------------------------------------------------------------
 // A separate, smaller concern from visibility above: which tags read as
 // provenance/meta *annotations* and so render as a badge on the list row,
-// instead of living only in the hover peek. This is purely a display choice and
-// is deliberately independent of locale visibility — a tag can be locale-scoped
+// instead of living only in the hover peek. This is only a display choice and
+// is deliberately independent of locale visibility. A tag can be locale-scoped
 // without being a decorator (e.g. an en-only topic tag), and a decorator is
 // still subject to the visibility table (a decorator hidden in this locale
 // won't render). 译 / 知乎 happen to be both, but each is configured on its own.
+// `skill` marks a doc that also exists as a Claude Code skill (lib/mdx.ts
+// derives it from the doc's `skills` frontmatter).
 // =============================================================================
 
-export const decoratorTags: ReadonlySet<string> = new Set(["译", "知乎"]);
+export const decoratorTags: ReadonlySet<string> = new Set(["译", "知乎", "skill"]);
 
 /** Whether a tag renders as a row-level decorator badge (vs. a plain tag). */
 export function isDecoratorTag(tag: string): boolean {
@@ -295,4 +308,128 @@ export function getPostHref<T extends LocalizedContent>(
   }
   // Single-language posts: link directly to the post's language
   return `${base}/${post.language}`;
+}
+
+// ===== The post card =====
+
+/**
+ * A post as a card: its title, its first paragraph, its picture. A card for
+ * it anywhere on this site paints this, and its page publishes the same
+ * title and paragraph as Open Graph, so a crawl of the page and a card
+ * inside the site say the same thing.
+ *
+ * The picture has two faces. Inside the site a card shows the post's own
+ * first image, and sets the title beside it. Shared elsewhere, the post is
+ * `shareImage`: the card baked for it (that image darkened, the title and
+ * the year set over it), since a feed may show the picture alone.
+ */
+export interface PostCard {
+  /** The page, site-relative: `/writing/<slug>/<lang>`. */
+  url: string;
+  lang: Locale;
+  title: string;
+  /** The first paragraph, whole; the dek when the body has none. */
+  description?: string;
+  /** The first image in the body; the baked card for a post with none. */
+  image: string;
+  /** The baked card, 1200×630 (its `opengraph-image` route). */
+  shareImage: string;
+  date: string;
+}
+
+/** The card of one language version of a post (`lang` is the page's). */
+export function postCardOf(
+  post: LocalizedContent & {
+    date: string;
+    cover?: string;
+    coverZh?: string;
+    excerpt?: string;
+    excerptZh?: string;
+  },
+  lang: Locale,
+): PostCard {
+  const url = `/writing/${post.slug}/${lang}`;
+  const pick = <T>(zh: T | undefined, en: T | undefined) =>
+    lang === "zh" ? (zh ?? en) : (en ?? zh);
+  const shareImage = `${url}/opengraph-image`;
+  return {
+    url,
+    lang,
+    title: getLocalizedTitle(post, lang),
+    description:
+      pick(post.excerptZh, post.excerpt) || getLocalizedDescription(post, lang) || undefined,
+    image: pick(post.coverZh, post.cover) ?? shareImage,
+    shareImage,
+    date: post.date,
+  };
+}
+
+// ===== The post peek =====
+
+/**
+ * What a post shows under the pointer (the /writing row's peek), resolved
+ * for one locale: the post's "inner page" bits the row does not print.
+ * Title and date are left out; they are on whatever was hovered.
+ *
+ * One shape for every surface that summons a post: the /writing list, a
+ * magic link in prose (components/magic-link), and the attachment drawer
+ * that stands in for the peek on a phone.
+ */
+export interface PostPeek {
+  language: PostLanguage;
+  readingTime: string;
+  /** Curated frontmatter summary: the dek. */
+  description?: string;
+  /** Provenance, as authored (markdown links are flattened when shown). */
+  origin?: string;
+  /** Opening paragraphs of the body, plain text. */
+  excerpt?: string;
+  cover?: string;
+  coverFit?: CoverFit;
+  coverAspect?: string;
+  /** Tags visible in this locale. */
+  tags?: string[];
+}
+
+/** The blog-only extras a peek reads; Doc / Note simply leave them unset. */
+export type PostPeekSource = Post &
+  Partial<
+    Pick<
+      BlogPost,
+      | "tags"
+      | "origin"
+      | "originZh"
+      | "excerpt"
+      | "excerptZh"
+      | "cover"
+      | "coverZh"
+      | "coverFit"
+      | "coverAspect"
+    >
+  >;
+
+/**
+ * A post's peek for `locale`, preferring that locale's bits and falling back
+ * to the other language's, so a single-language post (js-20yrs-preface is
+ * zh-only) still peeks for a reader in the other locale.
+ */
+export function postPeekOf(post: PostPeekSource, locale: Locale): PostPeek {
+  const pick = <T>(zh: T | undefined, en: T | undefined) =>
+    locale === "zh" ? (zh ?? en) : (en ?? zh);
+  return {
+    language: post.language,
+    readingTime: getLocalizedReadingTime(post, locale),
+    description: getLocalizedDescription(post, locale) || undefined,
+    origin: pick(post.originZh, post.origin),
+    excerpt: pick(post.excerptZh, post.excerpt),
+    cover: pick(post.coverZh, post.cover),
+    coverFit: post.coverFit,
+    coverAspect: post.coverAspect,
+    tags: post.tags ? getVisibleTags(post.tags, locale) : undefined,
+  };
+}
+
+/** Whether a peek has anything the row does not already say. */
+export function postPeekHasContent(peek: PostPeek): boolean {
+  return !!peek.description || !!peek.excerpt || !!peek.cover;
 }

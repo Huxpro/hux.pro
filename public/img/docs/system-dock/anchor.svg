@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 800" width="700" height="800" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#444"/>
+    </marker>
+    <marker id="ad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#888"/>
+    </marker>
+  </defs>
+  <rect width="700" height="800" fill="#fff"/>
+
+  <!-- ===== Top: who holds the anchor ===== -->
+  <text x="10" y="24" font-size="15" font-weight="600" fill="#111">The top centre holds one thing at a time</text>
+
+  <!-- Notice -->
+  <rect x="10" y="80" width="180" height="86" rx="43" fill="#f4f4f5" stroke="#999"/>
+  <text x="100" y="110" font-size="15" font-weight="600" fill="#111" text-anchor="middle">Notice</text>
+  <text x="100" y="131" font-size="12.5" fill="#444" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">noticeUp</text>
+  <text x="100" y="150" font-size="12.5" fill="#555" text-anchor="middle">pills hidden</text>
+
+  <!-- Pills -->
+  <rect x="260" y="80" width="180" height="86" rx="43" fill="#f4f4f5" stroke="#999"/>
+  <text x="350" y="110" font-size="15" font-weight="600" fill="#111" text-anchor="middle">Pills</text>
+  <text x="350" y="131" font-size="12.5" fill="#444" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">openId === null</text>
+  <text x="350" y="150" font-size="12.5" fill="#555" text-anchor="middle">the Dock row</text>
+
+  <!-- Panel -->
+  <rect x="510" y="80" width="180" height="86" rx="16" fill="#f4f4f5" stroke="#999"/>
+  <text x="600" y="110" font-size="15" font-weight="600" fill="#111" text-anchor="middle">Panel</text>
+  <text x="600" y="131" font-size="12.5" fill="#444" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">openId === id</text>
+  <text x="600" y="150" font-size="12.5" fill="#555" text-anchor="middle">pills hidden</text>
+
+  <!-- Pills -> Panel -->
+  <line x1="442" y1="104" x2="507" y2="104" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="475" y="54" font-size="12.5" fill="#333" text-anchor="middle">tap the pill,</text>
+  <text x="475" y="70" font-size="12.5" fill="#333" text-anchor="middle">or pull it down</text>
+  <!-- Panel -> Pills -->
+  <line x1="507" y1="142" x2="442" y2="142" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="475" y="190" font-size="12.5" fill="#333" text-anchor="middle">Escape · outside press</text>
+  <text x="475" y="206" font-size="12.5" fill="#333" text-anchor="middle">chevron · swipe up</text>
+  <text x="475" y="222" font-size="12.5" fill="#333" text-anchor="middle">route change</text>
+
+  <!-- Pills -> Notice -->
+  <line x1="258" y1="104" x2="193" y2="104" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="225" y="70" font-size="12.5" fill="#333" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">showNotice()</text>
+  <!-- Notice -> Pills -->
+  <line x1="193" y1="142" x2="258" y2="142" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="225" y="190" font-size="12.5" fill="#333" text-anchor="middle">its time (3.2s),</text>
+  <text x="225" y="206" font-size="12.5" fill="#333" text-anchor="middle">a tap, a swipe up</text>
+
+  <!-- Panel -> Notice when one is pending -->
+  <path d="M 660 168 C 660 295, 40 295, 40 172" fill="none" stroke="#888" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ad)"/>
+  <text x="350" y="290" font-size="12.5" fill="#555" text-anchor="middle">a notice raised while a panel is open waits; it gets its full time after</text>
+
+  <!-- ===== Bottom: how the panel is built ===== -->
+  <line x1="10" y1="310" x2="690" y2="310" stroke="#e4e4e7"/>
+  <text x="10" y="338" font-size="15" font-weight="600" fill="#111">One activity, as live-activity.tsx builds it</text>
+  <text x="10" y="358" font-size="12.5" fill="#444" font-family="ui-monospace, Menlo, monospace">Drawer.Root swipeDirection="up" modal={false}</text>
+
+  <!-- Pill -->
+  <rect x="10" y="374" width="320" height="70" rx="10" fill="#fafafa" stroke="#999" stroke-dasharray="4 3"/>
+  <text x="22" y="394" font-size="12.5" fill="#333" font-family="ui-monospace, Menlo, monospace">Drawer.SwipeArea [data-dock-pill]</text>
+  <rect x="26" y="404" width="288" height="28" rx="14" fill="#e8f0fe" stroke="#5b7fbf"/>
+  <text x="170" y="422" font-size="12.5" fill="#1f3b70" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">Drawer.Trigger (the glass)</text>
+  <line x1="330" y1="400" x2="345" y2="400" stroke="#999"/>
+  <text x="350" y="398" font-size="12.5" fill="#333">In the Dock row. A pull down from here opens</text>
+  <text x="350" y="415" font-size="12.5" fill="#333">the panel under the finger. Hidden, the fade</text>
+  <text x="350" y="432" font-size="12.5" fill="#333">is on the Trigger; the wrapper stops pointers.</text>
+
+  <!-- Portal / viewport -->
+  <text x="10" y="474" font-size="12.5" fill="#555" font-family="ui-monospace, Menlo, monospace">Drawer.Portal → SurfaceViewport</text>
+  <rect x="10" y="482" width="320" height="300" rx="6" fill="#fafafa" stroke="#bbb"/>
+  <text x="30" y="500" font-size="12.5" fill="#c0392b" font-family="ui-monospace, Menlo, monospace">Drawer.Popup [data-dock-panel]</text>
+  <!-- Popup -->
+  <rect x="24" y="508" width="292" height="262" rx="4" fill="#fff" stroke="#c0392b" stroke-width="1.5"/>
+  <!-- Shell -->
+  <rect x="38" y="522" width="264" height="234" rx="16" fill="#e8f0fe" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="52" y="542" font-size="12.5" fill="#2e7d32" font-family="ui-monospace, Menlo, monospace">[data-surface-shell]</text>
+  <!-- Content -->
+  <rect x="52" y="552" width="236" height="140" rx="6" fill="#fff" stroke="#999"/>
+  <text x="64" y="570" font-size="12.5" fill="#333" font-family="ui-monospace, Menlo, monospace">Drawer.Content</text>
+  <rect x="64" y="580" width="212" height="30" rx="4" fill="#f4f4f5" stroke="#ccc"/>
+  <text x="170" y="599" font-size="12" fill="#444" text-anchor="middle">title · actions · Drawer.Close</text>
+  <rect x="64" y="618" width="212" height="62" rx="4" fill="#f4f4f5" stroke="#ccc"/>
+  <text x="170" y="653" font-size="12.5" fill="#444" text-anchor="middle">children (the body)</text>
+  <!-- Grabber -->
+  <text x="170" y="718" font-size="12" fill="#555" text-anchor="middle">grabber</text>
+  <rect x="140" y="726" width="60" height="6" rx="3" fill="#999"/>
+
+  <!-- Annotations -->
+  <line x1="316" y1="516" x2="345" y2="516" stroke="#c0392b"/>
+  <text x="350" y="520" font-size="13" font-weight="600" fill="#c0392b">Popup: the transform, no paint</text>
+  <text x="350" y="538" font-size="12" fill="#333">top: TOP_INSET · width: panelWidth</text>
+  <text x="350" y="555" font-size="12" fill="#333">closed: scale(0.94), never translateY (note 5)</text>
+  <text x="350" y="572" font-size="12" fill="#333">pulled: translateY(--drawer-swipe-movement-y)</text>
+  <text x="350" y="589" font-size="12" fill="#333">thrown: translateY(calc(-100% - --surface-exit))</text>
+
+  <line x1="302" y1="620" x2="345" y2="620" stroke="#2e7d32"/>
+  <text x="350" y="624" font-size="13" font-weight="600" fill="#2e7d32">Shell: the glass, and the fade</text>
+  <text x="350" y="642" font-size="12" fill="#333">backdrop-blur-xl; dock-pop-in / dock-pop-out</text>
+  <text x="350" y="659" font-size="12" fill="#333">keyframes (note 4); the stack's recede</text>
+
+  <line x1="288" y1="684" x2="345" y2="684" stroke="#999"/>
+  <text x="350" y="688" font-size="12.5" fill="#333">Inside Content, a mouse press is a click</text>
+
+  <line x1="200" y1="729" x2="345" y2="729" stroke="#999"/>
+  <text x="350" y="733" font-size="12.5" fill="#333">Outside it, a mouse drag is a drag</text>
+</svg>

@@ -26,11 +26,11 @@ import { keepRoot, type RootState } from "./root";
 import { enableStatusTapToTop } from "./status-tap";
 
 // =============================================================================
-// <Vitre> — see ../vitre.d.ts for the contract.
+// <Vitre>: see ../vitre.d.ts for the contract.
 //
 // Four bands and four quarter-circles in the bezel colour, drawn above
 // everything so the page stops on a clean line and is rounded off inside
-// them — ryOS's DesktopCornerMask, with bands. The top and bottom bands are
+// them (ryOS's DesktopCornerMask, with bands). The top and bottom bands are
 // the band thickness; the sides are the safe area, which in landscape is the
 // notch. The top and bottom bands overshoot the viewport by half a screen, so
 // a viewport that resizes (a desktop window, a toolbar in window scroll) never
@@ -133,7 +133,7 @@ export function Vitre({
 
   // The chrome: shown the new colour whenever the colour it should show
   // changes. Not on the first resolution when it matches what the page loaded
-  // with — Safari already has that one.
+  // with: Safari already has that one.
   // The morph starts and ends at the bezel on screen: its band and corners
   // while it is on, nothing while it is off. Read through a ref so a band
   // change alone does not trigger a sync.
@@ -153,6 +153,44 @@ export function Vitre({
       synced.current = chrome;
     }
   }, [chrome, boot, chromeMorph]);
+
+  // iOS re-samples the page when a Home Screen web app is closed and opened,
+  // and when Safari goes to the background or comes back. It samples the
+  // current background, which is not the chrome colour, so show it that
+  // colour again. The same colour would not morph on its own. `pagehide` /
+  // `pageshow` cover a web view that skips `visibilitychange`. Paint before
+  // the page is suspended; timers scheduled on pagehide may never run.
+  // Events on return share a single morph.
+  useEffect(() => {
+    if (chrome === null || !chromeMorph) return undefined;
+    let timer = 0;
+    let suspended = false;
+    const repaint = () => syncChrome(chrome, { ...shape.current, morph: true });
+    const repaintBeforeSuspend = () => {
+      window.clearTimeout(timer);
+      if (suspended) return;
+      suspended = true;
+      repaint();
+    };
+    const repaintOnReturn = () => {
+      suspended = false;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(repaint, 0);
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") repaintBeforeSuspend();
+      else repaintOnReturn();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", repaintBeforeSuspend);
+    window.addEventListener("pageshow", repaintOnReturn);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", repaintBeforeSuspend);
+      window.removeEventListener("pageshow", repaintOnReturn);
+    };
+  }, [chrome, chromeMorph]);
 
   const state = useMemo<VitreState>(
     () => ({

@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 780" width="680" height="780" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13" fill="#1f2328">
+  <rect width="680" height="780" fill="#ffffff"/>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#57606a"/>
+    </marker>
+  </defs>
+  <style>
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+    .b { font-weight: 600; }
+    .s { font-size: 12px; fill: #57606a; }
+    .band { font-size: 11px; font-weight: 600; fill: #57606a; letter-spacing: .05em; }
+    .src { fill: #f6f8fa; stroke: #d0d7de; }
+    .cmd { fill: #ddf4ff; stroke: #54aeff; }
+    .file { fill: #fff8c5; stroke: #d4a72c; }
+    .ci { fill: #ffebe9; stroke: #ff8182; }
+    .run { fill: #dafbe1; stroke: #4ac26b; }
+    .dev { fill: #ffffff; stroke: #8c959f; stroke-dasharray: 5 4; }
+    .ln { stroke: #57606a; stroke-width: 1.5; fill: none; }
+  </style>
+
+  <text x="16" y="24" class="band">ON YOUR MACHINE: PNPM, NETWORK ALLOWED</text>
+
+  <!-- Sources -->
+  <rect x="16" y="36" width="208" height="96" rx="8" class="src"/>
+  <text x="28" y="58" class="mono b">content/log.json</text>
+  <text x="28" y="78" class="s">link cards, each urls entry,</text>
+  <text x="28" y="94" class="s">Bilibili / Vimeo videos,</text>
+  <text x="28" y="110" class="s">a talk's conference.url,</text>
+  <text x="28" y="126" class="s">links in a commit's text</text>
+
+  <rect x="236" y="36" width="208" height="96" rx="8" class="src"/>
+  <text x="248" y="58" class="mono b">MDX in content/, docs/</text>
+  <text x="248" y="80" class="mono">&lt;MagicLink href&gt;</text>
+  <text x="248" y="98" class="mono">&lt;Badge href&gt;</text>
+  <text x="248" y="120" class="s">external pages only</text>
+
+  <rect x="456" y="36" width="208" height="96" rx="8" class="src"/>
+  <text x="468" y="58" class="mono b">/writing/&lt;slug&gt;/&lt;lang&gt;</text>
+  <text x="468" y="78" class="s">our posts: computed,</text>
+  <text x="468" y="94" class="s">not crawled</text>
+  <text x="468" y="118" class="mono">siteCardOf ← postCardOf</text>
+
+  <path d="M120,132 L120,160" class="ln" marker-end="url(#a)"/>
+  <path d="M340,132 L340,160" class="ln" marker-end="url(#a)"/>
+  <path d="M560,132 L560,146 L420,146 L420,160" class="ln" marker-end="url(#a)"/>
+
+  <!-- Commands -->
+  <rect x="16" y="162" width="428" height="140" rx="8" class="cmd"/>
+  <text x="28" y="186" class="mono b">pnpm og:snapshot</text>
+  <text x="168" y="186" class="s">scripts/og-snapshot.ts</text>
+  <text x="28" y="210" class="s">crawls with fetchOG (lib/og-core.ts), five at a time;</text>
+  <text x="28" y="226" class="s">a complete manual preview (title + image) skips it</text>
+  <text x="28" y="248" class="s">sorted keys, fixed field order, no timestamps</text>
+  <text x="28" y="270" class="s">a failed crawl keeps the prior entry; no usable entry</text>
+  <text x="28" y="286" class="s">and no manual preview: exit 1. Then records sizes.</text>
+
+  <rect x="456" y="162" width="208" height="140" rx="8" class="cmd"/>
+  <text x="468" y="186" class="mono b">pnpm og:sizes</text>
+  <text x="468" y="210" class="s">cover sizes only,</text>
+  <text x="468" y="226" class="s">no page crawl;</text>
+  <text x="468" y="248" class="s">reads each image's</text>
+  <text x="468" y="264" class="s">header</text>
+
+  <path d="M120,302 L120,340" class="ln" marker-end="url(#a)"/>
+  <path d="M380,302 L380,340" class="ln" marker-end="url(#a)"/>
+  <path d="M560,302 L560,340" class="ln" marker-end="url(#a)"/>
+
+  <!-- Committed files -->
+  <rect x="16" y="342" width="312" height="96" rx="8" class="file"/>
+  <text x="28" y="366" class="mono b">content/og-snapshot.json</text>
+  <text x="28" y="386" class="s">committed, keyed by page URL:</text>
+  <text x="28" y="406" class="mono">title description image</text>
+  <text x="28" y="424" class="mono">siteName frame: "deny"</text>
+
+  <rect x="352" y="342" width="312" height="96" rx="8" class="file"/>
+  <text x="364" y="366" class="mono b">content/image-sizes.json</text>
+  <text x="364" y="386" class="s">committed, keyed by image URL:</text>
+  <text x="364" y="406" class="mono">[width, height]</text>
+  <text x="364" y="424" class="s">a refused probe: written by hand</text>
+
+  <!-- Band -->
+  <line x1="16" y1="476" x2="664" y2="476" stroke="#d0d7de" stroke-dasharray="6 5"/>
+  <text x="16" y="498" class="band">CI AND THE BUILD: COMMITTED FILES ONLY, NO NETWORK</text>
+
+  <!-- Both files feed both readers -->
+  <path d="M172,438 L172,520" class="ln" marker-end="url(#a)"/>
+  <path d="M508,438 L508,520" class="ln" marker-end="url(#a)"/>
+  <path d="M172,456 L508,456" class="ln"/>
+  <circle cx="172" cy="456" r="3" fill="#57606a"/>
+  <circle cx="508" cy="456" r="3" fill="#57606a"/>
+
+  <!-- CI -->
+  <rect x="16" y="522" width="312" height="146" rx="8" class="ci"/>
+  <text x="28" y="546" class="mono b">pnpm og:complete</text>
+  <text x="28" y="564" class="s">.github/workflows/ci.yml: each PR, and main</text>
+  <text x="28" y="586" class="s">fails when, after enrichment:</text>
+  <text x="28" y="604" class="s">· a cover has no image, or no file</text>
+  <text x="28" y="622" class="s">· a post's card changed since the snapshot</text>
+  <text x="28" y="640" class="s">· a cover's size is missing or stale</text>
+  <text x="28" y="660" font-size="12" fill="#cf222e">exit 1: the check fails</text>
+
+  <!-- Runtime -->
+  <rect x="352" y="522" width="312" height="146" rx="8" class="run"/>
+  <text x="364" y="546" class="mono b">enrichLogDataWithPreviews</text>
+  <text x="364" y="564" class="s">lib/og-enrich.ts: per field, preview wins</text>
+  <text x="364" y="586" class="s">server: app/works/layout.tsx</text>
+  <text x="364" y="602" class="s">client: lib/log-client.ts, app/home-view.tsx</text>
+  <text x="364" y="626" class="mono">LinkCard  PeekCover</text>
+  <text x="364" y="644" class="s">slot height from imageSizeOf</text>
+
+  <!-- Dev fallback -->
+  <path d="M508,668 L508,698" class="ln" stroke-dasharray="5 4" marker-end="url(#a)"/>
+  <text x="518" y="688" class="s">no title + image yet</text>
+  <rect x="352" y="700" width="312" height="70" rx="8" class="dev"/>
+  <text x="364" y="722" class="mono b">GET /api/og?url=…</text>
+  <text x="364" y="742" class="s">the live crawl, in pnpm dev; in production</text>
+  <text x="364" y="758" class="s">404 unless NEXT_PUBLIC_OG_RUNTIME=1</text>
+</svg>

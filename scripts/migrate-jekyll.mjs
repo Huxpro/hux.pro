@@ -89,7 +89,7 @@ function extractDate(data, filenameDate) {
     if (data.date instanceof Date) {
       return data.date.toISOString().slice(0, 10);
     }
-    // String date — extract YYYY-MM-DD
+    // String date: extract YYYY-MM-DD
     const m = String(data.date).match(/(\d{4})-(\d{2})-(\d{2})/);
     if (m) return `${m[1]}-${m[2]}-${m[3]}`;
   }

@@ -2,6 +2,7 @@ import { getTimeOfDay, type TimeOfDay } from "./greeting";
 import {
   DEFAULT_SUN_EVENT_WINDOW_MINUTES,
   getSunEventInVisibleWindow,
+  type SunEvent,
 } from "./sun";
 
 export type AmbientPhase =
@@ -86,4 +87,9 @@ export function deriveAmbientPhase(params: {
     sunriseMs: params.sunriseMs,
     sunsetMs: params.sunsetMs,
   });
+}
+
+/** The sun event a phase is, if it is one: the ±45 minutes either side of it. */
+export function sunEventOf(phase: AmbientPhase): SunEvent | null {
+  return phase === "sunrise" || phase === "sunset" ? phase : null;
 }

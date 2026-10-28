@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Media — unified MDX entry point for a single piece of attached content.
+ * Media: unified MDX entry point for a single piece of attached content.
  *
  * Detects the kind from the URL and routes to the appropriate renderer.
  * Authors can force a kind with `as`, and a card vs. pill presentation for
@@ -22,11 +22,12 @@ import type { MediaKind, VideoPlatform, SocialEmbedPlatform } from "@/lib/log";
  * card-only (`LinkPresent`); this is the MDX component's own choice.
  */
 type MediaPresent = "pill" | "card";
-import { Video, detectVideoPlatform } from "./video";
+import { Video } from "./video";
+import { detectMediaKind, detectVideoPlatform } from "@/lib/media-kind";
 import { SocialEmbed, detectSocialEmbedPlatform } from "./embed";
 import { Link, LinkCard } from "./link";
 import { Figure } from "./image";
-import { Slides, isPlayableSlidesUrl } from "./slides";
+import { Slides } from "./slides";
 
 // =============================================================================
 // Types
@@ -59,16 +60,6 @@ export interface MediaProps {
 // Auto-Detection Helpers
 // =============================================================================
 
-const IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i;
-
-function autoDetectKind(url: string): MediaKind {
-  if (detectVideoPlatform(url)) return "video";
-  if (detectSocialEmbedPlatform(url)) return "social-embed";
-  if (isPlayableSlidesUrl(url)) return "slides";
-  if (IMAGE_EXTENSIONS.test(url)) return "image";
-  return "link";
-}
-
 // =============================================================================
 // Main Component
 // =============================================================================
@@ -85,14 +76,14 @@ export function Media({
   size = "default",
   className,
 }: MediaProps) {
-  const kind = as ?? autoDetectKind(url);
+  const kind = as ?? detectMediaKind(url);
 
   switch (kind) {
     case "video": {
       const videoPlatform =
         (platform as VideoPlatform) ?? detectVideoPlatform(url);
       if (!videoPlatform) {
-        // Misclassified URL — degrade to a card rather than silently failing.
+        // Misclassified URL: degrade to a card rather than silently failing.
         return <LinkCard url={url} size={size} className={className} />;
       }
       return (

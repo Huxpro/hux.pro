@@ -4,13 +4,13 @@
  * A standalone SVG favicon can't rely on the page's fonts, so the wordmark
  * would fall back to a system serif/sans unless the glyphs travel *with* the
  * file. This module fetches a tiny, text-subset `@font-face` from Google Fonts
- * (the `&text=` param returns only the requested glyphs — typically a couple of
+ * (the `&text=` param returns only the requested glyphs, typically a couple of
  * KB) and inlines the font data as a data URI.
  *
  * Network-dependent and therefore best-effort: every failure path returns
  * `null`, and `buildIconSvg` simply omits the `<style>` block, so the icon still
  * renders (with the platform's fallback font) when offline. This runs only
- * server-side (the dev save route, the build generator) — never in the browser.
+ * server-side (the dev save route, the build generator), never in the browser.
  */
 
 import { MONO_GOOGLE_FONT, type IconConfig } from "./config.ts";
@@ -75,7 +75,7 @@ async function fetchDataUri(
  * Fetch the raw wordmark font bytes (glyph-subset) for the rasterizer.
  *
  * Unlike the SVG path, the PNG renderer (resvg) doesn't read inline
- * `@font-face`; it needs the font as a buffer — and specifically a TrueType
+ * `@font-face`; it needs the font as a buffer, and specifically a TrueType
  * one, since resvg renders Google's woff2 subset at the wrong weight. The
  * `UA_LEGACY` header makes Google return a static .ttf. Returns `null` on
  * failure so the caller can fall back to a system mono font.
@@ -102,8 +102,8 @@ export async function fetchFontBuffer(
 /**
  * Read the family name (`name` table, nameID 1) out of a TrueType/OpenType
  * buffer. resvg matches fonts by this exact name, and Google's *static* weight
- * instances are named with the weight baked in — the 300 file is
- * "JetBrains Mono Light", not "JetBrains Mono" — so the rasterizer must be told
+ * instances are named with the weight baked in (the 300 file is
+ * "JetBrains Mono Light", not "JetBrains Mono"), so the rasterizer must be told
  * the real name or it silently falls back to a system font. Returns `null` if
  * the table can't be read.
  */

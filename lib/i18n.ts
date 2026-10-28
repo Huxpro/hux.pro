@@ -9,6 +9,15 @@ export const defaultLocale: Locale = "en";
 
 export const locales: Locale[] = ["en", "zh"];
 
+/**
+ * The language a piece of copy is written in, read off its script: any Han
+ * makes it Chinese. For text whose locale was chosen with a fallback (a zh
+ * viewer shown an en-only dek), where the viewer's locale would be wrong.
+ */
+export function langOf(text: string): Locale {
+  return /[\u3400-\u9fff]/.test(text) ? "zh" : "en";
+}
+
 export const localeNames: Record<Locale, string> = {
   en: "English",
   zh: "中文",
@@ -26,6 +35,7 @@ export const scrambleCharacterSets = {
     writing: "文字写作博客言之有物",
     works: "工作作品集术业有专攻",
     prompts: "系统提示词闻道有先后",
+    lab: "实验室格物而致知",
     // Default fallback for other pages
     default:
       "的一是了不人有我他这个们中来上大为和国地到以说时要就出会可也你对生能而子",
@@ -48,7 +58,7 @@ export const translations = {
 
     // Homepage
     tagline:
-      "Prose, profession, programming, production, projects—each a facet of a complete person.",
+      "Prose, profession, programming, production, projects: each a facet of a complete person.",
     currently: "Currently",
     currentStatus:
       "Architect of Lynx at ByteDance. Making interfaces better for more users, more developers, and more machines, and exploring what app frameworks should look like in the age of AI.",
@@ -82,6 +92,8 @@ export const translations = {
     widgetWeather: "weather",
     widgetPrompt: "prompts",
     widgetPromptNext: "Next prompt",
+    widgetLab: "lab",
+    widgetLabNext: "Next lab",
     widgetMusic: "playing",
     widgetMusicIdle: "music",
     widgetFeaturedTalks: "talks",
@@ -94,9 +106,9 @@ export const translations = {
     theaterSurfaceTheater: "Theater",
     theaterSurfacePip: "PiP",
     theaterSurfaceMini: "Audio",
-    theaterSurfaceMiniHint: "Minimize — audio keeps playing",
+    theaterSurfaceMiniHint: "Minimize and keep the audio playing",
     theaterSurfaceMinimize: "Minimize",
-    theaterSurfaceMinimizeHint: "Minimize — the deck stays open",
+    theaterSurfaceMinimizeHint: "Minimize and keep the deck open",
     theaterDeck: "slides",
     theaterSurfaceNow: "Now in {surface}",
     theaterSurfaceGo: "Switch to {surface}",
@@ -105,6 +117,7 @@ export const translations = {
     theaterClosePlaylist: "Close playlist",
     widgetEditDone: "Done",
     widgetEditReset: "Reset",
+    widgetEditWidgets: "Widgets",
     musicNotPlaying: "nothing playing",
     settingsMusic: "Music",
     musicPlay: "Play",
@@ -172,12 +185,12 @@ export const translations = {
     wallpaperWeatherGradientMeta: "css · gradient",
     wallpaperWeatherClassic: "Classic",
     wallpaperWeatherClassicMeta: "css · gradient",
-    wallpaperNoWebGL: "No WebGL2 here — Sky paints the Gradient instead.",
+    wallpaperNoWebGL: "This browser has no WebGL2, so Sky paints the Gradient instead.",
     wallpaperTilt: "Tilt",
-    wallpaperTiltNote: "Rain and snow fall along real gravity — lean the device and the sky leans with it.",
+    wallpaperTiltNote: "Rain and snow fall along real gravity. Lean the device and the sky leans with it.",
     wallpaperTiltAsk: "Turning it on asks this browser for motion access.",
     wallpaperTiltDenied: "Motion access was refused; allow it again in the browser's settings for this site.",
-    wallpaperTiltSilent: "Nothing here to tilt with — this device sends no motion readings.",
+    wallpaperTiltSilent: "This device sends no motion readings, so there is nothing to tilt with.",
     tiltPrimerTitle: "You found an easter egg!",
     tiltPrimerBody: "The rain and snow here follow real gravity. Turn on tilt, then lean your phone and watch the rain slant across the screen.",
     tiltPrimerAsk: "Your browser will ask for motion access. Just allow it.",
@@ -265,13 +278,25 @@ export const translations = {
     wallpaperPlayEveryHourly: "Hourly",
     wallpaperPlayEveryDaily: "Daily",
 
-    // Sun theme — the theme following sunrise and sunset
-    settingsSolarTheme: "Follow the Sun",
-    solarThemeHint:
-      "Once dawn and dusk have played out, the theme follows the sky — for this session only, never your saved Appearance.",
+    // Follow the Sun: the notice at a sunrise or a sunset
     solarThemeToLight: "Light Mode",
     solarThemeToDark: "Dark Mode",
-    solarThemeNote: "Preference unchanged",
+    solarThemeNote: "Following the Sun",
+
+    // A bilingual post: the language switch, and a link shared in the other
+    // language than the reader's. `{lang}` / `{shared}` / `{preferred}` are
+    // `languageNameEn` / `languageNameZh`, in the words of the text around them.
+    // The two choices are each read in the language they lead to
+    // (`languageSwitchTo` in the preferred one, `languageStayIn` in the shared
+    // one); see components/post/language-sheet.tsx.
+    languageNameEn: "English",
+    languageNameZh: "Chinese",
+    languageReadingIn: "Reading in {lang}",
+    languageNote: "Preference unchanged",
+    languageSharedTitle: "Shared in {shared}",
+    languageSharedBody: "You usually read in {preferred}; this post comes in {preferred} too.",
+    languageSwitchTo: "Read in {preferred}",
+    languageStayIn: "Keep reading in {shared}",
 
     // The article header's provenance line, folded behind an `(i)`.
 
@@ -351,7 +376,8 @@ export const translations = {
     commandClose: "Close command palette",
     appearance: "Appearance",
     languageLabel: "Language",
-    themeSystem: "System",
+    themeSystem: "Follow the System",
+    themeSun: "Follow the Sun",
     themeDark: "Dark",
     themeLight: "Light",
     switchToDark: "Switch to Dark Mode",
@@ -388,6 +414,8 @@ export const translations = {
     logFormCovers: "Covers",
     logFormFeed: "Feed",
     logNoMatches: "no commits match this filter.",
+    // The years down the desk's right margin (components/log/year-rail.tsx)
+    logYearsLabel: "Years",
     writingFeatured: "featured",
     logSelectedWorks: "Selected Works",
     logRead: "Read",
@@ -408,12 +436,44 @@ export const translations = {
     lightboxHintTouch: "Pinch to zoom · double-tap · drag to pan",
     // Identity card (see systems/identity)
     identityCardClose: "Close identity card",
-    identityOtherRoles: "Also as this identity",
-    identityCommits: "commits signed",
+    identityOtherRoles: "Also at {company}",
+    identityCommits: "commits",
     // Links that leave the site (see systems/attachments)
     linkOpensInTab: "Opens in a new tab",
     linkNewTab: "New tab",
     linkFrameDenied: "{host} does not allow being shown in a window",
+    // Command palette section: one-off actions (install, voice, music)
+    sectionActions: "Actions",
+    // Voice (see systems/voice)
+    voiceSearch: "Voice",
+    voiceListen: "Search by voice",
+    voiceStop: "Stop listening",
+    voiceDenied: "Microphone blocked",
+    voiceHold: "Hold to record",
+    voiceRelease: "Release to transcribe",
+    voiceStart: "Tap to record or hold to talk",
+    voiceRecording: "Recording…",
+    voiceFinish: "Stop recording and transcribe",
+    voiceHoldHint: "Release to send · slide out to cancel",
+    voiceHoldTranscribeHint: "Release to transcribe · slide out to cancel",
+    voiceCancelHint: "Release to cancel",
+    voiceProcessing: "Transcribing…",
+    voiceError: "Could not transcribe. Try again",
+    // About (see systems/about)
+    aboutTitle: "About",
+    aboutEnter: "Reveal",
+    aboutClose: "Close",
+
+    // Lab (systems/lab/catalog.ts holds each lab's own copy)
+    labTitle: "Lab",
+    labTitleHover: "Physics",
+    labOpen: "Open",
+    labLibraries: "Libraries",
+    labLibrariesNote: "Systems of this site, published as packages",
+    labStudies: "Studies",
+    labStudiesNote: "This site's systems, laid open",
+    labWidgetAdd: "Add the Lab widget to Home",
+    labWidgetOn: "The Lab widget is on Home",
 
     // Prompts page
     promptsTitle: "System Prompts",
@@ -431,6 +491,17 @@ export const translations = {
     promptTokens: "tokens",
     promptLastUpdated: "last updated",
     promptModel: "model",
+
+    // Languages: the PL chart (content/blog/pl-chart)
+    languagesChart:
+      "Programming languages by how interesting they are to me and how much I've used them, shaded by abstraction level",
+    languagesAll: "show all",
+    languagesFilterHint: "pick a level to filter, drag for a range",
+    languagesPeekOpen: "click to open the note",
+    languagesReached: "dashed: reaches it by its range",
+    languagesOpenNote: "open the note",
+    languagesFilterLabel: "Filter by abstraction level",
+    languagesClose: "Close note",
   },
   zh: {
     // Navigation
@@ -442,7 +513,7 @@ export const translations = {
     productions: "作品",
 
     // Homepage
-    tagline: "散文、职业、编程、生产、项目——一个完整人格的多重面向。",
+    tagline: "散文、职业、编程、生产、项目：一个完整人格的多重面向。",
     currently: "近况",
     currentStatus:
       "字节跳动 Lynx 架构师。让界面更好地服务更多用户、更多开发者、更多机器，并探索 AI 时代的应用框架。",
@@ -476,6 +547,8 @@ export const translations = {
     widgetWeather: "天气",
     widgetPrompt: "提示词",
     widgetPromptNext: "下一条提示",
+    widgetLab: "实验室",
+    widgetLabNext: "下一间实验室",
     widgetMusic: "播放中",
     widgetMusicIdle: "音乐",
     widgetFeaturedTalks: "演讲",
@@ -499,6 +572,7 @@ export const translations = {
     theaterClosePlaylist: "关闭播放列表",
     widgetEditDone: "完成",
     widgetEditReset: "重置",
+    widgetEditWidgets: "小组件",
     musicNotPlaying: "暂无播放",
     settingsMusic: "音乐",
     musicPlay: "播放",
@@ -568,7 +642,7 @@ export const translations = {
     wallpaperWeatherClassicMeta: "CSS · 渐变",
     wallpaperNoWebGL: "此浏览器不支持 WebGL2，天空会退回渐变。",
     wallpaperTilt: "陀螺仪",
-    wallpaperTiltNote: "雨雪沿真实重力方向落下 —— 倾斜设备，天空随之倾斜。",
+    wallpaperTiltNote: "雨雪沿真实重力方向落下。倾斜设备，天空也随之倾斜。",
     wallpaperTiltAsk: "打开时会向浏览器申请动作权限。",
     wallpaperTiltDenied: "动作权限已被拒绝，请在浏览器的本站设置中重新允许。",
     wallpaperTiltSilent: "此设备没有动作数据，无从倾斜。",
@@ -659,12 +733,20 @@ export const translations = {
     wallpaperPlayEveryHourly: "每小时",
     wallpaperPlayEveryDaily: "每天",
 
-    // Sun theme — the theme following sunrise and sunset
-    settingsSolarTheme: "跟随日出日落",
-    solarThemeHint: "等日出、日落的天色走完，主题再跟上；仅在本次会话中生效，不会改写外观偏好。",
+    // Follow the Sun: the notice at a sunrise or a sunset
     solarThemeToLight: "浅色模式",
     solarThemeToDark: "深色模式",
-    solarThemeNote: "偏好未更改",
+    solarThemeNote: "跟随太阳",
+
+    // 双语文章 —— 切换语言，以及别人分享来的另一种语言的链接。
+    languageNameEn: "英文",
+    languageNameZh: "中文",
+    languageReadingIn: "正在阅读{lang}版",
+    languageNote: "偏好未更改",
+    languageSharedTitle: "分享的是{shared}版",
+    languageSharedBody: "你平时读{preferred}，这篇也有{preferred}版。",
+    languageSwitchTo: "切换到{preferred}版",
+    languageStayIn: "继续读{shared}版",
 
     // The article header's provenance line, folded behind an `(i)`.
 
@@ -745,6 +827,7 @@ export const translations = {
     appearance: "外观",
     languageLabel: "语言",
     themeSystem: "跟随系统",
+    themeSun: "跟随太阳",
     themeDark: "深色",
     themeLight: "浅色",
     switchToDark: "切换到深色模式",
@@ -779,6 +862,8 @@ export const translations = {
     logFormCovers: "封面",
     logFormFeed: "信息流",
     logNoMatches: "没有符合筛选条件的提交。",
+    // The years down the desk's right margin (components/log/year-rail.tsx)
+    logYearsLabel: "年份",
     writingFeatured: "精选",
     logSelectedWorks: "精选作品",
     logRead: "阅读",
@@ -798,14 +883,44 @@ export const translations = {
     lightboxHintTouch: "双指缩放 · 双击切换 · 拖动平移",
     // Identity card (see systems/identity)
     identityCardClose: "关闭身份卡片",
-    identityOtherRoles: "同一身份下的其他职位",
-    identityCommits: "条署名提交",
+    identityOtherRoles: "在 {company} 还做过",
+    identityCommits: "提交",
     // Links that leave the site (see systems/attachments)
     linkOpensInTab: "在新标签页打开",
     linkNewTab: "新标签页",
     linkFrameDenied: "{host} 不允许在窗口中显示",
+    sectionActions: "动作",
+    // Voice (see systems/voice)
+    voiceSearch: "语音",
+    voiceListen: "语音搜索",
+    voiceStop: "停止聆听",
+    voiceDenied: "麦克风被禁用",
+    voiceHold: "按住录音",
+    voiceRelease: "松开后识别",
+    voiceStart: "轻点开始录音，或按住说话",
+    voiceRecording: "正在录音…",
+    voiceFinish: "停止录音并识别",
+    voiceHoldHint: "松开发送 · 滑出取消",
+    voiceHoldTranscribeHint: "松开识别 · 滑出取消",
+    voiceCancelHint: "松开取消",
+    voiceProcessing: "正在识别…",
+    voiceError: "识别失败，请重试",
+    // About (see systems/about)
+    aboutTitle: "关于",
+    aboutEnter: "进入",
+    aboutClose: "关闭",
 
     // Prompts page
+    labTitle: "实验室",
+    labTitleHover: "格物而致知",
+    labOpen: "进入",
+    labLibraries: "开源库",
+    labLibrariesNote: "本站的系统，发布成了包",
+    labStudies: "研究",
+    labStudiesNote: "本站的系统，摊开来看",
+    labWidgetAdd: "把实验室小组件放到主屏",
+    labWidgetOn: "实验室小组件已在主屏",
+
     promptsTitle: "系统提示词",
     promptsTitleHover: "闻道有先后",
     promptSubtitle: "塑造我思维的名言、原则和榜样。",
@@ -820,6 +935,16 @@ export const translations = {
     promptTokens: "tokens",
     promptLastUpdated: "更新于",
     promptModel: "模型",
+
+    // Languages: the PL chart (content/blog/pl-chart)
+    languagesChart: "编程语言：横轴是我觉得有多有趣，纵轴是我用得多深，深浅是抽象层级",
+    languagesAll: "显示全部",
+    languagesFilterHint: "点选一级来筛选，拖动选一个范围",
+    languagesPeekOpen: "点击展开注解",
+    languagesReached: "虚线圈：靠区间够到",
+    languagesOpenNote: "展开注解",
+    languagesFilterLabel: "按抽象层级筛选",
+    languagesClose: "关闭注解",
   },
 } as const;
 
@@ -835,7 +960,7 @@ export function t(locale: Locale, key: TranslationKey): string {
 // =============================================================================
 
 /** Page identifiers that have title + hover translations */
-export type ScramblePage = "writing" | "works" | "prompts";
+export type ScramblePage = "writing" | "works" | "prompts" | "lab";
 
 /** Get the appropriate Chinese character set for a page */
 export function getScrambleCharacterSet(

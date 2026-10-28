@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 800" width="720" height="800" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#222">
+  <rect x="0" y="0" width="720" height="800" fill="#ffffff"/>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#666"/>
+    </marker>
+  </defs>
+
+  <!-- The material -->
+  <text x="20" y="24" font-size="13" font-weight="600">The material: one class on &lt;html&gt; (services/glass.tsx)</text>
+
+  <rect x="20" y="36" width="330" height="100" rx="8" fill="#f4f4f4" stroke="#999"/>
+  <text x="32" y="56" font-weight="600" font-family="ui-monospace, Menlo, monospace">:root</text>
+  <text x="80" y="56" fill="#555">Tinted (色调), the default</text>
+  <g font-family="ui-monospace, Menlo, monospace" font-size="11.5">
+    <text x="32" y="78">fill 50 · raised 60 · panel 70</text>
+    <text x="32" y="95">popover 75 · sheet 85</text>
+    <text x="32" y="112">hover-step 20</text>
+    <text x="32" y="129">--glass-add-k 0.5</text>
+  </g>
+
+  <rect x="370" y="36" width="330" height="100" rx="8" fill="#fbfbfb" stroke="#999" stroke-dasharray="5 3"/>
+  <text x="382" y="56" font-weight="600" font-family="ui-monospace, Menlo, monospace">html.glass-clear</text>
+  <text x="510" y="56" fill="#555">Clear (透明)</text>
+  <g font-family="ui-monospace, Menlo, monospace" font-size="11.5">
+    <text x="382" y="78">fill 20 · raised 26 · panel 36</text>
+    <text x="382" y="95">popover 40 · sheet 46</text>
+    <text x="382" y="112">hover-step 12 · --glass-add-k 1</text>
+    <text x="382" y="129">html.dark.glass-clear: dark-add 6%</text>
+  </g>
+
+  <line x1="185" y1="136" x2="185" y2="164" stroke="#666" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="535" y1="136" x2="360" y2="164" stroke="#666" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#a)"/>
+
+  <!-- The ladder -->
+  <rect x="20" y="166" width="430" height="172" rx="8" fill="#ffffff" stroke="#222" stroke-width="1.5"/>
+  <text x="34" y="186" font-weight="600">The ladder</text>
+  <text x="106" y="186" fill="#555">app/globals.css, declared once</text>
+  <g font-family="ui-monospace, Menlo, monospace" font-size="11.5">
+    <text x="34" y="212">--glass-base = mix(--card, --tint at --tint-glass)</text>
+    <text x="34" y="238">--glass-add = --glass-dark-add</text>
+    <text x="50" y="254">+ --wp-glass-add × --glass-add-k</text>
+    <text x="34" y="280">--glass-&lt;role&gt; = color-mix(in oklab,</text>
+    <text x="50" y="296">--glass-base calc(&lt;fill&gt; + --glass-add),</text>
+    <text x="50" y="312">transparent)</text>
+  </g>
+  <text x="34" y="330" fill="#555">popover's base is --glass-popover-base (--popover)</text>
+
+  <!-- Added on top -->
+  <rect x="470" y="166" width="230" height="82" rx="8" fill="#f4f4f4" stroke="#999"/>
+  <text x="482" y="185" font-weight="600">Tint: Wallpaper</text>
+  <text x="482" y="203" font-family="ui-monospace, Menlo, monospace" font-size="11.5">html[data-tint="wallpaper"]</text>
+  <text x="482" y="220" font-family="ui-monospace, Menlo, monospace" font-size="11.5">--tint-glass 0 → 14%</text>
+  <text x="482" y="238" fill="#555">the picture's colour in the base</text>
+
+  <rect x="470" y="256" width="230" height="82" rx="8" fill="#f4f4f4" stroke="#999"/>
+  <text x="482" y="275" font-weight="600">Legibility, per wallpaper</text>
+  <text x="482" y="293" font-family="ui-monospace, Menlo, monospace" font-size="11.5">--wp-glass-add</text>
+  <text x="482" y="311" fill="#555">busy × 14 + tone conflict × 22</text>
+  <text x="482" y="328" fill="#555">Clear takes all, Tinted half</text>
+
+  <line x1="470" y1="207" x2="452" y2="207" stroke="#666" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="470" y1="297" x2="452" y2="250" stroke="#666" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <line x1="235" y1="338" x2="235" y2="366" stroke="#666" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- Table header -->
+  <text x="20" y="388" font-weight="600">Token</text>
+  <text x="200" y="388" font-weight="600">Fill before --glass-add</text>
+  <rect x="200" y="397" width="14" height="10" fill="#555"/>
+  <text x="218" y="406" fill="#555">Tinted</text>
+  <rect x="266" y="397" width="14" height="10" fill="#bbb"/>
+  <text x="284" y="406" fill="#555">Clear</text>
+  <text x="440" y="388" font-weight="600">Surface kind</text>
+  <line x1="20" y1="416" x2="700" y2="416" stroke="#ccc"/>
+
+  <!-- Rows start at y=416, 54 high. Bars: 2px per % from x=200. -->
+  <g font-family="ui-monospace, Menlo, monospace" font-size="12">
+    <text x="20" y="440">bg-glass</text>
+    <text x="20" y="494">bg-glass-hover</text>
+    <text x="20" y="548">bg-glass-strong</text>
+    <text x="20" y="602">bg-glass-strong-hover</text>
+    <text x="20" y="656">bg-glass-overlay</text>
+    <text x="20" y="710">bg-glass-popover</text>
+    <text x="20" y="764">bg-glass-sheet</text>
+  </g>
+  <g fill="#555" font-size="11">
+    <text x="20" y="456">fill</text>
+    <text x="20" y="510">fill + hover-step</text>
+    <text x="20" y="564">raised</text>
+    <text x="20" y="618">raised + hover-step</text>
+    <text x="20" y="672">panel</text>
+    <text x="20" y="726">popover</text>
+    <text x="20" y="780">sheet</text>
+  </g>
+
+  <g font-size="11">
+    <rect x="200" y="430" width="100" height="10" fill="#555"/><text x="306" y="439">50%</text>
+    <rect x="200" y="444" width="40" height="10" fill="#bbb"/><text x="246" y="453">20%</text>
+
+    <rect x="200" y="484" width="140" height="10" fill="#555"/><text x="346" y="493">70%</text>
+    <rect x="200" y="498" width="64" height="10" fill="#bbb"/><text x="270" y="507">32%</text>
+
+    <rect x="200" y="538" width="120" height="10" fill="#555"/><text x="326" y="547">60%</text>
+    <rect x="200" y="552" width="52" height="10" fill="#bbb"/><text x="258" y="561">26%</text>
+
+    <rect x="200" y="592" width="160" height="10" fill="#555"/><text x="366" y="601">80%</text>
+    <rect x="200" y="606" width="76" height="10" fill="#bbb"/><text x="282" y="615">38%</text>
+
+    <rect x="200" y="646" width="140" height="10" fill="#555"/><text x="346" y="655">70%</text>
+    <rect x="200" y="660" width="72" height="10" fill="#bbb"/><text x="278" y="669">36%</text>
+
+    <rect x="200" y="700" width="150" height="10" fill="#555"/><text x="356" y="709">75%</text>
+    <rect x="200" y="714" width="80" height="10" fill="#bbb"/><text x="286" y="723">40%</text>
+
+    <rect x="200" y="754" width="170" height="10" fill="#555"/><text x="376" y="763">85%</text>
+    <rect x="200" y="768" width="92" height="10" fill="#bbb"/><text x="298" y="777">46%</text>
+  </g>
+
+  <g font-size="12">
+    <text x="440" y="440">A card or a capsule: widgets, the FAB,</text>
+    <text x="440" y="456">Live Activity, <tspan font-family="ui-monospace, Menlo, monospace">GLASS_CAPSULE</tspan></text>
+    <text x="440" y="494">Its hover; a capsule's press</text>
+    <text x="440" y="548">Lifted over a card: the app folder</text>
+    <text x="440" y="564">while editing, the Ask orb while on</text>
+    <text x="440" y="602">Its hover, and press washes: the FAB,</text>
+    <text x="440" y="618">the Done pill, the theater's orbs</text>
+    <text x="440" y="656">A lifted panel: <tspan font-family="ui-monospace, Menlo, monospace">GLASS_PANEL</tspan> (peeks),</text>
+    <text x="440" y="672">the playback chrome's selected pill</text>
+    <text x="440" y="710">A popover: the ⌘K palette on a desk,</text>
+    <text x="440" y="726">Ask's selection pill and menu</text>
+    <text x="440" y="764">A sheet or window: <tspan font-family="ui-monospace, Menlo, monospace">SHELL</tspan>, every</text>
+    <text x="440" y="780">SurfaceSheet and SurfaceWindow</text>
+  </g>
+  <g stroke="#eee">
+    <line x1="20" y1="470" x2="700" y2="470"/>
+    <line x1="20" y1="524" x2="700" y2="524"/>
+    <line x1="20" y1="578" x2="700" y2="578"/>
+    <line x1="20" y1="632" x2="700" y2="632"/>
+    <line x1="20" y1="686" x2="700" y2="686"/>
+    <line x1="20" y1="740" x2="700" y2="740"/>
+  </g>
+</svg>

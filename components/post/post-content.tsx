@@ -6,6 +6,7 @@ import type { Locale } from "@/lib/i18n";
 import { Languages } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, type ReactNode } from "react";
+import { LanguageSharedSheet } from "./language-sheet";
 import { ReadingSettings } from "./reading-sheet";
 import { RulerToc } from "./ruler-toc";
 import { usePostLanguage } from "./use-post-language";
@@ -56,7 +57,7 @@ function renderMarkdownLinks(md: string): ReactNode {
         href={match[2]}
         target="_blank"
         rel="noopener noreferrer"
-        className="underline underline-offset-2 decoration-muted-foreground/30 hover:text-foreground hover:decoration-foreground/40 transition-colors"
+        className="underline underline-offset-2 decoration-ink-line hover:text-foreground hover:decoration-foreground transition-colors"
       >
         {match[1]}
       </a>
@@ -89,7 +90,7 @@ export function PostContent({
 }: PostContentProps) {
   const pathname = usePathname();
 
-  const { displayLocale, switchLanguage, hasAlternate, alternateLabel } =
+  const { displayLocale, switchLanguage, hasAlternate, alternateLabel, shared } =
     usePostLanguage({ locale, language });
 
   useEffect(() => {
@@ -107,7 +108,7 @@ export function PostContent({
   const displayOrigin =
     displayLocale === "zh" && originZh ? originZh : origin;
   // Provenance is a sentence, and a thing a reader looks up once, if ever.
-  // Among the header's handles it read as clutter — and on a phone it had to
+  // Among the header's handles it read as clutter, and on a phone it had to
   // fold behind an `(i)` to fit at all. It is a colophon: it closes the
   // article instead of standing between the title and the text.
   /**
@@ -179,6 +180,7 @@ export function PostContent({
         </p>
       )}
       {toc && <RulerToc />}
+      {hasAlternate && <LanguageSharedSheet {...shared} />}
     </PageLayout>
   );
 }

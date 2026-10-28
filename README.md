@@ -5,7 +5,7 @@
 
 ## What is this?
 
-**Hux.Pro** is not just a portfolio—it's a "Personal Operating System". It treats the web interface less like a brochure and more like a tool, drawing inspiration from command palettes (`⌘K`), developer tools, and editorial design. It prioritizes keyboard navigation, bilingual support, and a dual aesthetic system (Minimal Prose vs. Liquid System UI).
+**Hux.Pro** is a personal website built as a "Personal Operating System". It treats the web interface as a tool rather than a brochure, drawing inspiration from command palettes (`⌘K`), developer tools, and editorial design. It prioritizes keyboard navigation, bilingual support, and a dual aesthetic system (Minimal Prose vs. Liquid System UI).
 
 ## Documentation
 

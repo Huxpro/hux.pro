@@ -6,7 +6,7 @@ import type { PromptTopic } from "@/lib/prompt-view";
 /**
  * Bilingual text. Every string in this file may carry two inline marks,
  * rendered by `Marks` in `app/prompt/view`: `**bold**` for emphasis, and
- * `*italic*` for a work's title — `*The Gay Science* §270`. The Chinese
+ * `*italic*` for a work's title, as in `*The Gay Science* §270`. The Chinese
  * half never needs the second one, because it already has 《》.
  */
 type BilingualText = {
@@ -23,7 +23,7 @@ type NameText = string | BilingualText;
 type PromptLink = { label: string; url: string };
 
 /**
- * A pointer at whoever shaped a conviction. `ref` is optional — plenty of
+ * A pointer at whoever shaped a conviction. `ref` is optional. Plenty of
  * people and experiences shaped a belief without earning an entry of their
  * own, and those render as plain text instead of an anchor.
  */
@@ -33,7 +33,7 @@ interface RawAttribution {
   ref?: string;
   /**
    * Where the words come from, e.g. "PARC, 1971". Bilingual when the two
-   * languages inherited the saying from different places — 尽人事听天命 came
+   * languages inherited the saying from different places: 尽人事听天命 came
    * from 《镜花缘》 and "Man proposes, God disposes" from Thomas à Kempis, and
    * each reader should be handed the source their own language actually has.
    */
@@ -44,7 +44,7 @@ interface RawAttribution {
 
 /**
  * One instance of a conviction: the same belief showing up somewhere
- * specific — in a career, in a culture, in a line someone else said first.
+ * specific: in a career, in a culture, in a line someone else said first.
  *
  * Instances are why this page can stay small. A belief that has been held
  * for a decade has a dozen faces, and filing each as its own entry would
@@ -64,7 +64,7 @@ interface RawInstance {
 }
 
 /**
- * What did the training: a person, a team, something written — or a whole
+ * What did the training: a person, a team, something written, or a whole
  * field. `field` is the one that isn't an author: nobody signs a discipline,
  * and it still teaches you more than most of the people in it.
  */
@@ -74,21 +74,21 @@ type InfluenceKind = "person" | "team" | "book" | "paper" | "field";
  * A conviction is something *I* hold. `quotedFrom` says whose words they are:
  * present means I adopted someone's phrasing verbatim (rendered as a quote),
  * absent means the words are mine (rendered as a statement). Either way the
- * belief is mine — a quote nobody lives by does not belong on this page.
+ * belief is mine. A quote nobody lives by does not belong on this page.
  */
 /**
  * One sentence of a conviction, with the provenance that belongs to it.
  *
  * `quotedFrom` present means these are someone's words; absent means they
- * are mine. That is the whole difference, and it is also the whole reason
- * there is no separate `commentary` field any more: my own line under a
- * borrowed one was never a different kind of thing, it was a voice without
- * papers. So the page prints a voice with quotation marks and an
- * attribution, or without either.
+ * are mine. That is the only difference, and it is why there is no
+ * separate `commentary` field any more. My own line under a borrowed one
+ * was the same kind of thing: a voice without an attribution. So the page
+ * prints a voice with quotation marks and an attribution, or without
+ * either.
  */
 interface RawStatement {
   /**
-   * What this sentence answers for — correctness, behaviour, abstraction.
+   * What this sentence answers for: correctness, behaviour, abstraction.
    * Authored, not printed: it is the editorial test for whether a voice
    * belongs in a chorus (each must answer a different one), and the page
    * has not yet found a place to say it that is worth the room.
@@ -101,7 +101,7 @@ interface RawStatement {
 interface RawConviction {
   /**
    * The canonical key: what `ref` points at, and the same in every locale.
-   * If a belief cannot be named in one word, it has not been reduced yet —
+   * If a belief cannot be named in one word, it has not been reduced yet,
    * so the id doubles as this page's outline.
    */
   id: string;
@@ -109,7 +109,7 @@ interface RawConviction {
    * What the URL shows, per locale. Everything else on this page is
    * bilingual and the id was the one English-only thing in it, printed in
    * the margin of a Chinese column. The Chinese name is not a translation
-   * of the English one — `flux` is 「常变」 — same rule as the statements.
+   * of the English one (`flux` is 「常变」), the same rule as the statements.
    * Refs stay canonical, so this is display only; `app/prompt/view` maps
    * one to the other and accepts either in an incoming link.
    */
@@ -123,16 +123,16 @@ interface RawConviction {
    * One belief, in as many sentences as it has voices.
    *
    * Most entries hold one. A few hold a chorus: the same conviction as it
-   * is said in different traditions — Curry–Howard says it about
+   * is said in different traditions. Curry–Howard says it about
    * correctness, Jobs about behaviour, Mies about abstraction, and none of
    * the three is a rephrasing of the others. They share an anchor, a
    * commentary and one expand, because they are one belief.
    *
    * `statements[0]` is the head: the sentence the widget shows, the label a
    * `ref` prints, and the one the entry is named by. The rest are set a
-   * half step down — still whole sentences, visibly not the head.
+   * half step down: still whole sentences, visibly not the head.
    *
-   * A voice can be mine — what used to be the `commentary` — or borrowed.
+   * A voice can be mine (what used to be the `commentary`) or borrowed.
    *
    * On 行事 the head is mine and the voices under it are the witnesses:
    * that shelf is the one where I am the one acting, so the big type is my
@@ -152,7 +152,7 @@ interface RawConviction {
    * entry's own name and the two cannot drift; every item is a link the
    * reader can follow. Which also makes the row a test: a shaper worth
    * naming here is worth an entry of its own, and anything that cannot
-   * carry one — a habit, a phase, a pair of people bundled together —
+   * carry one (a habit, a phase, a pair of people bundled together)
    * belongs in the body instead.
    */
   shapedBy?: string[];
@@ -166,7 +166,7 @@ interface RawConviction {
 /**
  * Something the page can play rather than link away to: a deck opens on the
  * Theater stage (and its PiP), in the Slides library beside every other deck
- * in the log. One per entry — this page is text, and a player is a guest.
+ * in the log. One per entry: this page is text, and a player is a guest.
  */
 interface RawPromptMedia {
   kind: "slides";
@@ -176,10 +176,10 @@ interface RawPromptMedia {
 }
 
 /**
- * An influence carries no topic. It was tempting to file one — Dalio on
- * fortune, PLT on the world — but a person is not *on* a subject: whoever
+ * An influence carries no topic. It was tempting to file one (Dalio on
+ * fortune, PLT on the world), but a person is not *on* a subject. Whoever
  * trained you trained all of you, and the tag would only ever be the union
- * of the convictions below, which the back-links already say out loud. So
+ * of the convictions below, which the back-links already show. So
  * the topics belong to what I hold, and the influences are read through
  * them.
  */
@@ -309,7 +309,7 @@ function resolveAttribution(
 }
 
 /**
- * Footer meta is derived, not authored — a hand-written "last updated" goes
+ * Footer meta is derived, not authored. A hand-written "last updated" goes
  * stale the moment you forget it. Token count is the usual chars/4 estimate
  * over the locale the reader is actually seeing.
  */

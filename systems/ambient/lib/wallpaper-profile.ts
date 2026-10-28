@@ -1,5 +1,5 @@
 // =============================================================================
-// Wallpaper profiles — what was measured about each wallpaper, once.
+// Wallpaper profiles: what was measured about each wallpaper, once.
 //
 // `scripts/wallpaper-profile.ts` samples every committed picture (and
 // synthesises the weather gradients from their palettes) and writes the
@@ -7,9 +7,9 @@
 // decodes an image or touches a canvas: the profile is a dozen numbers per
 // wallpaper, looked up by key.
 //
-// A profile is a fact about a file. What to do about it — how much text relief
+// A profile is a fact about a file. What to do about it (how much text relief
 // a busy picture earns, whether bare text flips to light ink over a dark top
-// band — is the policy in `legibility.ts`, which the Legibility Lab can tune
+// band) is the policy in `legibility.ts`, which the Legibility Lab can tune
 // while looking at the result.
 // =============================================================================
 
@@ -36,13 +36,13 @@ export interface WallpaperProfile {
   lum: number;
   /** Mean lightness of the top / middle / bottom thirds. */
   zones: { top: number; mid: number; bottom: number };
-  /** Mean colour as sRGB bytes — for the lab's contrast estimate. */
+  /** Mean colour as sRGB bytes, for the lab's contrast estimate. */
   mean: [number, number, number];
-  /** Standard deviation of lightness — how much the picture varies. */
+  /** Standard deviation of lightness: how much the picture varies. */
   contrast: number;
-  /** Mean local gradient of lightness — how much fine detail there is. */
+  /** Mean local gradient of lightness: how much fine detail there is. */
   edges: number;
-  /** Mean OKLab chroma — how colourful the picture is. */
+  /** Mean OKLab chroma: how colourful the picture is. */
   chroma: number;
   /** Dominant chromatic colour, or null when the picture is effectively grey. */
   tint: WallpaperTint | null;
@@ -56,7 +56,7 @@ export interface WallpaperProfiles {
   weather: Record<string, WallpaperProfile>;
 }
 
-/** `tahoe/light`, `nature/aurora` — the file path minus the noise. */
+/** `tahoe/light`, `nature/aurora`: the file path minus the noise. */
 export function profileKeyForAsset(asset: WallpaperAsset): string {
   return asset.src.replace(/^\/wallpapers\//, "").replace(/\.webp$/, "");
 }
@@ -92,7 +92,7 @@ export function sameProfile(a: WallpaperProfile, b: WallpaperProfile): boolean {
 }
 
 /**
- * The profile of the plain page — no wallpaper at all. Flat, grey, and exactly
+ * The profile of the plain page, with no wallpaper at all. Flat, grey, and exactly
  * as bright as the theme's background, so the policy resolves to "nothing to
  * do", which is what the main path should cost.
  */

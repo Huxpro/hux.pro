@@ -1,7 +1,10 @@
 "use client";
 
 import { PEEK_W } from "@/components/motion-primitives/magnetic-preview";
+import { POST_PEEK_PANEL, PostPeekView } from "@/components/post/post-peek";
 import { GLASS_PANEL } from "@/lib/glass";
+import type { PostPeek } from "@/lib/content";
+import { siteSectionLabel } from "@/systems/attachments/lib/policy";
 import type { Locale } from "@/lib/i18n";
 import {
   getMediaThumbnail,
@@ -21,12 +24,12 @@ import { CardFace } from "./link";
 import { markFor, MediaMark, type MediaMarkSpec } from "./media-mark";
 
 // =============================================================================
-// Media peeks — what a cover shows when the pointer rests on it.
+// Media peeks: what a cover shows when the pointer rests on it.
 //
 // /works has one hover system, the magnetic peek that follows the cursor off
 // a folded row (commit-embed.tsx builds the row's). At the `stat` density the
-// row prints its covers, so the row itself no longer peeks — but each cover
-// can, and does: rest on a thumbnail in the contact strip and the same peek
+// row prints its covers, so the row itself no longer peeks. Each cover
+// does instead: rest on a thumbnail in the contact strip and the same peek
 // vocabulary shows what it is at a readable size. A link card peeks as the
 // mini OG card (domain, title, description); a video, a deck or an image
 // peeks as its poster with a caption saying what pressing it does.
@@ -75,7 +78,7 @@ export function PeekThumb({
 }
 
 /**
- * Mini OG-style card for `kind:"link", present:"card"` media — a thin
+ * Mini OG-style card for `kind:"link", present:"card"` media. A thin
  * adapter over `CardFace` that picks the right slot shape per context:
  *  - Single-item peek: natural aspect (matches the expanded `/works`
  *    LinkCard so the hover and the row read as the same artifact).
@@ -97,16 +100,16 @@ export function PeekCard({
   media: LinkMedia;
   locale: Locale;
   fixedAspect?: boolean;
-  /** The chip on the cover — see CardFace. */
+  /** The chip on the cover (see CardFace). */
   mark?: MediaMarkSpec | null;
   className?: string;
   onResolved?: () => void;
 }) {
   // The viewer's locale variant of the card, as MediaRenderer would print
-  // it. Peek is purely visual — the click goes through the row's anchor —
+  // it. Peek is visual only (the click goes through the row's anchor),
   // so the caption is all that is localized here, not the URL.
   const preview = media.previews?.[locale] ?? media.preview;
-  const domainLabel = media.internal ? "/writing" : undefined;
+  const domainLabel = siteSectionLabel(media) ?? undefined;
   return (
     <CardFace
       url={media.url}
@@ -122,10 +125,10 @@ export function PeekCard({
       domainLabel={domainLabel}
       mark={mark}
       raisedMark
-      // Peek-specific chrome — the shared panel recipe, minus the shadow: the
+      // Peek-specific chrome: the shared panel recipe, minus the shadow. The
       // single-peek and stacked-peek branches strip the panel's own chrome
       // (BARE_PANEL_CHROME), so callers add `shadow-raised` per use (front /
-      // single) and deck back layers stay flat — same opt-in convention as
+      // single) and deck back layers stay flat. Same opt-in convention as
       // PeekThumb.
       className={cn(GLASS_PANEL, className)}
       onImgResolved={onResolved}
@@ -170,9 +173,15 @@ function PeekPoster({
   );
 }
 
+/** The post peek a writing link carries, in the reader's language. */
+export function postPeekFor(media: LinkMedia, locale: Locale): PostPeek | null {
+  // Both languages are filled on the server, each falling back to the other.
+  return media.internal?.peek?.[locale] ?? null;
+}
+
 export interface MediaPeekSpec {
   node: ReactNode;
-  /** Merged into the cursor-preview panel — see MagneticPreview. */
+  /** Merged into the cursor-preview panel (see MagneticPreview). */
   panelClassName: string;
 }
 
@@ -182,8 +191,8 @@ const BARE = "p-0 bg-transparent border-transparent backdrop-blur-none";
 /**
  * The peek for one piece of media, or null when it has nothing to show. The
  * peek is a glance, so its cover wears a chip whatever its kind
- * (media-mark.tsx, `all`); `leaves` says the click will open a tab — a page
- * that refuses to be framed — and the chip says so before the click rather
+ * (media-mark.tsx, `all`). `leaves` says the click will open a tab (a page
+ * that refuses to be framed), and the chip says so before the click rather
  * than after.
  */
 export function mediaPeek(
@@ -191,6 +200,13 @@ export function mediaPeek(
   locale: Locale,
   opts: { leaves?: boolean } = {},
 ): MediaPeekSpec | null {
+  // A post summoned with its peek (a magic link, components/magic-link)
+  // peeks as its /writing row does, not as a card about it.
+  const post = isLinkMedia(media) ? postPeekFor(media, locale) : null;
+  if (post) {
+    return { panelClassName: POST_PEEK_PANEL, node: <PostPeekView peek={post} /> };
+  }
+
   const mark = markFor(media, locale, { all: true, leaves: opts.leaves });
   if (isLinkMedia(media)) {
     return {

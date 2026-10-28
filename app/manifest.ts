@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 /**
- * Web App Manifest — what lets Android / Chrome (and other PWA-capable
+ * Web App Manifest: what lets Android / Chrome (and other PWA-capable
  * browsers) install the site to the home screen with the generated icon.
  *
  * Next serves this at `/manifest.webmanifest` and auto-adds the
@@ -9,7 +9,7 @@ import type { MetadataRoute } from "next";
  * of `pnpm icon:generate`. The 512 is marked `maskable` too: the icon is a
  * full-bleed background with a centered mark, so it survives platform masking.
  *
- * iOS does not read the manifest for home-screen icons — that path is the
+ * iOS does not read the manifest for home-screen icons. That path is the
  * `apple-touch-icon` PNG wired in `app/layout.tsx`.
  */
 export default function manifest(): MetadataRoute.Manifest {

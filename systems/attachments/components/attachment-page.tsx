@@ -3,7 +3,9 @@
 import { ExternalImage } from "@/components/log/media/external-image";
 import { SocialEmbed } from "@/components/log/media/embed";
 import { mediaKindOf } from "@/components/log/media/media-mark";
+import { postPeekFor } from "@/components/log/media/media-peek";
 import { PeekCover } from "@/components/log/media/peek-cover";
+import { PostPeekView } from "@/components/post/post-peek";
 import { COVER_WASH } from "@/lib/glass";
 import { cn } from "@/lib/utils";
 import { t, useLocale } from "@/services";
@@ -26,6 +28,7 @@ import {
 import {
   ArrowUpRight,
   BookOpen,
+  CornerDownRight,
   Globe,
   Image as ImageIcon,
   Play,
@@ -33,15 +36,15 @@ import {
   ZoomIn,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { isInternalLink, linkTarget } from "../lib/policy";
+import { linkTarget, siteSectionLabel } from "../lib/policy";
 import type { AttachmentHome, AttachmentSet } from "../lib/types";
 import { useAttachments } from "../provider";
 
 // =============================================================================
-// AttachmentPage — one attachment, at full width, with its native action.
+// AttachmentPage: one attachment, at full width, with its native action.
 //
-// A page is the attachment shown large — the cover of a video or a deck, the
-// whole of a link card, an image, a live social widget — over a title line
+// A page is the attachment shown large (the cover of a video or a deck, the
+// whole of a link card, an image, a live social widget) over a title line
 // and a row of actions. The first action is the thing itself (`Watch`,
 // `Slides`, `Read`, `Visit`): the provider's `act`, which sends the item to
 // its native home from wherever the surface is standing. The second is the
@@ -54,7 +57,7 @@ import { useAttachments } from "../provider";
 //
 // The cover wears no chip here (media-mark.tsx): the page prints the domain,
 // the title and a labelled button, and the button's glyph already says what
-// the item is and where it goes — a chip on the cover would repeat it.
+// the item is and where it goes. A chip on the cover would repeat it.
 // The button's glyph is what the item is: a play mark, the deck glyph, a
 // globe for the in-app browser, a book for a post, the arrow out for a tab.
 // =============================================================================
@@ -64,7 +67,7 @@ interface AttachmentPageProps {
   index: number;
 }
 
-/** A cover the page action opens — a stage-shaped 16:9 box. */
+/** A cover the page action opens: a stage-shaped 16:9 box. */
 function Cover({
   image,
   label,
@@ -109,41 +112,110 @@ function homeIcon(home: AttachmentHome, kind: ReturnType<typeof mediaKindOf>): R
     return <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />;
   }
   if (home === "lightbox") return <ZoomIn className="h-3.5 w-3.5" />;
-  if (home === "route") return <BookOpen className="h-3.5 w-3.5" />;
+  if (home === "route") {
+    return kind === "post" ? (
+      <BookOpen className="h-3.5 w-3.5" />
+    ) : (
+      <CornerDownRight className="h-3.5 w-3.5" />
+    );
+  }
   if (home === "window") return <Globe className="h-3.5 w-3.5" />;
   return <ArrowUpRight className="h-3.5 w-3.5" />;
 }
 
-/** The action row: the primary action on the pill, the way out beside it. */
-function Actions({
+/** A press that does `onSelect`, on a real link: the browser keeps its own
+ *  gestures (⌘-click, middle-click, a long press's menu). */
+function ActionLink({
+  href,
+  onSelect,
+  className,
+  children,
+}: {
+  href: string;
+  onSelect: () => void;
+  className: string;
+  children: ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      onClick={(e) => {
+        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        e.preventDefault();
+        onSelect();
+      }}
+      className={className}
+    >
+      {children}
+    </a>
+  );
+}
+
+/** How a way out of the site reads: its address, and an arrow pointing out. */
+const OUT = cn(GLASS_ACTION, "h-8 px-3");
+
+/**
+ * The action row: the primary action on the pill, the way out beside it.
+ * Also the identity card's (systems/identity), whose one action is Visit
+ * and which has no page of its own to link out to.
+ *
+ * A primary with an `href` is a real link (ActionLink). One that leaves the
+ * site (`away`) is dressed as a way out, its address and an arrow, and is
+ * the row's only link: a page's Visit and its address beside it would say
+ * the same thing twice. A way in (a post, a role's row) is the pill.
+ */
+export function Actions({
   primary,
   href,
   hrefLabel,
 }: {
-  primary: { label: string; icon: ReactNode; onSelect: () => void };
-  /** The attachment's own address — a real link, for the browser's gestures. */
-  href: string;
-  hrefLabel: string;
+  primary: {
+    label: string;
+    icon?: ReactNode;
+    onSelect: () => void;
+    /** The address the action goes to, when it is one. */
+    href?: string;
+    /** It leaves the site: print `label` (its address) as a way out. */
+    away?: boolean;
+  };
+  /** Somewhere else to go: the thing's own address, beside an action that
+   *  shows it here (a recording's page beside Watch). */
+  href?: string;
+  hrefLabel?: string;
 }) {
+  const pill = cn(GLASS_ACTION, GLASS_PILL, "h-8 px-3.5 text-foreground");
+  const out = (label: string) => (
+    <>
+      <span className="max-w-[14rem] truncate">{label}</span>
+      <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />
+    </>
+  );
   return (
     <div className={cn(GLASS_CLUSTER, "system-chrome")}>
-      <button
-        type="button"
-        onClick={primary.onSelect}
-        className={cn(GLASS_ACTION, GLASS_PILL, "h-8 px-3.5 text-foreground")}
-      >
-        {primary.icon}
-        {primary.label}
-      </button>
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={cn(GLASS_ACTION, "h-8 px-3")}
-      >
-        <span className="max-w-[10rem] truncate">{hrefLabel}</span>
-        <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />
-      </a>
+      {primary.href && primary.away ? (
+        <ActionLink
+          href={primary.href}
+          onSelect={primary.onSelect}
+          className={cn(OUT, "text-foreground")}
+        >
+          {out(primary.label)}
+        </ActionLink>
+      ) : primary.href ? (
+        <ActionLink href={primary.href} onSelect={primary.onSelect} className={pill}>
+          {primary.icon}
+          {primary.label}
+        </ActionLink>
+      ) : (
+        <button type="button" onClick={primary.onSelect} className={pill}>
+          {primary.icon}
+          {primary.label}
+        </button>
+      )}
+      {href && (
+        <a href={href} target="_blank" rel="noopener noreferrer" className={OUT}>
+          {out(hrefLabel ?? href)}
+        </a>
+      )}
     </div>
   );
 }
@@ -190,42 +262,59 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
 
   if (isLinkMedia(media)) {
     const url = linkTarget(media, locale);
-    const internal = isInternalLink(media);
     const preview = media.previews?.[locale] ?? media.preview;
-    const domain = internal ? "/writing" : getDomainLabel(url);
+    // A path on this site prints as its section (`/writing`, `/works`), not
+    // as a domain.
+    const domain = siteSectionLabel(media) ?? getDomainLabel(url);
     const label = t(
       locale,
       kind === "post" ? "logRead" : kind === "video" ? "logWatch" : "logVisit",
     );
+    const post = postPeekFor(media, locale);
     return (
       <div className="space-y-4">
-        {preview?.image ? (
-          <div className="relative overflow-hidden rounded-xl border border-border/50 bg-muted/20">
-            <PeekCover
-              src={preview.image}
-              fit={preview.fit ?? "natural"}
-              aspect={preview.aspect}
-              className="rounded-none border-0"
-            />
+        {post ? (
+          // A post summoned with its peek: the page is the whole peek, the
+          // same card its /writing row shows under the pointer, where a
+          // phone has no pointer. The title is the surface's header.
+          <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/10">
+            <PostPeekView peek={post} className="w-full" whole />
           </div>
         ) : (
-          <div className="flex aspect-[2/1] items-center justify-center rounded-xl border border-border/50 bg-muted/10">
-            <ImageIcon className="h-8 w-8 text-quaternary-foreground" />
-          </div>
+          <>
+            {preview?.image ? (
+              <div className="relative overflow-hidden rounded-xl border border-border/50 bg-muted/20">
+                <PeekCover
+                  src={preview.image}
+                  fit={preview.fit ?? "natural"}
+                  aspect={preview.aspect}
+                  className="rounded-none border-0"
+                />
+              </div>
+            ) : (
+              <div className="flex aspect-[2/1] items-center justify-center rounded-xl border border-border/50 bg-muted/10">
+                <ImageIcon className="h-8 w-8 text-quaternary-foreground" />
+              </div>
+            )}
+            <div className="min-w-0 space-y-1">
+              <div className={TYPE.labelSm}>{domain}</div>
+              <div className={TYPE.mediaTitle}>{preview?.title || domain}</div>
+              {preview?.description && (
+                <p className={TYPE.caption}>
+                  {preview.description}
+                </p>
+              )}
+            </div>
+          </>
         )}
-        <div className="min-w-0 space-y-1">
-          <div className={TYPE.labelSm}>{domain}</div>
-          <div className={TYPE.mediaTitle}>{preview?.title || domain}</div>
-          {preview?.description && (
-            <p className={cn(TYPE.caption, "line-clamp-4")}>
-              {preview.description}
-            </p>
-          )}
-        </div>
         <Actions
-          primary={{ label, icon: homeIcon(home, kind), onSelect: open }}
-          href={url}
-          hrefLabel={domain}
+          primary={
+            // A page of this site is gone into (Read, Visit); anyone
+            // else's is gone out to, by its address.
+            home === "route"
+              ? { label, icon: homeIcon(home, kind), onSelect: open, href: url }
+              : { label: domain, onSelect: open, href: url, away: true }
+          }
         />
       </div>
     );
@@ -245,11 +334,13 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
             "pressable outline-none focus-visible:ring-1 focus-visible:ring-foreground/20",
           )}
         >
-          <ExternalImage
+          {/* Whole, at the size recorded for it (lib/image-sizes.ts): the
+              drawer opens at its height rather than growing to it. */}
+          <PeekCover
             src={media.thumbnail ?? media.url}
             alt={media.alt ?? ""}
-            loading="eager"
-            className="block h-auto w-full"
+            fit="natural"
+            className="bg-transparent"
           />
         </button>
         {media.alt && <p className={TYPE.caption}>{media.alt}</p>}
@@ -277,12 +368,11 @@ export function AttachmentPage({ set, index }: AttachmentPageProps) {
         <SocialEmbed url={media.url} platform={media.platform} />
         <Actions
           primary={{
-            label: t(locale, "logVisit"),
-            icon: <ArrowUpRight className="h-3.5 w-3.5" />,
+            label: getDomainLabel(media.url),
             onSelect: open,
+            href: media.url,
+            away: true,
           }}
-          href={media.url}
-          hrefLabel={getDomainLabel(media.url)}
         />
       </div>
     );

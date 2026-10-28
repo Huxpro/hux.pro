@@ -3,7 +3,7 @@
 import { makeStore } from "./persisted-setting";
 
 /**
- * Ruler ToC settings — a tiny persisted channel, adjustable from the
+ * Ruler ToC settings: a tiny persisted channel, adjustable from the
  * devtool panel. The setting applies whether or not the devtool is
  * enabled; the panel is just the UI for flipping it.
  */

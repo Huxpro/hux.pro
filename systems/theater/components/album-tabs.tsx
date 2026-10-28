@@ -14,15 +14,15 @@ import {
 import type { Album } from "../lib/types";
 
 // ---------------------------------------------------------------------------
-// AlbumTabs — segmented control for switching playlists (React / Lynx / …).
+// AlbumTabs: segmented control for switching playlists (React / Lynx / …).
 // Shared by the home widget and the theater overlay so the "album switcher"
-// reads identically wherever it appears — and by the wallpaper picker's
-// categories, which are the same kind of choice: one group of things at a time.
+// reads identically wherever it appears. The wallpaper picker's categories use
+// it too, since they are the same kind of choice: one group of things at a time.
 //
 // Apple camera-mode capsule: tight outer shell, roomy label padding, and a
-// single sliding glass pill (layoutId) that travels between options — selection
-// is motion, not a hard cut. Material tokens live in lib/chrome.ts so theater
-// window controls share the same frosted language.
+// single sliding glass pill (layoutId) that slides between options, so a
+// selection change animates instead of cutting. Material tokens live in
+// lib/chrome.ts so theater window controls share the same frosted language.
 //
 // `tone="onDark"` is the dim dark-stamp language, forced for editor mocks
 // and any stage that cannot follow the site theme.
@@ -41,7 +41,7 @@ interface AlbumTabsProps {
   tone?: "default" | "onDark";
   /**
    * Homepage widgets use a light frame that deepens when *this*
-   * control is hovered or pressed — not when the surrounding card is.
+   * control is hovered or pressed, not when the surrounding card is.
    * Theater / Live Activity keep the raised track.
    */
   raised?: boolean;
@@ -67,7 +67,7 @@ export function AlbumTabs({
     <div
       role="tablist"
       className={cn(
-        // Tight outer shell — little track padding, no inter-item gap.
+        // Tight outer shell: little track padding, no inter-item gap.
         // Labels carry the breathing room instead (Apple camera picker).
         "inline-flex items-center rounded-full p-0.5",
         onDark ? GLASS_ON_DARK_TRACK : raised ? GLASS_TRACK : GLASS_TRACK_FLAT,

@@ -3,11 +3,14 @@
  *
  * Normalizes type-specific commit data into a generic shape consumed by
  * all three renderers (TimelineCommit, CommitCard, CommitCompact).
- * Type-specific logic lives HERE — renderers are type-agnostic.
+ * Type-specific logic lives HERE; renderers are type-agnostic.
  */
 
 import type { Locale } from "@/lib/i18n";
+import { plainInline } from "@/lib/inline-links";
 import type { Commit, CommitType, Media, StripItem } from "@/lib/log";
+import type { CommitWithTrailers, Trailer } from "@/lib/works-talks";
+import { commitMark, type BadgeIcon } from "@/components/magic-link/resolve";
 import {
   localize,
   localizeOptional,
@@ -29,6 +32,13 @@ export interface NormalizedCommit {
   /** Optional icon override key (e.g. "graduation-cap"). */
   iconOverride?: string;
   /**
+   * A project's own mark (the icon of the site that stands for it, or its
+   * monogram), worn in the gutter where the other types wear their glyph.
+   * A project is a thing with a name and a face; a talk is an occasion, and
+   * the mic says what kind. Only projects carry one.
+   */
+  mark?: BadgeIcon;
+  /**
    * Timeline dressing. `"aside"` folds the row to a muted line
    * (see `foldedTitle`) until the reader opens it. Not a type.
    */
@@ -36,9 +46,11 @@ export interface NormalizedCommit {
 
   // Core content
   title: string;
+  /** The short name, when the commit has one (`BaseCommit.name`). */
+  name?: string;
   /**
    * The one line an aside row prints while folded. `venue · title` by
-   * default — the conference, publication or platform, then what it was.
+   * default: the conference, publication or platform, then what it was.
    * `asideLine` can keep just the venue or just the title. The venue
    * alone when the two would say the same thing, and the title alone for
    * a type with no venue. Absent when the row is not an aside.
@@ -62,19 +74,37 @@ export interface NormalizedCommit {
    */
   dateSlotOverride?: string;
 
-  // Expandable content
+  // What the description is read with
   commentary?: string;
+
+  // Expandable content
+  /** The long form behind the press (`BaseCommit.details`). */
+  details?: string;
+
+  /**
+   * The same three as authored, inline links and all (lib/inline-links.ts),
+   * for the one surface that renders them: the /works row. The fields above
+   * are the plain words, for everything else that prints a commit (a peek,
+   * a widget, a compact row).
+   */
+  inline: { description: string; commentary?: string; details?: string };
+
+  /** Git trailers under the text, one per talk that presents a project.
+   *  On trial (lib/works-talks.ts). */
+  trailers?: Trailer[];
+  /** Refs on the title line, `(talks: …)`, inline-link markup. On trial. */
+  decorations?: string[];
 
   // Media
   /** Rich media (cards / widgets / players / images) shown when expanded. */
   expandedMedia: Media[];
-  /** Items flagged `pinned: true` — shown beneath the row while folded. */
+  /** Items flagged `pinned: true`, shown beneath the row while folded. */
   pinnedMedia: Media[];
   /**
    * Contact-sheet covers: every cover in `expandedMedia`, at thumbnail size,
    * for the `stat` density's strip (see `MediaStrip`). Derived here because
    * that is where the locale is resolved and the renderers are deliberately
-   * locale-agnostic — the alternative was a prop threaded through four
+   * locale-agnostic. The alternative was a prop threaded through four
    * components that neither read nor cared about it.
    */
   stripItems: StripItem[];
@@ -88,7 +118,7 @@ export interface NormalizedCommit {
 // Media Partitioning
 // =============================================================================
 
-/** Whether two labels would print as the same line — case and surrounding
+/** Whether two labels would print as the same line. Case and surrounding
  *  space are not a difference worth repeating a venue over. */
 function sameLine(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -142,14 +172,21 @@ export function normalizeCommit(
   const stripItems = getMediaStripItems(expandedMedia, locale);
 
   const title = localize(commit.title, locale);
-  const description = localize(commit.description, locale);
-  const commentary = localizeOptional(commit.commentary, locale);
+  const name = localizeOptional(commit.name, locale);
+  const inline = {
+    description: localize(commit.description, locale),
+    commentary: localizeOptional(commit.commentary, locale),
+    details: localizeOptional(commit.details, locale),
+  };
+  const description = plainInline(inline.description);
+  const commentary = plainInline(inline.commentary);
+  const details = plainInline(inline.details);
   const date = formatCommitDate(commit, locale);
   const hash = computeCommitHash(commit.id);
   const thumbnail = deriveThumbnail(media);
   const languageBadge = getCommitLanguageBadge(commit, locale);
   // The venue an aside prints while folded: the conference, the
-  // publication, the platform — where the work happened, since the aside
+  // publication, the platform. That is where the work happened, since the aside
   // voice is the event voice and an event is a dateline.
   const foldedVenue =
     commit.type === "talk"
@@ -189,6 +226,11 @@ export function normalizeCommit(
     iconOverride: commit.icon,
     present: commit.present,
     foldedTitle,
+    name,
+    details,
+    inline,
+    trailers: (commit as CommitWithTrailers).trailers,
+    decorations: (commit as CommitWithTrailers).decorations,
   };
 
   // Type-specific extraction
@@ -196,6 +238,7 @@ export function normalizeCommit(
     case "project": {
       return {
         ...identity,
+        mark: commitMark(commit, locale),
         languageBadge,
         title,
         description,
@@ -272,7 +315,7 @@ export function normalizeCommit(
     }
 
     case "event": {
-      // Life events render bare — no meta line, no links, no expand.
+      // Life events render bare: no meta line, no links, no expand.
       return {
         ...identity,
         languageBadge,

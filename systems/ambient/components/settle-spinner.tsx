@@ -6,13 +6,13 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { isSettling, subscribeSettle } from "../lib/settle";
 
 // ---------------------------------------------------------------------------
-// SettleSpinner — the sky is on its way from one state to another.
+// SettleSpinner: the sky is on its way from one state to another.
 //
 // A very small ring in the top-right corner, shown only while something that
 // is NOT routine is still arriving (lib/settle.ts): a location fix in flight, a
 // relocated forecast rolling in, the sun gliding to where a jump put it, the
 // compass re-aiming the window. The minute-by-minute drift of a live sky never
-// raises it — that would be a spinner that never went away, and a spinner that
+// raises it. That would be a spinner that never went away, and a spinner that
 // never goes away says nothing.
 //
 // It keeps out of the way twice over. It waits a beat before it appears

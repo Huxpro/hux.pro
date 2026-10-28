@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 790" width="760" height="790" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<rect x="0" y="0" width="760" height="790" fill="#ffffff"/>
+<text x="16" y="30" font-size="15" font-weight="600" fill="#1f2328">shared/providers.tsx, outermost first</text>
+<text x="26" y="60" font-size="11" font-weight="600" fill="#57606a">PROVIDER (nesting)</text>
+<text x="372" y="60" font-size="11" font-weight="600" fill="#57606a">OWNS · <tspan fill="#6e4b00">localStorage key</tspan> · <tspan fill="#0b5cad">↑ reads from a provider above</tspan></text>
+<rect x="16" y="74" width="728" height="676" rx="6" fill="#f6f8fa" stroke="#c9d1d9" stroke-width="1"/>
+<rect x="26" y="104" width="718" height="646" rx="6" fill="#ffffff" stroke="#c9d1d9" stroke-width="1"/>
+<rect x="36" y="134" width="708" height="616" rx="6" fill="#f6f8fa" stroke="#c9d1d9" stroke-width="1"/>
+<rect x="46" y="164" width="698" height="586" rx="6" fill="#ffffff" stroke="#c9d1d9" stroke-width="1"/>
+<rect x="56" y="194" width="688" height="556" rx="6" fill="#f6f8fa" stroke="#c9d1d9" stroke-width="1"/>
+<rect x="66" y="224" width="678" height="526" rx="6" fill="#ffffff" stroke="#c9d1d9" stroke-width="1"/>
+<rect x="76" y="254" width="668" height="496" rx="6" fill="#f6f8fa" stroke="#c9d1d9" stroke-width="1"/>
+<rect x="86" y="284" width="658" height="466" rx="6" fill="#ffffff" stroke="#c9d1d9" stroke-width="1"/>
+<rect x="96" y="330" width="648" height="420" rx="6" fill="#f6f8fa" stroke="#c9d1d9" stroke-width="1"/>
+<rect x="106" y="422" width="638" height="328" rx="6" fill="#ffffff" stroke="#c9d1d9" stroke-width="1"/>
+<rect x="116" y="452" width="628" height="298" rx="6" fill="#f6f8fa" stroke="#c9d1d9" stroke-width="1"/>
+<rect x="126" y="498" width="618" height="252" rx="6" fill="#ffffff" stroke="#c9d1d9" stroke-width="1"/>
+<rect x="136" y="528" width="608" height="222" rx="6" fill="#f6f8fa" stroke="#c9d1d9" stroke-width="1"/>
+<rect x="146" y="590" width="598" height="160" rx="6" fill="#ffffff" stroke="#c9d1d9" stroke-width="1"/>
+<rect x="156" y="636" width="588" height="114" rx="6" fill="#f6f8fa" stroke="#c9d1d9" stroke-width="1"/>
+<rect x="166" y="666" width="578" height="84" rx="6" fill="#ffffff" stroke="#c9d1d9" stroke-width="1"/>
+<text x="26" y="94" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328">PersistQueryClientProvider</text>
+<text x="372" y="94" font-size="12" fill="#24292f"><tspan>queryClient, cached in </tspan><tspan font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" fill="#6e4b00">hux_query_cache</tspan></text>
+<text x="36" y="124" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328">InputCapabilityProvider</text>
+<text x="372" y="124" font-size="12" fill="#24292f"><tspan>touch or mouse; a fine hover pointer</tspan></text>
+<text x="46" y="154" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328">ThemeProvider</text>
+<text x="372" y="154" font-size="12" fill="#24292f"><tspan>light / dark / system / sun, </tspan><tspan font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" fill="#6e4b00">hux_theme</tspan></text>
+<text x="56" y="184" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328">GlassProvider</text>
+<text x="372" y="184" font-size="12" fill="#24292f"><tspan>Tinted / Clear and tint, </tspan><tspan font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" fill="#6e4b00">hux_glass</tspan><tspan>, </tspan><tspan font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" fill="#6e4b00">hux_glass_tint</tspan></text>
+<text x="66" y="214" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328">LocaleProvider</text>
+<text x="372" y="214" font-size="12" fill="#24292f"><tspan>en / zh, </tspan><tspan font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" fill="#6e4b00">locale</tspan></text>
+<text x="76" y="244" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328">VisitorProvider</text>
+<text x="372" y="244" font-size="12" fill="#24292f"><tspan>the last visit, </tspan><tspan font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" fill="#6e4b00">hux_visitor</tspan></text>
+<text x="86" y="274" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328">CommandProvider</text>
+<text x="372" y="274" font-size="12" fill="#24292f"><tspan>⌘K open and mode; where Ask sits</tspan></text>
+<text x="96" y="304" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328">DevtoolWrapper › DevtoolProvider</text>
+<text x="372" y="304" font-size="12" fill="#24292f"><tspan>the devtool and its overrides, </tspan><tspan font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" fill="#6e4b00">hux_devtool</tspan></text>
+<text x="372" y="320" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#0b5cad">↑ useCommand() → props isCommandOpen, closeCommand</text>
+<text x="106" y="350" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328">AmbientWrapper › AmbientProvider</text>
+<text x="372" y="350" font-size="12" fill="#24292f"><tspan>location, weather, time, solar theme, wallpaper</tspan></text>
+<text x="372" y="366" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#0b5cad">↑ useTheme() → prop theme · useDevtool()</text>
+<rect x="110" y="380" width="246" height="38" rx="4" fill="none" stroke="#8c959f" stroke-dasharray="4 3"/>
+<text x="116" y="396" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="400" fill="#1f2328">GlowPaletteBridge</text>
+<text x="372" y="396" font-size="12" fill="#24292f"><tspan>wallpaper tint to the glow; renders nothing</tspan></text>
+<text x="372" y="412" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#0b5cad">↑ useWallpaper()</text>
+<text x="116" y="442" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328">MusicProvider</text>
+<text x="372" y="442" font-size="12" fill="#24292f"><tspan>the music player and playlist</tspan></text>
+<text x="126" y="472" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328">TheaterProvider</text>
+<text x="372" y="472" font-size="12" fill="#24292f"><tspan>the video player; theater / PiP / minimized</tspan></text>
+<text x="372" y="488" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#0b5cad">↑ useOptionalMusic() · useInputCapability()</text>
+<text x="136" y="518" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328">WindowProvider</text>
+<text x="372" y="518" font-size="12" fill="#24292f"><tspan>open app windows, z-order, minimized</tspan></text>
+<text x="146" y="548" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328">AttachmentProvider</text>
+<text x="372" y="548" font-size="12" fill="#24292f"><tspan>where a commit's media opens</tspan></text>
+<text x="372" y="564" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#0b5cad">↑ useLocale() · useOptionalTheaterStage()</text>
+<text x="372" y="580" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#0b5cad">↑ useOptionalWindows()</text>
+<text x="156" y="610" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328">IdentityCardProvider</text>
+<text x="372" y="610" font-size="12" fill="#24292f"><tspan>the identity card</tspan></text>
+<text x="372" y="626" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#0b5cad">↑ useLocale()</text>
+<text x="166" y="656" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328">InstallProvider</text>
+<text x="372" y="656" font-size="12" fill="#24292f"><tspan>Add to Home Screen</tspan></text>
+<text x="176" y="686" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#1f2328">AboutProvider</text>
+<text x="372" y="686" font-size="12" fill="#24292f"><tspan>the About overlay, </tspan><tspan font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" fill="#6e4b00">hux_about_seen</tspan></text>
+<text x="372" y="702" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#0b5cad">↑ useCommand()</text>
+<text x="186" y="732" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="400" fill="#57606a">{children}</text>
+<text x="372" y="732" font-size="12" fill="#24292f"><tspan>app/layout.tsx: the page, </tspan><tspan font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" fill="#24292f">&lt;Dock&gt;</tspan><tspan>, sheets, </tspan><tspan font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" fill="#24292f">&lt;CommandPalette&gt;</tspan></text>
+<text x="16" y="776" font-size="11.5" fill="#57606a">Each box holds every row below it. A provider that reads another stays inside it; the wrappers turn a read into props.</text>
+</svg>

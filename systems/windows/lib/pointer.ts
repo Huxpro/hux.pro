@@ -1,5 +1,5 @@
 // =============================================================================
-// armPointer — one pointer-down, three outcomes: tap · long-press · drag
+// armPointer: one pointer-down, three outcomes (tap · long-press · drag)
 //
 // A press on the window chrome (the dots pill, or the top-edge drag band) can
 // mean any of three things. We disambiguate the way native controls do:
@@ -11,7 +11,7 @@
 
 /**
  * How far a finger may wander and still be called a tap. One number for the
- * window's gestures, wherever they are read — the desktop pill arms a pointer
+ * window's gestures, wherever they are read. The desktop pill arms a pointer
  * with it, and the phone grip, which cannot use `armPointer` at all (see the
  * note at the top of window-grip.tsx), measures its own release against it.
  */

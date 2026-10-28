@@ -13,15 +13,15 @@ import { useWeather } from "../provider";
 import { TYPE } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 // ---------------------------------------------------------------------------
-// WeatherNow — the shared weather "body".
+// WeatherNow: the shared weather "body".
 //
 // The mirror of <NowPlaying /> in the music system: a pure presentational card
 // body bound to the ambient provider, reused by both the homepage WeatherWidget
 // and the dock phase-change panel so the readout stays identical everywhere.
 //
 // `useDisplayWeather()` centralises the data resolution (debug overrides,
-// stale-while-revalidate, dev "empty" flag) so any consumer — the body here or
-// the widget's own header icon — sees the same effective weather.
+// stale-while-revalidate, dev "empty" flag) so any consumer (the body here or
+// the widget's own header icon) sees the same effective weather.
 // ---------------------------------------------------------------------------
 
 export interface DisplayWeather {

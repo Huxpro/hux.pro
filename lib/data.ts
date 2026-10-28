@@ -10,7 +10,7 @@ export interface BlogPostMeta extends LocalizedContent {
 }
 
 // Talks live in content/log.json (type: "talk"). Do not keep a parallel
-// catalog here — the old placeholder entries were fiction.
+// catalog here. The old placeholder entries were fiction.
 
 // Static data for client-side search in command palette
 // This mirrors the MDX frontmatter for quick access without fs
@@ -30,6 +30,17 @@ export const blogPosts: BlogPostMeta[] = [
     description: "Taking this chance to reflect on myself",
     date: "2020-07-05",
     tags: ["知乎", "Meta"],
+  },
+  {
+    slug: "pl-chart",
+    language: "both",
+    title: "My Biased View of Programming Languages (in 2020)",
+    titleZh: "我带着偏见的编程语言观（2020）",
+    description:
+      "Every programming language I've written, by how interesting it is to me and how much I've used it.",
+    descriptionZh: "我写过的每一门编程语言：对我来说有多有趣，我用得有多深。",
+    date: "2020-05-04",
+    tags: ["Programming Languages", "PLT"],
   },
   {
     slug: "react-hooks-vue-composition",

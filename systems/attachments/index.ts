@@ -1,12 +1,12 @@
 // =============================================================================
-// Attachments System — one door for everything a commit attaches.
+// Attachments System: one door for everything a commit attaches.
 //
 // A commit on /works carries media: link cards, videos, slide decks, images,
-// social widgets. Each used to open its own way — a video to the theater, a
+// social widgets. Each used to open its own way: a video to the theater, a
 // deck to a lightbox of its own, a card to a new tab, a cover on a phone to
 // nothing at all. This system holds one decision instead (lib/policy.ts):
 //
-//   phone     everything opens the attachment surface — a bottom sheet paging
+//   phone     everything opens the attachment surface, a bottom sheet paging
 //             through the commit's attachments, each with its native action.
 //   desktop   a video or a deck goes to the theater's stage; a link card to an
 //             in-app browser window (systems/windows), or a tab when the page

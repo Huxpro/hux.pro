@@ -56,7 +56,7 @@ export function AmbientSurface({ children }: { children: React.ReactNode }) {
         ground={ground}
         backdrop={
           <>
-            {/* The page's own ground inside the bezel — white in light. */}
+            {/* The page's own ground inside the bezel: white in light. */}
             {bezel && (
               <div
                 aria-hidden="true"

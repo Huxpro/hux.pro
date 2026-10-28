@@ -9,19 +9,19 @@ import type { Media } from "@/lib/log";
  * The editor's inspect handle on a piece of media.
  *
  * One overlay, used by the strip, the feed grid, the leftover renderer,
- * and anything else a commit prints — so inspect mode can keep the same
+ * and anything else a commit prints, so inspect mode can keep the same
  * attachment object /works uses, instead of swapping in a different
  * layout just to host the handle.
  *
  * In inspect mode the whole media area is the selection target, not just the
- * handle in its corner. The affordances underneath are real doors — a tile
+ * handle in its corner. The affordances underneath are real doors: a tile
  * is an `<a href>` so ⌘-click and "copy link address" keep working, and it
  * only calls `preventDefault` when a set is handed to it. The editor hands
  * it none (`commit-embed`: inspect selects, it does not open), so left
  * alone a press on a 112px cover followed the href and left the site,
  * with a 24px handle the only part of it that selected. So this wrapper
  * takes the press in the capture phase, before the affordance sees it.
- * Modified clicks still belong to the browser — that is the one way out to
+ * Modified clicks still belong to the browser. That is the one way out to
  * the source while editing.
  */
 export function InspectableMedia({
@@ -73,7 +73,7 @@ export function InspectableMedia({
         )}
       />
       {/* The visible affordance and the keyboard target. The press itself is
-          the wrapper's (`select`, above) — this says where it is. */}
+          the wrapper's (`select`, above); this says where it is. */}
       <button
         type="button"
         onClick={select}

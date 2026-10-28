@@ -1,5 +1,5 @@
 // =============================================================================
-// Theater System — Types
+// Theater System: Types
 //
 // The Theater is the immersive video system: an album (playlist) of tracks
 // (videos) played in a large desktop modal, a floating cross-platform
@@ -11,15 +11,15 @@
 import type { VideoPlatform } from "@/lib/log";
 
 /**
- * What a track can be. The theater began as a video player; a slide deck is
- * the other thing a talk leaves behind, and it belongs on the same stage —
- * same 16:9 box, same title bar, same playlist rail, same prev / next. A deck
- * is a track with no audio and no transport, which is all that differs.
+ * What a track can be. The theater began as a video player. A slide deck is
+ * the other thing a talk leaves behind, and it belongs on the same stage: the
+ * same 16:9 box, title bar, playlist rail and prev / next. The only difference
+ * is that a deck is a track with no audio and no transport.
  */
 export type TrackKind = "video" | "slides";
 
 interface TrackBase {
-  /** Stable id — the source commit id, or a synthetic id for ad-hoc tracks. */
+  /** Stable id: the source commit id, or a synthetic id for ad-hoc tracks. */
   id: string;
   kind: TrackKind;
   /**
@@ -53,7 +53,7 @@ export interface VideoTrack extends TrackBase {
 
 /**
  * An HTML slide deck (reveal.js). Plays in a plain iframe on the stage; the
- * deck drives itself — arrow keys, taps — so the theater draws no transport
+ * deck drives itself (arrow keys, taps), so the theater draws no transport
  * for it. It still minimizes to the Live Activity like anything else on the
  * stage: the pill is a place to keep a deck open, not only a place to listen.
  */
@@ -65,7 +65,7 @@ export interface SlidesTrack extends TrackBase {
 
 export type Track = VideoTrack | SlidesTrack;
 
-/** A named playlist — one of the home widget's "albums" (React / Lynx / …). */
+/** A named playlist: one of the home widget's "albums" (React / Lynx / …). */
 export interface Album {
   id: string;
   title: string;
@@ -74,10 +74,10 @@ export interface Album {
 
 /**
  * Where the player is currently surfaced:
- *  - `closed`  — not shown; player stopped.
- *  - `theater` — the large immersive modal (tablet+ / desktop default).
- *  - `pip`     — the floating Picture-in-Picture window (phone default, or a
- *                fallback toggled from theater).
+ *  - `closed`:  not shown; player stopped.
+ *  - `theater`: the large immersive modal (tablet+ / desktop default).
+ *  - `pip`:     the floating Picture-in-Picture window (phone default, or a
+ *               fallback toggled from theater).
  */
 export type TheaterMode = "closed" | "theater" | "pip";
 
