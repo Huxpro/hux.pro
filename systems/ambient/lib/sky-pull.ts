@@ -47,9 +47,17 @@
 // and narrowly: at the top of the page, moving down more than sideways, and
 // soon after the finger landed (a finger that rested first is picking up a
 // widget, TOUCH_ACTIVATION's hold).
+//
+// That cancelling listener is the one thing here that costs the page anything:
+// while a non-passive touchmove is listened for, the browser has to ask the
+// main thread before it may scroll. So it is only there while the page is at
+// its top, where a pull can start at all, and taken off as soon as the page
+// scrolls away. It cannot wait for the touchstart instead: whether a touch's
+// moves can be cancelled is settled when the touch begins, from the listeners
+// already there.
 // =============================================================================
 
-import { pageScrollTop } from "vitre";
+import { onPageScroll, pageScrollTop } from "vitre";
 import { isBackgroundClick } from "./poke";
 import type { PermissionStatus } from "./permissions";
 import { onSystemSurface } from "./tilt-primer";
@@ -295,17 +303,29 @@ export function attachSkyPull(handlers: SkyPullHandlers): () => void {
     }
   };
 
-  document.addEventListener("touchstart", onStart, { passive: true });
   // Not passive: a claimed pull cancels the browser's own rubber band and
-  // pull-to-refresh, which would otherwise run underneath it.
-  document.addEventListener("touchmove", onMove, { passive: false });
+  // pull-to-refresh, which would otherwise run underneath it. Only at the top
+  // of the page, though — see the header. (Below zero is iOS's own bounce.)
+  let listening = false;
+  const listen = (on: boolean) => {
+    if (on === listening) return;
+    listening = on;
+    if (on) document.addEventListener("touchmove", onMove, { passive: false });
+    else document.removeEventListener("touchmove", onMove);
+  };
+  const onScroll = () => listen(claimed === true || pageScrollTop() <= 0);
+
+  document.addEventListener("touchstart", onStart, { passive: true });
   document.addEventListener("touchend", onEnd);
   document.addEventListener("touchcancel", onEnd);
+  const stopScroll = onPageScroll(onScroll);
+  onScroll();
   return () => {
     document.removeEventListener("touchstart", onStart);
-    document.removeEventListener("touchmove", onMove);
     document.removeEventListener("touchend", onEnd);
     document.removeEventListener("touchcancel", onEnd);
+    stopScroll();
+    listen(false);
     if (claimed) settlePull();
     reset();
   };

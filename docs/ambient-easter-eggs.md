@@ -395,6 +395,12 @@ timestamps, since a finger that rested first is picking up a widget. In the
 window every move over the sky is cancelled; a sheet or the Dock keeps its own
 touches, and taps still reach the strike and the meteor.
 
+The non-passive `touchmove` listener is attached only at the page's top
+(including iOS bounce), or while a pull is claimed. `onPageScroll` follows
+the active scroll container and removes the listener when the page leaves
+the top, so ordinary scrolling does not wait on this recognizer. Detaching
+the recognizer removes both listeners.
+
 ### Asking for the window
 
 On WebKit motion is behind `DeviceOrientationEvent.requestPermission()`, so
